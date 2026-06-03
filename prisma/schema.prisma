@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId   String   @unique
+  slug        String   @unique
+  name        String
+  category    String
+  price       Float
+  rating      Float
+  reviews     Int
+  image       String
+  description String
+  stock       Int
+  tags           String[] @default([])
+  variantImages  String[] @default([])
+  /** Extra images for the product page gallery carousel (lifestyle, detail shots). */
+  galleryImages  String[] @default([])
+  createdAt      DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("products")
+}
+
+model TagCollection {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  tagId      String   @unique
+  productIds String[] @default([])
+  updatedAt  DateTime @updatedAt
+
+  @@map("tag_collections")
+}
