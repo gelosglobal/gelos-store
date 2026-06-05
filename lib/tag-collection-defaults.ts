@@ -1,4 +1,5 @@
 import { bestSellerIds } from '@/lib/best-seller-meta'
+import { featuredHeroProductIds } from '@/lib/featured-hero-meta'
 import { newArrivalProductIds } from '@/lib/new-arrivals'
 import type { ProductTagId } from '@/lib/product-tags'
 
@@ -8,6 +9,7 @@ export const defaultTagCollectionOrders: Partial<
 > = {
   'best-seller': bestSellerIds,
   'new-arrival': newArrivalProductIds,
+  featured: featuredHeroProductIds,
 }
 
 export function getDefaultTagCollectionOrder(

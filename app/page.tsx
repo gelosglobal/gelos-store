@@ -2,46 +2,18 @@
 
 import Link from 'next/link'
 import { BestSellers } from '@/components/best-sellers'
-import { FeaturedProduct } from '@/components/featured-product'
+import { FeaturedProductsHero } from '@/components/featured-products-hero'
 import { LifestyleGallery } from '@/components/lifestyle-gallery'
 import { ShopByCollection } from '@/components/shop-by-collection'
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Hero Section — full-bleed video card */}
-      <section className="px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-12 xl:px-12 xl:py-14">
-        <div className="relative mx-auto flex min-h-[min(85vh,640px)] w-full max-w-7xl flex-col items-center justify-center overflow-hidden rounded-[2rem] shadow-xl md:min-h-[560px] lg:max-w-[90rem] lg:min-h-[min(78vh,820px)] lg:rounded-[2.5rem] xl:max-w-[100rem] xl:min-h-[min(82vh,900px)]">
-          <video
-            className="absolute inset-0 h-full w-full object-cover"
-            src="/gelos/GELOS%20VIDEO.mp4"
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="auto"
-          />
-          <div className="pointer-events-none absolute inset-0 bg-black/35" />
-          <div className="relative z-10 flex flex-col items-center justify-center px-6 py-16 text-center sm:py-20 lg:px-12 lg:py-24 xl:py-28">
-            <h1 className="max-w-4xl text-4xl font-bold tracking-tight text-white text-balance sm:text-6xl lg:text-7xl">
-              Brighten Your Smile
-            </h1>
-            <Link
-              href="/shop"
-              className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#D4FF59] px-8 py-4 text-base font-bold text-[#1a2e05] transition-all hover:bg-[#c8f24d] hover:shadow-lg hover:shadow-black/20 sm:mt-10"
-            >
-              Explore Products
-              <span aria-hidden>→</span>
-            </Link>
-          </div>
-        </div>
-      </section>
+      <FeaturedProductsHero />
 
       <BestSellers />
 
       <ShopByCollection className="bg-muted/20" />
-
-      <FeaturedProduct />
 
       <LifestyleGallery />
 
