@@ -1,3 +1,4 @@
+import { migrateChatMessages } from '@/lib/gelos-ai/welcome-message'
 import type { GelosAiMessage } from '@/lib/gelos-ai/types'
 import type { SmileScanReport } from '@/lib/gelos-ai/smile-scan-types'
 
@@ -84,12 +85,14 @@ export function clearSmileScanSession(): void {
 export function loadChatMessages(): GelosAiMessage[] | null {
   const messages = readJson<GelosAiMessage[]>(KEYS.chat)
   if (!Array.isArray(messages) || messages.length === 0) return null
-  return messages.filter(
+  const filtered = messages.filter(
     (message) =>
       message &&
       (message.role === 'user' || message.role === 'assistant') &&
       typeof message.content === 'string',
   )
+  if (!filtered.length) return null
+  return migrateChatMessages(filtered)
 }
 
 export function saveChatMessages(messages: GelosAiMessage[]): void {

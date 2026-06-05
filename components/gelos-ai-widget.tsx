@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { GelosAiMessage } from '@/lib/gelos-ai/types'
+import { CHAT_WELCOME_MESSAGE } from '@/lib/gelos-ai/welcome-message'
 
 const STARTER_PROMPTS = [
   'Which toothpaste flavor should I try first?',
@@ -22,11 +23,7 @@ const STARTER_PROMPTS = [
 
 const GELOS_AI_AVATAR = '/gelos/gelos-doc.png'
 
-const WELCOME_MESSAGE: GelosAiMessage = {
-  role: 'assistant',
-  content:
-    "Hi, I'm **Gelos AI** — your smile care guide. Ask me about flavors, whitening, mouthwash, bundles, or finding the right product for your routine.",
-}
+const WELCOME_MESSAGE = CHAT_WELCOME_MESSAGE
 
 export function GelosAiWidget() {
   const pathname = usePathname()
@@ -128,8 +125,8 @@ export function GelosAiWidget() {
             <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/55 to-neutral-950/10" />
             <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 px-4 pb-3 pt-8 text-white">
               <div>
-                <p className="text-sm font-semibold tracking-wide">Gelos AI</p>
-                <p className="text-xs text-neutral-300">Your smile care guide</p>
+                <p className="text-sm font-semibold tracking-wide">Wellness expert</p>
+                <p className="text-xs text-neutral-300">Your Gelos smile care guide</p>
               </div>
               <div className="flex items-center gap-1">
                 <Link
@@ -266,11 +263,11 @@ export function GelosAiWidget() {
               />
             </Link>
             <span
-              className="absolute top-0.5 right-0.5 flex h-3.5 w-3.5"
+              className="absolute top-1 right-1 flex h-2.5 w-2.5"
               aria-hidden
             >
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-80" />
-              <span className="relative inline-flex h-3.5 w-3.5 animate-pulse rounded-full bg-red-500 ring-2 ring-white" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-40 [animation-duration:2s]" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500 ring-1 ring-white" />
             </span>
           </div>
         )}

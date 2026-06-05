@@ -22,7 +22,7 @@ type AiFeature = 'chat' | 'scan' | 'dentist'
 const features = [
   {
     id: 'chat' as const,
-    label: 'Ask Gelos AI',
+    label: 'Ask wellness expert',
     description: 'Product advice, routines & flavor picks',
     icon: MessageCircle,
     accent: 'bg-[#84CC16]',
@@ -140,7 +140,7 @@ function GelosAiPageContent() {
           {active === 'chat' && (
             <div>
               <div className="mb-4">
-                <h2 className="text-2xl font-semibold">Ask Gelos AI</h2>
+                <h2 className="text-2xl font-semibold">Ask a wellness expert</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Get product recommendations, compare flavors, and build your routine.
                 </p>

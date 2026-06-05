@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { loadChatMessages, saveChatMessages } from '@/lib/gelos-ai/session-storage'
 import type { GelosAiMessage } from '@/lib/gelos-ai/types'
+import { CHAT_WELCOME_MESSAGE } from '@/lib/gelos-ai/welcome-message'
 
 const STARTER_PROMPTS = [
   'I am new to Gelos — where should I start?',
@@ -20,11 +21,7 @@ const STARTER_PROMPTS = [
   'Any bundles or promos worth using today?',
 ] as const
 
-const WELCOME_MESSAGE: GelosAiMessage = {
-  role: 'assistant',
-  content:
-    "Hi, I'm **Gelos AI** — your Gelos product expert.\n\nAsk me to compare flavors, pick whitening products, build a daily routine, or find the best value. I'll recommend real products with prices and links.",
-}
+const WELCOME_MESSAGE = CHAT_WELCOME_MESSAGE
 
 type AiChatPanelProps = {
   className?: string
