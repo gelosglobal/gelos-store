@@ -16,13 +16,11 @@ export type FeaturedHeroSlide = {
   ctaLabel?: string
 }
 
-/** Default homepage featured slider order */
+/** Default homepage featured slider order (hero shows first 3 only) */
 export const featuredHeroProductIds = [
   '1',
   '9',
   '3',
-  '10',
-  '12',
 ] as const
 
 export const featuredHeroSlides: Record<string, FeaturedHeroSlide> = {
@@ -42,7 +40,7 @@ export const featuredHeroSlides: Record<string, FeaturedHeroSlide> = {
     bodyHighlight: 'NEW Grape Mint Fruit Energy.',
     bodyTail: ' Order NOW.',
     image: '/gelos/mango-inhaler.png',
-    imageFit: 'cover',
+    imageFit: 'contain',
   },
   '3': {
     productId: '3',
@@ -50,6 +48,7 @@ export const featuredHeroSlides: Record<string, FeaturedHeroSlide> = {
     bodyLead: 'Professional-grade color correction for a brighter-looking smile. ',
     bodyHighlight: 'V34 Shade Correction Kit.',
     bodyTail: ' Order NOW.',
+    image: '/gelos/GELOS1967.jpg',
     imageFit: 'cover',
   },
   // '10': {
