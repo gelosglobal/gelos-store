@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ExternalLink, Loader2, Send, Sparkles, X } from 'lucide-react'
+import { ExternalLink, Loader2, Send, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import {
   GelosAiMessageContent,
@@ -19,6 +19,8 @@ const STARTER_PROMPTS = [
   'What is the V34 Shade Correction Kit?',
   'Help me build a complete oral care routine',
 ] as const
+
+const GELOS_AI_AVATAR = '/gelos/gelos-doc.png'
 
 const WELCOME_MESSAGE: GelosAiMessage = {
   role: 'assistant',
@@ -114,33 +116,39 @@ export function GelosAiWidget() {
           )}
           aria-hidden={!open}
         >
-          <div className="flex items-center justify-between border-b border-neutral-100 bg-neutral-950 px-4 py-3 text-white">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#84CC16] text-neutral-950">
-                <Sparkles className="h-4 w-4" strokeWidth={2.25} />
-              </div>
+          <div className="relative h-32 overflow-hidden border-b border-neutral-100 sm:h-36">
+            <Image
+              src={GELOS_AI_AVATAR}
+              alt="Gelos AI smile care guide"
+              fill
+              className="object-cover object-[center_20%]"
+              sizes="384px"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/55 to-neutral-950/10" />
+            <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 px-4 pb-3 pt-8 text-white">
               <div>
                 <p className="text-sm font-semibold tracking-wide">Gelos AI</p>
-                <p className="text-xs text-neutral-400">Your smile care guide</p>
+                <p className="text-xs text-neutral-300">Your smile care guide</p>
               </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <Link
-                href="/ai"
-                onClick={() => setOpen(false)}
-                className="rounded-lg p-1.5 text-neutral-300 transition-colors hover:bg-white/10 hover:text-white"
-                aria-label="Open Gelos AI platform"
-              >
-                <ExternalLink className="h-4 w-4" />
-              </Link>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="rounded-lg p-1.5 text-neutral-300 transition-colors hover:bg-white/10 hover:text-white"
-                aria-label="Close Gelos AI"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <Link
+                  href="/ai"
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg p-1.5 text-neutral-200 transition-colors hover:bg-white/10 hover:text-white"
+                  aria-label="Open Gelos AI platform"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg p-1.5 text-neutral-200 transition-colors hover:bg-white/10 hover:text-white"
+                  aria-label="Close Gelos AI"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -243,24 +251,28 @@ export function GelosAiWidget() {
             <X className="h-5 w-5" />
           </button>
         ) : (
-          <Link
-            href="/ai"
-            className="pointer-events-auto group flex items-center gap-2 rounded-full bg-neutral-950 px-4 py-3 text-sm font-semibold text-white shadow-xl transition-all hover:bg-neutral-800"
-            aria-label="Open Gelos AI platform"
-          >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#84CC16] text-neutral-950">
-              <Sparkles className="h-4 w-4" strokeWidth={2.25} />
-            </span>
-            <span className="hidden sm:inline">Gelos AI</span>
-            <Image
-              src="/gelos/gelos-logo.png"
-              alt=""
-              width={56}
-              height={14}
-              className="hidden h-3.5 w-auto opacity-80 sm:block"
+          <div className="pointer-events-auto relative">
+            <Link
+              href="/ai"
+              className="relative block h-14 w-14 overflow-hidden rounded-full shadow-xl ring-2 ring-[#84CC16] transition-transform hover:scale-105"
+              aria-label="Open Gelos AI platform"
+            >
+              <Image
+                src={GELOS_AI_AVATAR}
+                alt="Gelos AI smile care guide"
+                fill
+                className="object-cover object-[center_20%]"
+                sizes="56px"
+              />
+            </Link>
+            <span
+              className="absolute top-0.5 right-0.5 flex h-3.5 w-3.5"
               aria-hidden
-            />
-          </Link>
+            >
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-80" />
+              <span className="relative inline-flex h-3.5 w-3.5 animate-pulse rounded-full bg-red-500 ring-2 ring-white" />
+            </span>
+          </div>
         )}
       </div>
     </>

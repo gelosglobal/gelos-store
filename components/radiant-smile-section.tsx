@@ -9,6 +9,17 @@ export function RadiantSmileSection() {
   return (
     <>
       <SplitLifestyleSection
+        id="bundles-heading"
+        imageSrc="/gelos/GELOS1530.jpg"
+        imageAlt="Friends smiling with Gelos toothpaste bundles"
+        imagePosition="left"
+        heading="Build your perfect smile bundle."
+        description="Mix and match Gelos favorites — flavored toothpastes, mouthwashes, and whitening picks — into one routine that fits your smile goals and saves you more."
+        ctaHref="/shop?bundles=true"
+        ctaLabel="Shop bundles"
+      />
+
+      {/* <SplitLifestyleSection
         id="radiant-smile-heading"
         imageSrc={fairImage.src}
         imageAlt={fairImage.alt}
@@ -16,17 +27,7 @@ export function RadiantSmileSection() {
         heading="Toothpaste they'll actually look forward to using."
         description="Gelos flavored toothpastes make daily brushing feel fresh and fun — with bold fruit-inspired flavors and dentist-trusted care in every squeeze."
         ctaHref="/shop?category=Toothpaste"
-      />
-
-      <SplitLifestyleSection
-        id="water-flosser-heading"
-        imageSrc="/gelos/GELOS1674.jpg"
-        imageAlt="Person using the Gelos portable water flosser"
-        imagePosition="left"
-        heading="A deeper clean between every tooth."
-        description="The Gelos water flosser gently removes plaque and debris where brushing can't reach — for fresher gums and a cleaner smile in minutes."
-        ctaHref="/shop?category=Accessories"
-      />
+      /> */}
     </>
   )
 }

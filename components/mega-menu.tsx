@@ -83,16 +83,16 @@ export function MegaMenu({ onNavigate }: MegaMenuProps) {
 
         <div className="mt-auto hidden p-4 lg:block">
           <Link
-            href="/shop"
+            href="/shop?bundles=true"
             onClick={onNavigate}
             className="group relative block overflow-hidden rounded-2xl"
           >
             <div className="relative aspect-[4/3] w-full">
               <Image
-                src="/gelos/watermelon-toothpaste.png"
-                alt=""
+                src="/gelos/GELOS1530.jpg"
+                alt="Friends smiling with Gelos toothpaste bundles"
                 fill
-                className="object-cover"
+                className="object-cover object-center"
                 sizes="280px"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />

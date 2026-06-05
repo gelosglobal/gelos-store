@@ -1,6 +1,7 @@
 'use client'
 
 import { BestSellers } from '@/components/best-sellers'
+import { NewArrivals } from '@/components/new-arrivals'
 import { FeaturedProductsHero } from '@/components/featured-products-hero'
 import { LifestyleGallery } from '@/components/lifestyle-gallery'
 import { LifestylePromoBanner } from '@/components/lifestyle-promo-banner'
@@ -17,6 +18,8 @@ export default function Home() {
       <StockistsMarquee />
 
       <BestSellers />
+
+      <NewArrivals />
 
       <ShopByCollection className="bg-muted/20" />
 
