@@ -11,15 +11,25 @@ import {
 } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import type { CartEntry } from '@/lib/cart-types'
+import type { AddToCartOptions, CartEntry } from '@/lib/cart-types'
+import { getCartLineKey } from '@/lib/cart-line-key'
+import { normalizeImageUrl } from '@/lib/image-url'
+import {
+  getCartDisplayName,
+  getProductLineVariantLabel,
+} from '@/lib/variant-display'
 import { useProducts } from '@/components/products-provider'
 import type { Product } from '@/lib/types/product'
 
 const CART_STORAGE_KEY = 'gelos-cart'
 
 export type CartLineItem = {
+  lineKey: string
   id: string
+  productName: string
   name: string
+  variantLabel?: string
+  variantImage?: string
   price: number
   image: string
   quantity: number
@@ -29,9 +39,13 @@ type CartContextValue = {
   items: CartLineItem[]
   itemCount: number
   isHydrated: boolean
-  addItem: (productId: string, quantity?: number) => void
-  removeItem: (productId: string) => void
-  setQuantity: (productId: string, quantity: number) => void
+  addItem: (
+    productId: string,
+    quantity?: number,
+    options?: AddToCartOptions,
+  ) => void
+  removeItem: (lineKey: string) => void
+  setQuantity: (lineKey: string, quantity: number) => void
   clearCart: () => void
 }
 
@@ -70,11 +84,22 @@ function entriesToLineItems(
     .map((entry) => {
       const product = products.find((p) => p.id === entry.productId)
       if (!product) return null
+
+      const variantLabel =
+        entry.variantLabel?.trim() || getProductLineVariantLabel(product)
+      const image = entry.variantImage
+        ? normalizeImageUrl(entry.variantImage)
+        : normalizeImageUrl(product.image)
+
       return {
+        lineKey: getCartLineKey(entry),
         id: product.id,
-        name: product.name,
+        productName: product.name,
+        name: getCartDisplayName(product.name, variantLabel),
+        variantLabel,
+        variantImage: entry.variantImage,
         price: product.price,
-        image: product.image,
+        image,
         quantity: entry.quantity,
       }
     })
@@ -106,39 +131,59 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [items],
   )
 
-  const addItem = useCallback((productId: string, quantity = 1) => {
-    const product = getProductById(productId)
-    if (!product) return
+  const addItem = useCallback(
+    (productId: string, quantity = 1, options?: AddToCartOptions) => {
+      const product = getProductById(productId)
+      if (!product) return
 
-    setEntries((prev) => {
-      const existing = prev.find((e) => e.productId === productId)
-      if (existing) {
-        return prev.map((e) =>
-          e.productId === productId
-            ? { ...e, quantity: e.quantity + quantity }
-            : e,
-        )
+      const variantImage = options?.variantImage?.trim() || undefined
+      const variantLabel =
+        options?.variantLabel?.trim() ||
+        (variantImage ? undefined : getProductLineVariantLabel(product))
+
+      const entry: CartEntry = {
+        productId,
+        quantity,
+        variantImage,
+        variantLabel,
       }
-      return [...prev, { productId, quantity }]
-    })
+      const lineKey = getCartLineKey(entry)
 
-    toast.success('Added to cart', {
-      description: product.name,
-      action: {
-        label: 'View cart',
-        onClick: () => router.push('/cart'),
-      },
-    })
-  }, [getProductById, router])
+      setEntries((prev) => {
+        const existing = prev.find((e) => getCartLineKey(e) === lineKey)
+        if (existing) {
+          return prev.map((e) =>
+            getCartLineKey(e) === lineKey
+              ? { ...e, quantity: e.quantity + quantity }
+              : e,
+          )
+        }
+        return [...prev, entry]
+      })
 
-  const removeItem = useCallback((productId: string) => {
-    setEntries((prev) => prev.filter((e) => e.productId !== productId))
+      const displayName = getCartDisplayName(product.name, variantLabel)
+
+      toast.success('Added to cart', {
+        description: displayName,
+        action: {
+          label: 'View cart',
+          onClick: () => router.push('/cart'),
+        },
+      })
+    },
+    [getProductById, router],
+  )
+
+  const removeItem = useCallback((lineKey: string) => {
+    setEntries((prev) => prev.filter((e) => getCartLineKey(e) !== lineKey))
   }, [])
 
-  const setQuantity = useCallback((productId: string, quantity: number) => {
+  const setQuantity = useCallback((lineKey: string, quantity: number) => {
     if (quantity < 1) return
     setEntries((prev) =>
-      prev.map((e) => (e.productId === productId ? { ...e, quantity } : e)),
+      prev.map((e) =>
+        getCartLineKey(e) === lineKey ? { ...e, quantity } : e,
+      ),
     )
   }, [])
 

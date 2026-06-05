@@ -3,49 +3,80 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight, ShoppingBag, Tag } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useCart } from '@/components/cart-provider'
 import { useLocation } from '@/components/location-provider'
+import { useStorePromotions } from '@/components/store-promotions-provider'
 import { CartLineItem } from '@/components/cart-line-item'
 import { getProductHref } from '@/lib/product-utils'
 import { useProducts } from '@/components/products-provider'
+import { calculateCheckoutTotals } from '@/lib/checkout'
+import { convertForLocation } from '@/lib/exchange-rates'
+import {
+  findActivePromo,
+  interpolatePromoLabel,
+  normalizePromoCode,
+} from '@/lib/store-promotions'
 import { cn } from '@/lib/utils'
-
-const FREE_SHIPPING_THRESHOLD = 200
-const SHIPPING_FEE = 15
 
 export default function CartPage() {
   const { items, isHydrated, removeItem, setQuantity } = useCart()
-  const { formatPrice } = useLocation()
+  const { formatPrice, locationId } = useLocation()
   const { products } = useProducts()
-  const [promoCode, setPromoCode] = useState('')
-  const [promoApplied, setPromoApplied] = useState(false)
+  const {
+    promotions,
+    appliedPromoCode,
+    setAppliedPromoCode,
+    loading: promotionsLoading,
+  } = useStorePromotions()
+  const [promoCode, setPromoCode] = useState(appliedPromoCode)
+  const [promoError, setPromoError] = useState('')
 
-  const subtotal = items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0,
+  useEffect(() => {
+    setPromoCode(appliedPromoCode)
+  }, [appliedPromoCode])
+
+  const appliedPromo = findActivePromo(appliedPromoCode, promotions.promos)
+
+  const { subtotal, discount, shipping, total } = calculateCheckoutTotals(
+    items,
+    {
+      promoCode: appliedPromoCode,
+      locationId,
+      promotions,
+    },
   )
-  const discount = promoApplied ? subtotal * 0.15 : 0
   const afterDiscount = subtotal - discount
-  const shipping =
-    items.length === 0
-      ? 0
-      : afterDiscount >= FREE_SHIPPING_THRESHOLD
-        ? 0
-        : SHIPPING_FEE
-  const total = afterDiscount + shipping
-
-  const amountToFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - afterDiscount)
-  const freeShippingProgress = Math.min(
-    100,
-    (afterDiscount / FREE_SHIPPING_THRESHOLD) * 100,
+  const freeShippingThreshold = convertForLocation(
+    promotions.freeShippingThreshold,
+    locationId,
   )
+
+  const amountToFreeShipping = Math.max(0, freeShippingThreshold - afterDiscount)
+  const freeShippingProgress =
+    promotions.freeShippingEnabled && freeShippingThreshold > 0
+      ? Math.min(100, (afterDiscount / freeShippingThreshold) * 100)
+      : 0
 
   const applyPromo = () => {
-    const code = promoCode.trim().toUpperCase()
-    if (code === 'WELCOME' || code === 'GELOS15') {
-      setPromoApplied(true)
+    const code = normalizePromoCode(promoCode)
+    if (!code) return
+
+    const promo = findActivePromo(code, promotions.promos)
+    if (!promo) {
+      setPromoError('That promo code is not valid or has expired.')
+      return
     }
+
+    setPromoError('')
+    setAppliedPromoCode(code)
+    setPromoCode(code)
+  }
+
+  const clearPromo = () => {
+    setAppliedPromoCode('')
+    setPromoCode('')
+    setPromoError('')
   }
 
   const cartProductIds = useMemo(
@@ -57,7 +88,12 @@ export default function CartPage() {
     .filter((p) => !cartProductIds.has(p.id))
     .slice(0, 4)
 
-  if (!isHydrated) {
+  const enabledPromoHints = promotions.promos
+    .filter((promo) => promo.enabled)
+    .slice(0, 3)
+    .map((promo) => promo.code)
+
+  if (!isHydrated || promotionsLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center bg-neutral-50 text-neutral-500">
         Loading cart…
@@ -84,32 +120,39 @@ export default function CartPage() {
         {items.length > 0 ? (
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
             <div className="space-y-4 lg:col-span-7 xl:col-span-8">
-              {shipping === 0 ? (
-                <p className="rounded-xl bg-[#D4FF59]/30 px-4 py-3 text-sm font-medium text-[#1a2e05]">
-                  You&apos;ve unlocked free shipping on this order.
-                </p>
-              ) : (
-                <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3">
-                  <div className="mb-2 flex justify-between text-sm">
-                    <span className="text-neutral-600">
-                      {formatPrice(amountToFreeShipping)} away from free shipping
-                    </span>
-                    <span className="font-medium text-neutral-950">
-                      {Math.round(freeShippingProgress)}%
-                    </span>
+              {promotions.freeShippingEnabled ? (
+                shipping === 0 ? (
+                  <p className="rounded-xl bg-[#D4FF59]/30 px-4 py-3 text-sm font-medium text-[#1a2e05]">
+                    {promotions.freeShippingUnlockedLabel}
+                  </p>
+                ) : (
+                  <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3">
+                    <div className="mb-2 flex justify-between text-sm">
+                      <span className="text-neutral-600">
+                        {interpolatePromoLabel(
+                          promotions.freeShippingProgressLabel,
+                          {
+                            amount: formatPrice(amountToFreeShipping),
+                          },
+                        )}
+                      </span>
+                      <span className="font-medium text-neutral-950">
+                        {Math.round(freeShippingProgress)}%
+                      </span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
+                      <div
+                        className="h-full rounded-full bg-[#84CC16] transition-all duration-500"
+                        style={{ width: `${freeShippingProgress}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
-                    <div
-                      className="h-full rounded-full bg-[#84CC16] transition-all duration-500"
-                      style={{ width: `${freeShippingProgress}%` }}
-                    />
-                  </div>
-                </div>
-              )}
+                )
+              ) : null}
 
               {items.map((item) => (
                 <CartLineItem
-                  key={item.id}
+                  key={item.lineKey}
                   item={item}
                   onQuantityChange={setQuantity}
                   onRemove={removeItem}
@@ -139,9 +182,11 @@ export default function CartPage() {
                         {formatPrice(subtotal)}
                       </span>
                     </div>
-                    {promoApplied && (
+                    {appliedPromo && discount > 0 && (
                       <div className="flex justify-between text-[#E91E8C]">
-                        <span>Promo (15% off)</span>
+                        <span>
+                          Promo ({appliedPromo.label || `${appliedPromo.discountPercent}% off`})
+                        </span>
                         <span className="font-medium tabular-nums">
                           −{formatPrice(discount)}
                         </span>
@@ -173,38 +218,65 @@ export default function CartPage() {
                       <input
                         type="text"
                         value={promoCode}
-                        onChange={(e) => setPromoCode(e.target.value)}
+                        onChange={(e) => {
+                          setPromoCode(e.target.value)
+                          setPromoError('')
+                        }}
                         placeholder="Promo code"
-                        disabled={promoApplied}
+                        disabled={Boolean(appliedPromo)}
                         className="w-full rounded-full border border-neutral-200 bg-neutral-50 py-2.5 pr-4 pl-10 text-sm outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950 disabled:opacity-60"
                       />
                     </div>
-                    <button
-                      type="button"
-                      onClick={applyPromo}
-                      disabled={promoApplied || !promoCode.trim()}
-                      className="shrink-0 rounded-full border border-neutral-200 px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {promoApplied ? 'Applied' : 'Apply'}
-                    </button>
+                    {appliedPromo ? (
+                      <button
+                        type="button"
+                        onClick={clearPromo}
+                        className="shrink-0 rounded-full border border-neutral-200 px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-neutral-50"
+                      >
+                        Remove
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={applyPromo}
+                        disabled={!promoCode.trim()}
+                        className="shrink-0 rounded-full border border-neutral-200 px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Apply
+                      </button>
+                    )}
                   </div>
-                  {promoApplied ? (
+                  {appliedPromo ? (
                     <p className="-mt-3 mb-4 text-xs text-[#E91E8C]">
-                      Code applied successfully.
+                      Code {appliedPromo.code} applied successfully.
                     </p>
-                  ) : (
+                  ) : promoError ? (
+                    <p className="-mt-3 mb-4 text-xs text-red-600">{promoError}</p>
+                  ) : enabledPromoHints.length > 0 ? (
                     <p className="-mt-3 mb-4 text-xs text-neutral-500">
-                      Try <span className="font-medium">WELCOME</span> or{' '}
-                      <span className="font-medium">GELOS15</span> for 15% off.
+                      Try{' '}
+                      {enabledPromoHints.map((code, index) => (
+                        <span key={code}>
+                          <button
+                            type="button"
+                            onClick={() => setPromoCode(code)}
+                            className="font-medium text-neutral-700 underline-offset-2 hover:underline"
+                          >
+                            {code}
+                          </button>
+                          {index < enabledPromoHints.length - 1 ? ' or ' : ''}
+                        </span>
+                      ))}{' '}
+                      for a discount.
                     </p>
-                  )}
+                  ) : null}
 
-                  <button
-                    type="button"
-                    className="w-full rounded-full bg-neutral-950 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800"
+                  <Link
+                    href="/checkout"
+                    className="flex w-full items-center justify-center rounded-full bg-neutral-950 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800"
                   >
                     Proceed to checkout
-                  </button>
+                  </Link>
                   <Link
                     href="/shop"
                     className="mt-3 flex w-full items-center justify-center rounded-full border border-neutral-200 py-3.5 text-sm font-semibold text-neutral-950 transition-colors hover:bg-neutral-50"
@@ -212,10 +284,12 @@ export default function CartPage() {
                     Continue shopping
                   </Link>
 
-                  <p className="mt-5 text-center text-xs text-neutral-500">
-                    Free shipping on orders over{' '}
-                    {formatPrice(FREE_SHIPPING_THRESHOLD)}
-                  </p>
+                  {promotions.freeShippingEnabled ? (
+                    <p className="mt-5 text-center text-xs text-neutral-500">
+                      Free {promotions.freeShippingRewardLabel} on orders over{' '}
+                      {formatPrice(promotions.freeShippingThreshold)}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </div>

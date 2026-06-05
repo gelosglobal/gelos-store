@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import {
+  Bot,
   Droplets,
   Flame,
   Waves,
@@ -38,6 +39,12 @@ export const mainNavLinks: MainNavLink[] = [
     label: 'New arrivals',
     href: '/shop?new-arrivals=true',
     icon: Sparkles,
+  },
+  {
+    id: 'gelos-ai',
+    label: 'Gelos AI',
+    href: '/ai',
+    icon: Bot,
   },
 ]
 

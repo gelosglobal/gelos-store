@@ -11,7 +11,6 @@ import {
   Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { DatabaseStatusBanner } from '@/components/admin/database-status-banner'
 import { AdminPageHeader } from '@/components/admin/admin-page-header'
 import { Button } from '@/components/ui/button'
 import {
@@ -39,7 +38,6 @@ export function TagCollectionEditor({ tagId }: TagCollectionEditorProps) {
   const [allProducts, setAllProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [databaseConnected, setDatabaseConnected] = useState(false)
   const [addProductId, setAddProductId] = useState('')
 
   const load = useCallback(async () => {
@@ -55,7 +53,6 @@ export function TagCollectionEditor({ tagId }: TagCollectionEditorProps) {
       if (!productsRes.ok) throw new Error(productsData.error)
       setOrderedIds(collectionData.productIds ?? [])
       setAllProducts(productsData.products ?? [])
-      setDatabaseConnected(Boolean(collectionData.databaseConnected))
     } catch {
       toast.error('Failed to load collection')
     } finally {
@@ -146,8 +143,6 @@ export function TagCollectionEditor({ tagId }: TagCollectionEditorProps) {
           {saving ? 'Saving…' : 'Save order'}
         </Button>
       </AdminPageHeader>
-
-      <DatabaseStatusBanner connected={databaseConnected} />
 
       <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-600">
         Drag order controls set how products appear on the storefront for this

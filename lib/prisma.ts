@@ -24,6 +24,8 @@ function createPrismaClient() {
 function isPrismaClientStale(_client: PrismaClient) {
   const productFields = Prisma.ProductScalarFieldEnum
   return (
+    !('order' in _client) ||
+    !('storeSettings' in _client) ||
     !('tagCollection' in _client) ||
     !('galleryImages' in productFields)
   )
@@ -44,4 +46,13 @@ function getPrismaClient() {
   return client
 }
 
-export const prisma = getPrismaClient()
+/** Proxy ensures hot reload picks up newly generated Prisma models/delegates. */
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop: string | symbol) {
+    if (prop === 'then') return undefined
+
+    const client = getPrismaClient()
+    const value = Reflect.get(client, prop, client)
+    return typeof value === 'function' ? value.bind(client) : value
+  },
+})

@@ -37,3 +37,41 @@ model TagCollection {
 
   @@map("tag_collections")
 }
+
+model StoreSettings {
+  id                        String   @id @default(auto()) @map("_id") @db.ObjectId
+  key                       String   @unique @default("default")
+  freeShippingEnabled       Boolean  @default(true)
+  freeShippingThreshold     Float    @default(200)
+  shippingFee               Float    @default(15)
+  freeShippingRewardLabel   String   @default("free shipping")
+  freeShippingProgressLabel String   @default("{{amount}} away from free shipping")
+  freeShippingUnlockedLabel String   @default("You've unlocked free shipping on this order.")
+  promos                    Json     @default("[]")
+  updatedAt                 DateTime @updatedAt
+
+  @@map("store_settings")
+}
+
+model Order {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderNumber       String   @unique
+  paystackReference String   @unique
+  customerName      String
+  customerEmail     String
+  customerPhone     String?
+  shippingAddress   String?
+  items             Json
+  subtotal          Float
+  shipping          Float
+  discount          Float
+  total             Float
+  currency          String
+  paymentStatus     String   @default("Payment pending")
+  fulfillmentStatus String   @default("Unfulfilled")
+  channel           String   @default("Online store")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("orders")
+}

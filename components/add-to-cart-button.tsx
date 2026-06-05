@@ -9,6 +9,8 @@ type AddToCartButtonProps = {
   quantity?: number
   className?: string
   children?: ReactNode
+  variantImage?: string
+  variantLabel?: string
 }
 
 export function AddToCartButton({
@@ -16,6 +18,8 @@ export function AddToCartButton({
   quantity = 1,
   className,
   children = 'Add to cart',
+  variantImage,
+  variantLabel,
 }: AddToCartButtonProps) {
   const { addItem } = useCart()
 
@@ -25,7 +29,10 @@ export function AddToCartButton({
       onClick={(e) => {
         e.preventDefault()
         e.stopPropagation()
-        addItem(productId, quantity)
+        addItem(productId, quantity, {
+          variantImage,
+          variantLabel,
+        })
       }}
       className={cn(className)}
     >

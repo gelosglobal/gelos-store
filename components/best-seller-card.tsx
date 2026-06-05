@@ -15,11 +15,16 @@ import { getProductDisplayBadge } from '@/lib/product-tags'
 import type { ProductTagId } from '@/lib/product-tags'
 import { isExternalImageUrl } from '@/lib/image-url'
 import { getProductHref } from '@/lib/product-utils'
+import {
+  getVariantDisplayName,
+  getVariantSelectionForCart,
+} from '@/lib/variant-display'
 import { cn } from '@/lib/utils'
 
 type BestSellerCardProduct = {
   id: string
   name: string
+  category: string
   price: number
   image: string
   tags?: ProductTagId[]
@@ -57,18 +62,21 @@ export function BestSellerCard({ product }: BestSellerCardProps) {
     ? product.price.toString()
     : product.price.toFixed(2).replace(/\.00$/, '')
 
+  const variantSelection = getVariantSelectionForCart(product, activeImage)
+  const displayName = getVariantDisplayName(product, activeImage)
+
   return (
     <article className="flex w-[min(72vw,280px)] shrink-0 snap-start flex-col sm:w-[280px]">
       <div className="relative aspect-[5/6] w-full overflow-hidden rounded-2xl bg-white">
         <Link
           href={getProductHref(product)}
           className="absolute inset-0 block"
-          aria-label={product.name}
+          aria-label={displayName}
         >
           <Image
             key={activeImage}
             src={activeImage}
-            alt={product.name}
+            alt={displayName}
             fill
             className={cn(
               isContain
@@ -96,7 +104,7 @@ export function BestSellerCard({ product }: BestSellerCardProps) {
 
       <Link href={getProductHref(product)} className="mt-4 text-center">
         <h3 className="text-sm font-medium leading-snug text-foreground line-clamp-2">
-          {product.name}
+          {displayName}
         </h3>
       </Link>
 
@@ -109,6 +117,8 @@ export function BestSellerCard({ product }: BestSellerCardProps) {
 
       <AddToCartButton
         productId={product.id}
+        variantImage={variantSelection.variantImage}
+        variantLabel={variantSelection.variantLabel}
         className="mt-3 w-full rounded-full bg-neutral-950 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
       />
     </article>

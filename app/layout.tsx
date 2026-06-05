@@ -2,8 +2,10 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono, Plus_Jakarta_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { CartProvider } from '@/components/cart-provider'
+import { StorePromotionsProvider } from '@/components/store-promotions-provider'
 import { LocationProvider } from '@/components/location-provider'
 import { ProductsProvider } from '@/components/products-provider'
+import { GelosAiWidget } from '@/components/gelos-ai-widget'
 import { SiteNavbar } from '@/components/site-navbar'
 import { Toaster } from 'sonner'
 import { UploadThingSSRPlugin } from '@/components/uploadthing-ssr-plugin'
@@ -53,12 +55,15 @@ export default function RootLayout({
         <UploadThingSSRPlugin />
         <ProductsProvider>
         <LocationProvider>
-          <CartProvider>
-            <SiteNavbar />
-            {children}
-            <Toaster position="top-center" richColors closeButton />
-            {process.env.NODE_ENV === 'production' && <Analytics />}
-          </CartProvider>
+          <StorePromotionsProvider>
+            <CartProvider>
+              <SiteNavbar />
+              {children}
+              <GelosAiWidget />
+              <Toaster position="top-center" richColors closeButton />
+              {process.env.NODE_ENV === 'production' && <Analytics />}
+            </CartProvider>
+          </StorePromotionsProvider>
         </LocationProvider>
         </ProductsProvider>
       </body>

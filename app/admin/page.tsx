@@ -10,10 +10,10 @@ import {
   Droplets,
   Sparkles,
 } from 'lucide-react'
-import { orders } from '@/lib/mock-data'
+import { formatOrderTotal } from '@/lib/admin/order-format'
+import type { StoreOrder } from '@/lib/types/order'
 import { AdminPageHeader } from '@/components/admin/admin-page-header'
 import { AdminStatCard } from '@/components/admin/admin-stat-card'
-import { DatabaseStatusBanner } from '@/components/admin/database-status-banner'
 import { Button } from '@/components/ui/button'
 
 type Stats = {
@@ -29,15 +29,19 @@ type Stats = {
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
+  const [recentOrders, setRecentOrders] = useState<StoreOrder[]>([])
 
   useEffect(() => {
     fetch('/api/admin/stats')
       .then((r) => r.json())
       .then(setStats)
       .catch(() => {})
-  }, [])
 
-  const recentOrders = orders.slice(0, 5)
+    fetch('/api/admin/orders', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((data) => setRecentOrders((data.orders ?? []).slice(0, 5)))
+      .catch(() => {})
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -49,8 +53,6 @@ export default function AdminDashboard() {
           <Link href="/admin/products">Manage products</Link>
         </Button>
       </AdminPageHeader>
-
-      {stats && <DatabaseStatusBanner connected={stats.databaseConnected} />}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <AdminStatCard
@@ -103,25 +105,38 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {recentOrders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="border-b border-neutral-100 last:border-0"
-                  >
-                    <td className="px-4 py-3 font-medium">{order.orderNumber}</td>
-                    <td className="px-4 py-3 text-neutral-600">
-                      {order.customer}
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-[#E91E8C]">
-                      GH₵{order.total.toFixed(0)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-semibold">
-                        {order.status}
-                      </span>
+                {recentOrders.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-4 py-8 text-center text-sm text-neutral-500"
+                    >
+                      No orders yet
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  recentOrders.map((order) => (
+                    <tr
+                      key={order.id}
+                      className="border-b border-neutral-100 last:border-0"
+                    >
+                      <td className="px-4 py-3 font-medium">
+                        {order.orderNumber}
+                      </td>
+                      <td className="px-4 py-3 text-neutral-600">
+                        {order.customer}
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-[#E91E8C]">
+                        {formatOrderTotal(order.currency, order.total)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-semibold">
+                          {order.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -176,7 +191,7 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-2 gap-3">
             <AdminStatCard
               label="Orders"
-              value={stats?.totalOrders ?? orders.length}
+              value={stats?.totalOrders ?? '—'}
               icon={ShoppingCart}
             />
             <AdminStatCard

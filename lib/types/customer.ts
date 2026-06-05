@@ -9,5 +9,6 @@ export type StoreCustomer = {
   emailSubscription: EmailSubscription
   orders: number
   totalSpent: number
+  currency: string
   joinDate: string
 }

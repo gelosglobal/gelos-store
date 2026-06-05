@@ -4,7 +4,6 @@ import {
   CreditCard,
   Globe,
   Palette,
-  Shield,
 } from 'lucide-react'
 
 export type SettingsSectionId =
@@ -49,7 +48,7 @@ export const settingsSections: SettingsSection[] = [
 
 export const storeDefaults = {
   name: 'Gelos',
-  email: 'hello@gelos.com',
+  email: 'hello@gelosglobal.com',
   country: 'gh',
   currency: 'ghs',
   timezone: 'Africa/Accra',
@@ -73,8 +72,8 @@ export const settingsStatusCards = [
   },
   {
     title: 'Checkout',
-    value: 'Preview',
-    detail: 'Payments not connected yet',
+    value: 'Paystack',
+    detail: 'Live payments via Paystack',
     positive: false,
   },
   {
@@ -123,7 +122,7 @@ export const paymentProviders = [
     id: 'paystack',
     name: 'Paystack',
     description: 'Cards, mobile money, and bank transfers in Ghana',
-    connected: false,
+    connected: true,
     recommended: true,
   },
   {
@@ -135,8 +134,8 @@ export const paymentProviders = [
   },
   {
     id: 'manual',
-    name: 'Manual payments',
-    description: 'Mark orders paid outside the storefront',
+    name: 'Cash on delivery',
+    description: 'Customers pay when the order is delivered',
     connected: true,
     recommended: false,
   },
@@ -149,8 +148,3 @@ export const brandColorPresets = [
   { id: 'amber', hex: '#f59e0b', label: 'Amber' },
 ] as const
 
-export const securityNote = {
-  title: 'Admin access',
-  body: 'Authentication is not enabled yet. Anyone with the /admin URL can edit content until you add sign-in.',
-  icon: Shield,
-}

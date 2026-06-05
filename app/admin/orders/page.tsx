@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ChevronDown,
   ChevronLeft,
@@ -10,11 +10,13 @@ import {
   Search,
   ShoppingBag,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   FulfillmentStatusBadge,
   PaymentStatusBadge,
 } from '@/components/admin/order-status-badge'
-import { adminOrders, getOrderStats } from '@/lib/admin/orders-data'
+import { formatOrderTotal } from '@/lib/admin/order-format'
+import { getOrderStats } from '@/lib/admin/orders-data'
 import type { StoreOrder } from '@/lib/types/order'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -62,6 +64,9 @@ function MiniSparkline({ active }: { active?: boolean }) {
 }
 
 export default function AdminOrdersPage() {
+  const [orders, setOrders] = useState<StoreOrder[]>([])
+  const [databaseConnected, setDatabaseConnected] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState<TabFilter>('all')
   const [period, setPeriod] = useState<'today' | 'all'>('today')
@@ -69,10 +74,36 @@ export default function AdminOrdersPage() {
   const [page, setPage] = useState(1)
   const pageSize = 50
 
-  const stats = useMemo(() => getOrderStats(adminOrders, period), [period])
+  const loadOrders = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/orders', { cache: 'no-store' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setOrders(data.orders ?? [])
+      setDatabaseConnected(Boolean(data.databaseConnected))
+    } catch {
+      toast.error('Failed to load orders')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadOrders()
+  }, [loadOrders])
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') loadOrders()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [loadOrders])
+
+  const stats = useMemo(() => getOrderStats(orders, period), [orders, period])
 
   const filtered = useMemo(() => {
-    return adminOrders.filter((order) => {
+    return orders.filter((order) => {
       const q = search.toLowerCase()
       const matchesSearch =
         !q ||
@@ -85,7 +116,7 @@ export default function AdminOrdersPage() {
         (tab === 'pending' && order.paymentStatus === 'Payment pending')
       return matchesSearch && matchesTab
     })
-  }, [search, tab])
+  }, [orders, search, tab])
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize))
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
@@ -175,7 +206,7 @@ export default function AdminOrdersPage() {
             },
             {
               label: 'Returns',
-              value: `GH₵${stats.returns}`,
+              value: formatOrderTotal('GHS', stats.returns),
               spark: false,
             },
             {
@@ -300,14 +331,36 @@ export default function AdminOrdersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paged.map((order) => (
-                <OrderRow
-                  key={order.id}
-                  order={order}
-                  checked={selected.has(order.id)}
-                  onCheckedChange={(c) => toggleOne(order.id, c)}
-                />
-              ))}
+              {loading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={12}
+                    className="py-12 text-center text-sm text-neutral-500"
+                  >
+                    Loading orders…
+                  </TableCell>
+                </TableRow>
+              ) : paged.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={12}
+                    className="py-12 text-center text-sm text-neutral-500"
+                  >
+                    {databaseConnected
+                      ? 'No orders yet. New checkouts will appear here.'
+                      : 'Connect your database to view live orders.'}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paged.map((order) => (
+                  <OrderRow
+                    key={order.id}
+                    order={order}
+                    checked={selected.has(order.id)}
+                    onCheckedChange={(c) => toggleOne(order.id, c)}
+                  />
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
@@ -315,8 +368,9 @@ export default function AdminOrdersPage() {
         {/* Pagination */}
         <div className="flex items-center justify-between border-t border-neutral-200 px-4 py-3 text-sm text-neutral-600 sm:px-5">
           <span>
-            {(page - 1) * pageSize + 1}–
-            {Math.min(page * pageSize, filtered.length)} of {filtered.length}
+            {filtered.length === 0
+              ? '0 orders'
+              : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, filtered.length)} of ${filtered.length}`}
           </span>
           <div className="flex items-center gap-1">
             <Button
@@ -377,7 +431,7 @@ function OrderRow({
       </TableCell>
       <TableCell className="text-neutral-600">{order.channel}</TableCell>
       <TableCell className="font-medium text-neutral-950">
-        GH₵{order.total.toFixed(2)}
+        {formatOrderTotal(order.currency, order.total)}
       </TableCell>
       <TableCell>
         <PaymentStatusBadge status={order.paymentStatus} />

@@ -1,17 +1,22 @@
 import { NextResponse } from 'next/server'
+import { countAdminCustomers } from '@/lib/db/admin-customers'
+import { countAdminOrders } from '@/lib/db/admin-orders'
 import {
   getAdminDashboardStats,
   isAdminDatabaseReady,
 } from '@/lib/db/admin-products'
-import { orders, customers } from '@/lib/mock-data'
 
 export async function GET() {
   try {
-    const catalog = await getAdminDashboardStats()
+    const [catalog, totalOrders, totalCustomers] = await Promise.all([
+      getAdminDashboardStats(),
+      countAdminOrders(),
+      countAdminCustomers(),
+    ])
     return NextResponse.json({
       ...catalog,
-      totalOrders: orders.length,
-      totalCustomers: customers.length,
+      totalOrders,
+      totalCustomers,
       databaseConnected: isAdminDatabaseReady(),
     })
   } catch (error) {

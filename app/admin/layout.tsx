@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   Users,
   BarChart3,
+  BadgePercent,
   Settings,
   ExternalLink,
   Menu,
@@ -55,6 +56,7 @@ const navSections: NavSection[] = [
     title: 'Store',
     items: [
       { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
+      { href: '/admin/checkouts', label: 'Checkouts', icon: BadgePercent },
       { href: '/admin/customers', label: 'Customers', icon: Users },
       { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
     ],

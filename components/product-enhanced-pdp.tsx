@@ -17,6 +17,10 @@ import {
 import { normalizeImageUrl } from '@/lib/image-url'
 import { ShopCollectionCard } from '@/components/shop-collection-card'
 import { getProductDisplayBadge } from '@/lib/product-tags'
+import {
+  getProductLineVariantLabel,
+  getVariantDisplayName,
+} from '@/lib/variant-display'
 import type { ProductPdpContent } from '@/lib/product-pdp-content'
 import type { Product } from '@/lib/types/product'
 
@@ -94,6 +98,8 @@ export function ProductEnhancedPdp({
     product,
   ])
 
+  const displayName = getVariantDisplayName(product, activeImage)
+
   const variantPicker = hasAdminVariants ? (
     <ProductAdminVariantPicker
       images={pickerImages}
@@ -127,7 +133,7 @@ export function ProductEnhancedPdp({
               {categoryLabel}
             </Link>
             <span aria-hidden>/</span>
-            <span className="text-neutral-950">{product.name}</span>
+            <span className="text-neutral-950">{displayName}</span>
           </nav>
         </div>
       </div>
@@ -136,7 +142,7 @@ export function ProductEnhancedPdp({
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-14">
           <ProductGallery
             images={galleryImages}
-            alt={product.name}
+            alt={displayName}
             badge={content.imageBadge}
             activeSrc={hasAdminVariants ? activeImage : undefined}
             onActiveSrcChange={hasAdminVariants ? setActiveImage : undefined}
@@ -145,7 +151,7 @@ export function ProductEnhancedPdp({
           <div className="space-y-6">
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-neutral-950 sm:text-4xl lg:text-[2.5rem] lg:leading-tight">
-                {product.name}
+                {displayName}
               </h1>
               {variantPicker}
             </div>
@@ -180,7 +186,16 @@ export function ProductEnhancedPdp({
 
               <button
                 type="button"
-                onClick={() => addItem(product.id, quantity)}
+                onClick={() => {
+                  const variantLabel = hasAdminVariants
+                    ? getVariantDisplayName(product, activeImage)
+                    : getProductLineVariantLabel(product)
+
+                  addItem(product.id, quantity, {
+                    variantImage: hasAdminVariants ? activeImage : undefined,
+                    variantLabel,
+                  })
+                }}
                 className="mt-6 w-full rounded-full bg-neutral-950 py-4 text-base font-semibold text-white transition-colors hover:bg-neutral-800"
               >
                 Add to cart

@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { Plus, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { AdminPageHeader } from '@/components/admin/admin-page-header'
-import { DatabaseStatusBanner } from '@/components/admin/database-status-banner'
 import { ProductsTable } from '@/components/admin/products-table'
 import type { Product } from '@/lib/types/product'
 import {
@@ -27,7 +26,6 @@ import {
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
-  const [databaseConnected, setDatabaseConnected] = useState(false)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All')
@@ -40,7 +38,6 @@ export default function AdminProductsPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setProducts(data.products ?? [])
-      setDatabaseConnected(Boolean(data.databaseConnected))
     } catch {
       toast.error('Failed to load products')
     } finally {
@@ -109,8 +106,6 @@ export default function AdminProductsPage() {
           </Link>
         </Button>
       </AdminPageHeader>
-
-      <DatabaseStatusBanner connected={databaseConnected} />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">

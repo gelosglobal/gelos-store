@@ -7,8 +7,11 @@ import { useLocation } from '@/components/location-provider'
 import { getProductHref } from '@/lib/product-utils'
 
 export type CartLineItemData = {
+  lineKey: string
   id: string
+  productName?: string
   name: string
+  variantLabel?: string
   price: number
   image: string
   quantity: number
@@ -16,8 +19,8 @@ export type CartLineItemData = {
 
 type CartLineItemProps = {
   item: CartLineItemData
-  onQuantityChange: (id: string, quantity: number) => void
-  onRemove: (id: string) => void
+  onQuantityChange: (lineKey: string, quantity: number) => void
+  onRemove: (lineKey: string) => void
 }
 
 export function CartLineItem({
@@ -52,13 +55,18 @@ export function CartLineItem({
             >
               {item.name}
             </Link>
+            {item.variantLabel &&
+            item.productName &&
+            item.variantLabel !== item.productName ? (
+              <p className="mt-0.5 text-xs text-neutral-500">{item.productName}</p>
+            ) : null}
             <p className="mt-1 text-sm font-bold text-[#E91E8C]">
               {formatPrice(item.price)}
             </p>
           </div>
           <button
             type="button"
-            onClick={() => onRemove(item.id)}
+            onClick={() => onRemove(item.lineKey)}
             className="shrink-0 rounded-lg p-2 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-950"
             aria-label={`Remove ${item.name}`}
           >
@@ -70,7 +78,7 @@ export function CartLineItem({
           <div className="inline-flex items-center rounded-full border border-neutral-200 bg-neutral-50">
             <button
               type="button"
-              onClick={() => onQuantityChange(item.id, item.quantity - 1)}
+              onClick={() => onQuantityChange(item.lineKey, item.quantity - 1)}
               disabled={item.quantity <= 1}
               className="rounded-l-full p-2.5 text-neutral-600 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Decrease quantity"
@@ -82,7 +90,7 @@ export function CartLineItem({
             </span>
             <button
               type="button"
-              onClick={() => onQuantityChange(item.id, item.quantity + 1)}
+              onClick={() => onQuantityChange(item.lineKey, item.quantity + 1)}
               className="rounded-r-full p-2.5 text-neutral-600 transition-colors hover:bg-neutral-100"
               aria-label="Increase quantity"
             >

@@ -1,5 +1,3 @@
-import { adminOrders } from '@/lib/admin/orders-data'
-import { adminCustomers } from '@/lib/admin/customers-data'
 
 // Mock product data for Gelos
 export const products = [
@@ -269,11 +267,11 @@ export const products = [
   },
 ];
 
-/** Store orders for admin & dashboard (see lib/admin/orders-data.ts) */
-export const orders = adminOrders
+/** Legacy export — admin orders load from `/api/admin/orders`. */
+export const orders: never[] = []
 
-/** Store customers for admin (see lib/admin/customers-data.ts) */
-export const customers = adminCustomers
+/** Legacy export — admin customers load from `/api/admin/customers`. */
+export const customers: never[] = []
 
 export const analyticsData = [
   { month: "Jan", sales: 4000, orders: 24, revenue: 12000 },

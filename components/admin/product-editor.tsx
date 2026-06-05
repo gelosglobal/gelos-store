@@ -12,7 +12,6 @@ import {
   Underline,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { DatabaseStatusBanner } from '@/components/admin/database-status-banner'
 import {
   ProductFormCard,
   ProductFormCardBody,
@@ -79,7 +78,6 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
   const [form, setForm] = useState<AdminProductInput>(emptyForm)
   const [loading, setLoading] = useState(mode === 'edit')
   const [saving, setSaving] = useState(false)
-  const [databaseConnected, setDatabaseConnected] = useState(false)
 
   const [inventoryTracked, setInventoryTracked] = useState(true)
   const [ghStock, setGhStock] = useState(0)
@@ -108,7 +106,6 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
       .then((res) => res.json())
       .then((data) => {
         if (cancelled) return
-        setDatabaseConnected(Boolean(data.databaseConnected))
         const product = (data.products as Product[] | undefined)?.find(
           (p) => p.id === productId,
         )
@@ -142,15 +139,6 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
       cancelled = true
     }
   }, [mode, productId, router])
-
-  useEffect(() => {
-    if (mode === 'create') {
-      fetch('/api/admin/products')
-        .then((res) => res.json())
-        .then((data) => setDatabaseConnected(Boolean(data.databaseConnected)))
-        .catch(() => {})
-    }
-  }, [mode])
 
   useEffect(() => {
     if (inventoryTracked) {
@@ -269,8 +257,6 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
           </Button>
         </div>
       </div>
-
-      <DatabaseStatusBanner connected={databaseConnected} />
 
       <form
         onSubmit={(e) => {

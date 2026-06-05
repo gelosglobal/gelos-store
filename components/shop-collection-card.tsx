@@ -9,11 +9,16 @@ import { useLocation } from '@/components/location-provider'
 import { getEffectiveVariantImages } from '@/lib/product-variant-images'
 import { isExternalImageUrl } from '@/lib/image-url'
 import { getProductHref } from '@/lib/product-utils'
+import {
+  getVariantDisplayName,
+  getVariantSelectionForCart,
+} from '@/lib/variant-display'
 
 type ShopCollectionCardProps = {
   product: {
     id: string
     name: string
+    category: string
     price: number
     image: string
     variantImages?: string[]
@@ -34,18 +39,21 @@ export function ShopCollectionCard({
     setActiveImage(product.image)
   }, [product.image])
 
+  const variantSelection = getVariantSelectionForCart(product, activeImage)
+  const displayName = getVariantDisplayName(product, activeImage)
+
   return (
     <article className="flex flex-col">
       <div className="relative aspect-[4/5] overflow-hidden bg-neutral-200">
         <Link
           href={productHref}
           className="absolute inset-0 block"
-          aria-label={product.name}
+          aria-label={displayName}
         >
           <Image
             key={activeImage}
             src={activeImage}
-            alt={product.name}
+            alt={displayName}
             fill
             className="object-cover object-center transition-transform duration-300 hover:scale-[1.05]"
             sizes="(max-width: 640px) 50vw, 25vw"
@@ -70,7 +78,7 @@ export function ShopCollectionCard({
       <div className="flex flex-col items-center px-2 pt-4 text-center">
         <Link href={productHref}>
           <h3 className="text-sm font-medium leading-snug text-neutral-950 hover:underline">
-            {product.name}
+            {displayName}
           </h3>
         </Link>
         <p className="mt-1.5 text-sm font-bold text-[#E91E8C]">
@@ -78,6 +86,8 @@ export function ShopCollectionCard({
         </p>
         <AddToCartButton
           productId={product.id}
+          variantImage={variantSelection.variantImage}
+          variantLabel={variantSelection.variantLabel}
           className="mt-4 w-full rounded-full bg-neutral-950 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800"
         />
       </div>

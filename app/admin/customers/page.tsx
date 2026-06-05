@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ChevronDown,
   ChevronLeft,
@@ -10,11 +10,10 @@ import {
   Search,
   Users,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { SubscriptionBadge } from '@/components/admin/subscription-badge'
-import {
-  adminCustomers,
-  formatCustomerCount,
-} from '@/lib/admin/customers-data'
+import { formatOrderTotal } from '@/lib/admin/order-format'
+import { formatCustomerCount } from '@/lib/admin/customers-data'
 import type { StoreCustomer } from '@/lib/types/customer'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -29,27 +28,54 @@ import {
 } from '@/components/ui/table'
 
 export default function AdminCustomersPage() {
+  const [customers, setCustomers] = useState<StoreCustomer[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [summaryOpen, setSummaryOpen] = useState(true)
   const [page, setPage] = useState(1)
   const pageSize = 50
 
+  const loadCustomers = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/customers', { cache: 'no-store' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setCustomers(data.customers ?? [])
+    } catch {
+      toast.error('Failed to load customers')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadCustomers()
+  }, [loadCustomers])
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') loadCustomers()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [loadCustomers])
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
-    if (!q) return adminCustomers
-    return adminCustomers.filter(
+    if (!q) return customers
+    return customers.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
         c.email.toLowerCase().includes(q) ||
         c.phone.includes(q) ||
         c.location.toLowerCase().includes(q),
     )
-  }, [search])
+  }, [customers, search])
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize))
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
-  const totalCustomers = adminCustomers.length
+  const totalCustomers = customers.length
 
   const toggleAll = (checked: boolean) => {
     setSelected(checked ? new Set(paged.map((c) => c.id)) : new Set())
@@ -108,7 +134,9 @@ export default function AdminCustomersPage() {
               {formatCustomerCount(totalCustomers)} customers
             </strong>
             <span className="text-neutral-400"> · </span>
-            100% of your customer base
+            {totalCustomers === 0
+              ? 'No checkout customers yet'
+              : '100% of your customer base'}
           </span>
           <ChevronDown
             className={`h-4 w-4 shrink-0 transition-transform ${summaryOpen ? 'rotate-180' : ''}`}
@@ -164,20 +192,47 @@ export default function AdminCustomersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paged.map((customer) => (
-                <CustomerRow
-                  key={customer.id}
-                  customer={customer}
-                  checked={selected.has(customer.id)}
-                  onCheckedChange={(c) => toggleOne(customer.id, c)}
-                />
-              ))}
+              {loading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="py-12 text-center text-sm text-neutral-500"
+                  >
+                    Loading customers…
+                  </TableCell>
+                </TableRow>
+              ) : paged.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="py-12 text-center text-sm text-neutral-500"
+                  >
+                    {search
+                      ? 'No customers match your search.'
+                      : 'No customers yet. They will appear here after checkout.'}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paged.map((customer) => (
+                  <CustomerRow
+                    key={customer.id}
+                    customer={customer}
+                    checked={selected.has(customer.id)}
+                    onCheckedChange={(c) => toggleOne(customer.id, c)}
+                  />
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
 
         {/* Pagination */}
         <div className="flex items-center justify-between border-t border-neutral-200 px-4 py-3 text-sm text-neutral-600 sm:px-5">
+          <span>
+            {filtered.length === 0
+              ? '0 customers'
+              : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, filtered.length)} of ${filtered.length}`}
+          </span>
           <div className="flex items-center gap-1">
             <Button
               variant="outline"
@@ -188,9 +243,8 @@ export default function AdminCustomersPage() {
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="min-w-[3rem] px-2 text-center font-medium">
-              {(page - 1) * pageSize + 1}–
-              {Math.min(page * pageSize, filtered.length)}
+            <span className="min-w-[3rem] text-center font-medium">
+              {page}-{pageCount}
             </span>
             <Button
               variant="outline"
@@ -244,7 +298,7 @@ function CustomerRow({
         {customer.orders}
       </TableCell>
       <TableCell className="pr-4 text-right font-medium text-neutral-950">
-        GH₵{customer.totalSpent.toFixed(2)}
+        {formatOrderTotal(customer.currency, customer.totalSpent)}
       </TableCell>
     </TableRow>
   )

@@ -14,6 +14,7 @@ export type StoreOrder = {
   /** Human-readable e.g. "Today at 11:11 am" */
   dateLabel: string
   total: number
+  currency: string
   items: number
   paymentStatus: PaymentStatus
   fulfillmentStatus: FulfillmentStatus
