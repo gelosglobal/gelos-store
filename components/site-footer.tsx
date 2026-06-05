@@ -75,7 +75,7 @@ export function SiteFooter() {
           </div>
 
           <div className="border-t border-neutral-800 py-8 text-center text-sm text-neutral-500">
-            <p>&copy; 2025 Gelos. All rights reserved.</p>
+            <p>&copy; 2026 Gelos. All rights reserved.</p>
           </div>
         </div>
       </div>

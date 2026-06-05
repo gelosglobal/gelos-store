@@ -5,7 +5,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ExternalLink, Loader2, Send, Sparkles, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { GelosAiMessageContent } from '@/components/gelos-ai/message-content'
+import {
+  GelosAiMessageContent,
+  GelosAiProductLinks,
+} from '@/components/gelos-ai/message-content'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { GelosAiMessage } from '@/lib/gelos-ai/types'
@@ -160,9 +163,8 @@ export function GelosAiWidget() {
                         : 'bg-neutral-50 text-foreground',
                     )}
                   >
-                    <div className="whitespace-pre-wrap">
-                      <GelosAiMessageContent content={message.content} />
-                    </div>
+                    <GelosAiMessageContent content={message.content} />
+                    {!isUser && <GelosAiProductLinks content={message.content} />}
                   </div>
                 </div>
               )

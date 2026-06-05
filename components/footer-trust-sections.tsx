@@ -10,10 +10,21 @@ import type { ReactNode } from 'react'
 
 function SlashOverlay() {
   return (
-    <span
-      className="pointer-events-none absolute inset-[18%] rotate-45 border-t border-neutral-900"
+    <svg
+      className="pointer-events-none absolute inset-0 z-10 size-full text-neutral-900"
+      viewBox="0 0 64 64"
       aria-hidden
-    />
+    >
+      <line
+        x1="12"
+        y1="52"
+        x2="52"
+        y2="12"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+    </svg>
   )
 }
 
@@ -26,23 +37,9 @@ function FeatureCircle({
 }) {
   return (
     <div className="relative mx-auto flex size-14 items-center justify-center rounded-full border border-neutral-900 sm:size-16">
-      {children}
+      <span className="relative z-0">{children}</span>
       {slashed ? <SlashOverlay /> : null}
     </div>
-  )
-}
-
-function ToothIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-6" aria-hidden>
-      <path
-        d="M12 3c-2.5 0-4.5 1.2-5.5 3.2-.8 1.5-1 3.4-.8 5.2.2 1.8.8 3.5 1.5 4.8.5.9 1.1 1.5 1.8 1.5.6 0 1-.4 1.3-1.1.3-.8.5-2 .5-3.4 0-1.2.2-2.1.5-2.7.3-.5.7-.8 1.2-.8s.9.3 1.2.8c.3.6.5 1.5.5 2.7 0 1.4.2 2.6.5 3.4.3.7.7 1.1 1.3 1.1.7 0 1.3-.6 1.8-1.5.7-1.3 1.3-3 1.5-4.8.2-1.8 0-3.7-.8-5.2C16.5 4.2 14.5 3 12 3z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.25"
-        strokeLinejoin="round"
-      />
-    </svg>
   )
 }
 
@@ -81,20 +78,6 @@ function PeroxideIcon() {
   )
 }
 
-function SeaweedIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-6" aria-hidden>
-      <path
-        d="M12 20V8M9 20c0-4 1-7 3-9M15 20c0-4-1-7-3-9M7 20c1-5 2.5-8 5-10M17 20c-1-5-2.5-8-5-10"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.25"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-
 const features = [
   {
     label: 'Vegan',
@@ -109,11 +92,6 @@ const features = [
     label: 'Paraben-free',
     slashed: true,
     icon: <MoleculeIcon />,
-  },
-  {
-    label: 'Fluoride free',
-    slashed: true,
-    icon: <ToothIcon />,
   },
   {
     label: 'Triclosan free',
@@ -143,11 +121,6 @@ const features = [
         <Leaf className="absolute -bottom-1 -right-2 size-3" strokeWidth={1.5} />
       </span>
     ),
-  },
-  {
-    label: 'Carrageenan free',
-    slashed: true,
-    icon: <SeaweedIcon />,
   },
   {
     label: 'GMO free',
@@ -181,7 +154,7 @@ export function FooterWhatSetsUsApart() {
           What Sets Us Apart
         </h2>
 
-        <ul className="mt-8 grid grid-cols-3 gap-x-4 gap-y-8 sm:grid-cols-4 md:grid-cols-6 md:gap-x-6">
+        <ul className="mt-8 grid grid-cols-3 gap-x-4 gap-y-8 sm:grid-cols-5 md:grid-cols-5 md:gap-x-6 lg:max-w-4xl lg:mx-auto">
           {features.map((feature) => (
             <li key={feature.label} className="text-center">
               <FeatureCircle slashed={'slashed' in feature && feature.slashed}>

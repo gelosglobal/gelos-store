@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { enhanceChatReply } from '@/lib/gelos-ai/chat-reply'
 import { chatWithGroq } from '@/lib/gelos-ai/groq'
 import { buildGelosAiCatalogContext } from '@/lib/gelos-ai/knowledge'
 import { buildGelosAiSystemPrompt } from '@/lib/gelos-ai/prompt'
+import { getSmileScanCatalog } from '@/lib/gelos-ai/smile-scan-catalog'
 import { isGroqConfigured } from '@/lib/env'
 
 export const dynamic = 'force-dynamic'
@@ -38,9 +40,13 @@ export async function POST(request: Request) {
       )
     }
 
-    const catalogContext = await buildGelosAiCatalogContext()
+    const [catalogContext, catalog] = await Promise.all([
+      buildGelosAiCatalogContext(),
+      getSmileScanCatalog(),
+    ])
     const systemPrompt = buildGelosAiSystemPrompt(catalogContext)
-    const reply = await chatWithGroq(systemPrompt, parsed.data.messages)
+    const rawReply = await chatWithGroq(systemPrompt, parsed.data.messages)
+    const reply = enhanceChatReply(rawReply, catalog)
 
     return NextResponse.json({ message: { role: 'assistant' as const, content: reply } })
   } catch (error) {

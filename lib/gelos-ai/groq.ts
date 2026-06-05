@@ -28,8 +28,8 @@ export async function chatWithGroq(
     },
     body: JSON.stringify({
       model: GROQ_MODEL,
-      temperature: 0.6,
-      max_tokens: 1024,
+      temperature: 0.35,
+      max_tokens: 1400,
       messages: [
         { role: 'system', content: systemPrompt },
         ...messages.map((m) => ({ role: m.role, content: m.content })),

@@ -2,23 +2,28 @@
 
 import { Loader2, Send } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { GelosAiMessageContent } from '@/components/gelos-ai/message-content'
+import {
+  GelosAiMessageContent,
+  GelosAiProductLinks,
+} from '@/components/gelos-ai/message-content'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { loadChatMessages, saveChatMessages } from '@/lib/gelos-ai/session-storage'
 import type { GelosAiMessage } from '@/lib/gelos-ai/types'
 
 const STARTER_PROMPTS = [
-  'Which toothpaste flavor should I try first?',
-  'I want whiter teeth — what do you recommend?',
-  'What is the V34 Shade Correction Kit?',
-  'Help me build a complete oral care routine',
+  'I am new to Gelos — where should I start?',
+  'I want whiter teeth — what actually works?',
+  'Compare watermelon vs coconut toothpaste',
+  'Build me a morning and night oral care routine',
+  'What mouthwash pairs best with flavored toothpaste?',
+  'Any bundles or promos worth using today?',
 ] as const
 
 const WELCOME_MESSAGE: GelosAiMessage = {
   role: 'assistant',
   content:
-    "Hi, I'm **Gelos AI** — your smile care guide. Ask me about flavors, whitening, mouthwash, bundles, or finding the right product for your routine.",
+    "Hi, I'm **Gelos AI** — your Gelos product expert.\n\nAsk me to compare flavors, pick whitening products, build a daily routine, or find the best value. I'll recommend real products with prices and links.",
 }
 
 type AiChatPanelProps = {
@@ -126,9 +131,8 @@ export function AiChatPanel({ className, compact = false }: AiChatPanelProps) {
                     : 'bg-neutral-50 text-foreground',
                 )}
               >
-                <div className="whitespace-pre-wrap">
-                  <GelosAiMessageContent content={message.content} />
-                </div>
+                <GelosAiMessageContent content={message.content} />
+                {!isUser && <GelosAiProductLinks content={message.content} />}
               </div>
             </div>
           )

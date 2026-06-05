@@ -117,10 +117,16 @@ export async function buildGelosAiCatalogContext(): Promise<string> {
     ? `Free shipping over GH₵${promotions.freeShippingThreshold.toFixed(0)} (else GH₵${promotions.shippingFee.toFixed(0)})`
     : `Shipping GH₵${promotions.shippingFee.toFixed(0)}`
 
+  const inStockCount = products.filter((p) => p.stock > 0).length
+
   return [
     '## Gelos — premium dental care (Ghana). Flavored toothpastes, foaming mouthwashes, whitening, tongue scrapers, brushes, wellness.',
     '',
-    `## Catalog (${products.length} products, prices in GH₵)`,
+    '## How to use this catalog',
+    'Each product line: Name | /product/slug | GH₵price | category | variant/flavor | stock | rating | tags | description | benefits',
+    'Use the Variants line under each category to compare flavors in that category.',
+    '',
+    `## Catalog (${products.length} products, ${inStockCount} in stock, prices in GH₵)`,
     categoryBlocks,
     '',
     '## Quick reference',
@@ -130,6 +136,6 @@ export async function buildGelosAiCatalogContext(): Promise<string> {
     `Collections: ${collectionLines}`,
     `Promos: ${promoSummary}. ${shippingLine}`,
     `Retail stockists: ${stockistNames}`,
-    'Pages: /shop, /shop?bundles=true, /shop?new-arrivals=true, /cart, /checkout',
+    'Pages: /shop, /shop?category=Toothpaste, /shop?category=Whitening, /collections/mouth-washes, /shop?bundles=true, /shop?new-arrivals=true, /ai?tab=scan, /ai?tab=dentist, /cart, /checkout',
   ].join('\n')
 }
