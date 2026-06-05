@@ -5,8 +5,11 @@ import { Camera, ImagePlus, Loader2, ScanFace, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { SmileReportCard } from '@/components/gelos-ai/smile-report-card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   clearSmileScanSession,
+  getOrCreateGelosAiSessionId,
   loadSmileScanSession,
   saveSmileScanSession,
 } from '@/lib/gelos-ai/session-storage'
@@ -44,6 +47,7 @@ export function ScanSmilePanel() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [preview, setPreview] = useState<string | null>(null)
+  const [name, setName] = useState('')
   const [cameraOn, setCameraOn] = useState(false)
   const [report, setReport] = useState<SmileScanReport | null>(null)
   const [isScanning, setIsScanning] = useState(false)
@@ -55,14 +59,15 @@ export function ScanSmilePanel() {
     if (saved) {
       setPreview(saved.preview)
       setReport(saved.report)
+      setName(saved.name)
     }
     setHydrated(true)
   }, [])
 
   useEffect(() => {
     if (!hydrated) return
-    saveSmileScanSession({ preview, report })
-  }, [hydrated, preview, report])
+    saveSmileScanSession({ preview, report, name })
+  }, [hydrated, preview, report, name])
 
   const stopCamera = () => {
     const stream = videoRef.current?.srcObject as MediaStream | null
@@ -130,7 +135,7 @@ export function ScanSmilePanel() {
   }
 
   const runScan = async () => {
-    if (!preview) return
+    if (!preview || name.trim().length < 2) return
 
     setIsScanning(true)
     setError(null)
@@ -140,10 +145,15 @@ export function ScanSmilePanel() {
       const res = await fetch('/api/gelos-ai/scan-smile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image }),
+        body: JSON.stringify({
+          image,
+          name: name.trim(),
+          sessionId: getOrCreateGelosAiSessionId(),
+        }),
       })
       const data = (await res.json()) as {
         report?: SmileScanReport
+        scanId?: string
         error?: string
       }
 
@@ -162,10 +172,13 @@ export function ScanSmilePanel() {
   const reset = () => {
     stopCamera()
     setPreview(null)
+    setName('')
     setReport(null)
     setError(null)
     clearSmileScanSession()
   }
+
+  const canAnalyze = preview && name.trim().length >= 2 && !isScanning
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -219,6 +232,26 @@ export function ScanSmilePanel() {
           <canvas ref={canvasRef} className="hidden" />
         </div>
 
+        {preview && !report && (
+          <div className="mt-4 rounded-2xl border border-[#84CC16]/30 bg-[#84CC16]/10 p-4">
+            <Label htmlFor="smile-scan-name" className="text-sm font-semibold text-foreground">
+              Your name
+            </Label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Enter your name so we can personalize your smile report before analysis.
+            </p>
+            <Input
+              id="smile-scan-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Ama"
+              className="mt-3 rounded-xl bg-white"
+              disabled={isScanning}
+              autoComplete="name"
+            />
+          </div>
+        )}
+
         <div className="mt-4 flex flex-wrap gap-2">
           {!cameraOn && !preview && (
             <>
@@ -258,7 +291,7 @@ export function ScanSmilePanel() {
               <Button
                 type="button"
                 onClick={() => void runScan()}
-                disabled={isScanning}
+                disabled={!canAnalyze}
                 className="rounded-full bg-[#84CC16] text-neutral-950 hover:bg-[#73b512]"
               >
                 {isScanning ? (
@@ -294,13 +327,25 @@ export function ScanSmilePanel() {
 
       <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5 shadow-sm">
         <h3 className="mb-3 font-semibold text-foreground">Your smile report</h3>
-        {report ? (
-          <SmileReportCard report={report} />
+        {isScanning ? (
+          <div className="flex min-h-[18rem] flex-col items-center justify-center rounded-xl border border-neutral-200 bg-white px-6 text-center">
+            <Loader2 className="mb-3 h-10 w-10 animate-spin text-[#84CC16]" />
+            <p className="text-sm font-medium text-foreground">
+              Creating your report{name.trim() ? `, ${name.trim().split(/\s+/)[0]}` : ''}…
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              This usually takes a few seconds.
+            </p>
+          </div>
+        ) : report ? (
+          <SmileReportCard report={report} customerName={name.trim()} />
         ) : (
           <div className="flex min-h-[18rem] flex-col items-center justify-center rounded-xl border border-neutral-200 bg-white px-6 text-center">
             <ScanFace className="mb-3 h-10 w-10 text-neutral-300" />
             <p className="text-sm text-muted-foreground">
-              Your personalized smile snapshot, scores, and Gelos product picks will appear here.
+              {preview
+                ? 'Add your name, then tap Analyze smile to see your personalized report.'
+                : 'Your personalized smile snapshot, scores, and Gelos product picks will appear here.'}
             </p>
           </div>
         )}

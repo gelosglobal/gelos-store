@@ -11,6 +11,7 @@ import {
   Users,
   BarChart3,
   BadgePercent,
+  ScanFace,
   Settings,
   ExternalLink,
   Menu,
@@ -59,6 +60,7 @@ const navSections: NavSection[] = [
       { href: '/admin/checkouts', label: 'Checkouts', icon: BadgePercent },
       { href: '/admin/customers', label: 'Customers', icon: Users },
       { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+      { href: '/admin/smile-scans', label: 'Smile scans', icon: ScanFace },
     ],
   },
   {

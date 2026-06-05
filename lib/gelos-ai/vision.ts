@@ -15,6 +15,7 @@ type GroqVisionResponse = {
 export async function analyzeSmileImage(
   imageDataUrl: string,
   systemPrompt: string,
+  customerName: string,
 ): Promise<SmileScanReport> {
   const apiKey = getGroqApiKey()
   if (!apiKey) {
@@ -39,7 +40,7 @@ export async function analyzeSmileImage(
           content: [
             {
               type: 'text',
-              text: 'Please analyze this smile photo and give your Gelos Smile Scan report.',
+              text: `Please analyze this smile photo and give a personalized Gelos Smile Scan report for ${customerName.trim()}.`,
             },
             {
               type: 'image_url',

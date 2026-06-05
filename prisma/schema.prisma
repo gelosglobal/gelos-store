@@ -75,3 +75,19 @@ model Order {
 
   @@map("orders")
 }
+
+model SmileScan {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  scanId       String   @unique
+  customerName String
+  sessionId    String?
+  report       Json
+  brightness   Int      @default(0)
+  freshness    Int      @default(0)
+  confidence   Int      @default(0)
+  overallScore Int      @default(0)
+  productCount Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@map("smile_scans")
+}

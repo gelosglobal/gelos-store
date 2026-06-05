@@ -7,6 +7,7 @@ import {
 } from '@/lib/gelos-ai/smile-scan-catalog'
 import { buildSmileScanSystemPrompt } from '@/lib/gelos-ai/smile-scan-prompt'
 import { analyzeSmileImage } from '@/lib/gelos-ai/vision'
+import { createSmileScan } from '@/lib/db/smile-scans'
 import { isGroqConfigured } from '@/lib/env'
 
 export const dynamic = 'force-dynamic'
@@ -20,6 +21,8 @@ const scanRequestSchema = z.object({
       (value) => value.startsWith('data:image/'),
       'Image must be a data URL',
     ),
+  sessionId: z.string().trim().min(1).max(120).optional(),
+  name: z.string().trim().min(2).max(80),
 })
 
 export async function POST(request: Request) {
@@ -42,16 +45,37 @@ export async function POST(request: Request) {
     }
 
     const catalog = await getSmileScanCatalog()
+    const customerName = parsed.data.name
     const systemPrompt = buildSmileScanSystemPrompt(
       buildSmileScanCatalogContext(catalog),
+      customerName,
     )
-    const report = await analyzeSmileImage(parsed.data.image, systemPrompt)
+    const report = await analyzeSmileImage(
+      parsed.data.image,
+      systemPrompt,
+      customerName,
+    )
+
+    const resolvedReport = {
+      ...report,
+      products: resolveSmileScanProducts(report.products, catalog, report),
+    }
+
+    let saved = { scanId: '', persisted: false as const }
+    try {
+      saved = await createSmileScan({
+        customerName,
+        sessionId: parsed.data.sessionId,
+        report: resolvedReport,
+      })
+    } catch (saveError) {
+      console.error('[POST /api/gelos-ai/scan-smile] save failed', saveError)
+    }
 
     return NextResponse.json({
-      report: {
-        ...report,
-        products: resolveSmileScanProducts(report.products, catalog, report),
-      },
+      report: resolvedReport,
+      scanId: saved.scanId || undefined,
+      persisted: saved.persisted,
     })
   } catch (error) {
     console.error('[POST /api/gelos-ai/scan-smile]', error)

@@ -6,12 +6,14 @@ export type AiFeatureTab = 'chat' | 'scan' | 'dentist'
 export type SmileScanSession = {
   preview: string | null
   report: SmileScanReport | null
+  name: string
 }
 
 const KEYS = {
   activeTab: 'gelos-ai:active-tab',
   smileScan: 'gelos-ai:smile-scan',
   chat: 'gelos-ai:chat',
+  sessionId: 'gelos-ai:session-id',
 } as const
 
 function canUseSessionStorage(): boolean {
@@ -59,11 +61,12 @@ export function loadSmileScanSession(): SmileScanSession | null {
   return {
     preview: typeof session.preview === 'string' ? session.preview : null,
     report: session.report ?? null,
+    name: typeof session.name === 'string' ? session.name : '',
   }
 }
 
 export function saveSmileScanSession(session: SmileScanSession): void {
-  if (!session.preview && !session.report) {
+  if (!session.preview && !session.report && !session.name.trim()) {
     remove(KEYS.smileScan)
     return
   }
@@ -91,4 +94,21 @@ export function saveChatMessages(messages: GelosAiMessage[]): void {
 
 export function clearChatMessages(): void {
   remove(KEYS.chat)
+}
+
+export function getOrCreateGelosAiSessionId(): string {
+  if (!canUseSessionStorage()) {
+    return `guest-${Date.now()}`
+  }
+
+  const existing = window.sessionStorage.getItem(KEYS.sessionId)
+  if (existing) return existing
+
+  const sessionId =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `guest-${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+  window.sessionStorage.setItem(KEYS.sessionId, sessionId)
+  return sessionId
 }

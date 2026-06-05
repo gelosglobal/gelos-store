@@ -132,17 +132,33 @@ function ScoreBar({
   )
 }
 
-export function SmileReportCard({ report }: { report: SmileScanReport }) {
+export function SmileReportCard({
+  report,
+  customerName,
+}: {
+  report: SmileScanReport
+  customerName?: string
+}) {
   const overall = averageScore(report.scores)
   const hasScores = overall > 0
+  const firstName = customerName?.trim().split(/\s+/)[0]
 
   return (
     <div className="space-y-4">
+      {firstName && (
+        <div className="rounded-2xl bg-neutral-950 px-4 py-3 text-white">
+          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+            Personalized for
+          </p>
+          <p className="mt-1 text-lg font-semibold">{customerName?.trim()}</p>
+        </div>
+      )}
+
       <div className="rounded-2xl border border-neutral-200 bg-white p-4">
         <div className="mb-3 flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-[#84CC16]" />
           <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Smile snapshot
+            {firstName ? `${firstName}'s smile snapshot` : 'Smile snapshot'}
           </h4>
         </div>
         <p className="text-sm leading-relaxed text-foreground">{report.snapshot}</p>
