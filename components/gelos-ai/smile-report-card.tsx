@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import {
+  AlertTriangle,
   ArrowRight,
   Droplets,
   Lightbulb,
@@ -142,6 +143,8 @@ export function SmileReportCard({
   const overall = averageScore(report.scores)
   const hasScores = overall > 0
   const firstName = customerName?.trim().split(/\s+/)[0]
+  const quality = report.imageQuality
+  const lowQuality = quality?.analyzable === false
 
   return (
     <div className="space-y-4">
@@ -151,6 +154,32 @@ export function SmileReportCard({
             Personalized for
           </p>
           <p className="mt-1 text-lg font-semibold">{customerName?.trim()}</p>
+        </div>
+      )}
+
+      {lowQuality && (
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+            <div>
+              <h4 className="text-sm font-semibold text-amber-950">
+                Photo not clear enough to score
+              </h4>
+              <p className="mt-1 text-sm leading-relaxed text-amber-900/90">
+                We will not guess a score from a blurry or unclear image. Retake your photo
+                for an accurate, honest report.
+              </p>
+              {quality?.issues && quality.issues.length > 0 && (
+                <ul className="mt-2 list-inside list-disc text-xs text-amber-900/80">
+                  {quality.issues.map((issue) => (
+                    <li key={issue} className="capitalize">
+                      {issue}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -198,7 +227,7 @@ export function SmileReportCard({
           <div className="mb-3 flex items-center gap-2">
             <Lightbulb className="h-4 w-4 text-amber-500" />
             <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Gentle tips
+              {lowQuality ? 'How to retake your photo' : 'Gentle tips'}
             </h4>
           </div>
           <div className="grid gap-2 sm:grid-cols-3">

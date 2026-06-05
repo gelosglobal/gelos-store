@@ -23,6 +23,7 @@ const scanRequestSchema = z.object({
     ),
   sessionId: z.string().trim().min(1).max(120).optional(),
   name: z.string().trim().min(2).max(80),
+  sharpnessScore: z.number().finite().min(0).max(10_000).optional(),
 })
 
 export async function POST(request: Request) {
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
       parsed.data.image,
       systemPrompt,
       customerName,
+      parsed.data.sharpnessScore,
     )
 
     const resolvedReport = {

@@ -16,6 +16,7 @@ export async function analyzeSmileImage(
   imageDataUrl: string,
   systemPrompt: string,
   customerName: string,
+  measuredSharpness?: number,
 ): Promise<SmileScanReport> {
   const apiKey = getGroqApiKey()
   if (!apiKey) {
@@ -30,8 +31,8 @@ export async function analyzeSmileImage(
     },
     body: JSON.stringify({
       model: GROQ_VISION_MODEL,
-      temperature: 0.3,
-      max_completion_tokens: 800,
+      temperature: 0.1,
+      max_completion_tokens: 1000,
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: systemPrompt },
@@ -40,7 +41,16 @@ export async function analyzeSmileImage(
           content: [
             {
               type: 'text',
-              text: `Please analyze this smile photo and give a personalized Gelos Smile Scan report for ${customerName.trim()}.`,
+              text: [
+                `Carefully analyze this smile photo for ${customerName.trim()}.`,
+                'Step 1: Judge image quality (sharpness, lighting, visibility of teeth) — be strict and honest.',
+                'Step 2: Only score if the photo is clear enough; otherwise set analyzable to false and scores to 0.',
+                measuredSharpness !== undefined
+                  ? `Automated sharpness check: ${Math.round(measuredSharpness)} (below 85 usually means too blurry to score honestly).`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(' '),
             },
             {
               type: 'image_url',
@@ -64,5 +74,5 @@ export async function analyzeSmileImage(
     throw new Error('Smile scan returned an empty response')
   }
 
-  return parseSmileScanReport(content)
+  return parseSmileScanReport(content, measuredSharpness)
 }

@@ -1,8 +1,9 @@
 'use client'
 
 import Image from 'next/image'
-import { Camera, ImagePlus, Loader2, ScanFace, Upload } from 'lucide-react'
+import { AlertTriangle, Camera, ImagePlus, Loader2, ScanFace, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { SmileReportCard } from '@/components/gelos-ai/smile-report-card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,6 +14,17 @@ import {
   loadSmileScanSession,
   saveSmileScanSession,
 } from '@/lib/gelos-ai/session-storage'
+import {
+  attachStreamToVideo,
+  isCameraSupported,
+  requestCameraStream,
+  stopMediaStream,
+} from '@/lib/gelos-ai/camera'
+import {
+  MIN_SHARPNESS_FOR_SCAN,
+  measureImageSharpness,
+  sharpnessLabel,
+} from '@/lib/gelos-ai/image-sharpness'
 import type { SmileScanReport } from '@/lib/gelos-ai/smile-scan-types'
 import { cn } from '@/lib/utils'
 
@@ -52,6 +64,8 @@ export function ScanSmilePanel() {
   const [cameraOn, setCameraOn] = useState(false)
   const [report, setReport] = useState<SmileScanReport | null>(null)
   const [isScanning, setIsScanning] = useState(false)
+  const [sharpnessScore, setSharpnessScore] = useState<number | null>(null)
+  const [isCheckingQuality, setIsCheckingQuality] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hydrated, setHydrated] = useState(false)
 
@@ -70,51 +84,74 @@ export function ScanSmilePanel() {
     saveSmileScanSession({ preview, report, name })
   }, [hydrated, preview, report, name])
 
+  useEffect(() => {
+    if (!preview) {
+      setSharpnessScore(null)
+      return
+    }
+
+    let cancelled = false
+    setIsCheckingQuality(true)
+
+    void measureImageSharpness(preview)
+      .then((score) => {
+        if (!cancelled) setSharpnessScore(score)
+      })
+      .catch(() => {
+        if (!cancelled) setSharpnessScore(null)
+      })
+      .finally(() => {
+        if (!cancelled) setIsCheckingQuality(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [preview])
+
   const stopCamera = () => {
-    const stream =
-      streamRef.current ?? (videoRef.current?.srcObject as MediaStream | null | undefined)
-    stream?.getTracks().forEach((track) => track.stop())
+    stopMediaStream(streamRef.current, videoRef.current)
     streamRef.current = null
-    if (videoRef.current) videoRef.current.srcObject = null
     setCameraOn(false)
   }
 
   useEffect(() => () => stopCamera(), [])
-
-  useEffect(() => {
-    if (!cameraOn || preview) return
-
-    const video = videoRef.current
-    const stream = streamRef.current
-    if (!video || !stream) return
-
-    video.srcObject = stream
-    void video.play().catch(() => {
-      setError('Could not start camera preview. Upload a photo instead.')
-      stopCamera()
-    })
-  }, [cameraOn, preview])
 
   const startCamera = async () => {
     setError(null)
     setReport(null)
     stopCamera()
 
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setError('Camera is not supported in this browser. Upload a photo instead.')
+    if (!isCameraSupported()) {
+      setError(
+        typeof window !== 'undefined' && !window.isSecureContext
+          ? 'Camera requires HTTPS on mobile. Upload a photo instead.'
+          : 'Camera is not supported in this browser. Upload a photo instead.',
+      )
+      return
+    }
+
+    const video = videoRef.current
+    if (!video) {
+      setError('Could not start camera preview. Upload a photo instead.')
       return
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 720 } },
-        audio: false,
-      })
+      const stream = await requestCameraStream()
       streamRef.current = stream
-      setPreview(null)
-      setCameraOn(true)
-    } catch {
-      setError('Camera access was denied. Upload a photo instead.')
+      flushSync(() => {
+        setPreview(null)
+        setCameraOn(true)
+      })
+      await attachStreamToVideo(video, stream)
+    } catch (err) {
+      stopCamera()
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Could not open camera. Upload a photo instead.',
+      )
     }
   }
 
@@ -170,6 +207,7 @@ export function ScanSmilePanel() {
           image,
           name: name.trim(),
           sessionId: getOrCreateGelosAiSessionId(),
+          sharpnessScore: sharpnessScore ?? undefined,
         }),
       })
       const data = (await res.json()) as {
@@ -199,7 +237,14 @@ export function ScanSmilePanel() {
     clearSmileScanSession()
   }
 
-  const canAnalyze = preview && name.trim().length >= 2 && !isScanning
+  const photoTooBlurry =
+    sharpnessScore !== null && sharpnessScore < MIN_SHARPNESS_FOR_SCAN
+  const canAnalyze =
+    preview &&
+    name.trim().length >= 2 &&
+    !isScanning &&
+    !isCheckingQuality &&
+    !photoTooBlurry
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -218,19 +263,24 @@ export function ScanSmilePanel() {
 
         <div
           className={cn(
-            'relative overflow-hidden rounded-2xl border border-dashed border-neutral-200 bg-neutral-50',
-            preview || cameraOn ? 'aspect-[4/5]' : 'flex min-h-[18rem] items-center justify-center',
+            'relative w-full overflow-hidden rounded-2xl border border-dashed border-neutral-200 bg-neutral-950',
+            preview || cameraOn
+              ? 'aspect-[4/5] min-h-[18rem] sm:min-h-[20rem]'
+              : 'flex min-h-[18rem] items-center justify-center bg-neutral-50',
           )}
         >
-          {cameraOn && !preview && (
-            <video
-              ref={videoRef}
-              className="absolute inset-0 h-full w-full scale-x-[-1] object-cover"
-              playsInline
-              muted
-              autoPlay
-            />
-          )}
+          <video
+            ref={videoRef}
+            className={cn(
+              'absolute inset-0 h-full w-full scale-x-[-1] object-cover',
+              cameraOn && !preview
+                ? 'z-10 opacity-100'
+                : 'pointer-events-none z-0 opacity-0',
+            )}
+            playsInline
+            muted
+            autoPlay
+          />
 
           {preview && (
             <Image
@@ -254,13 +304,36 @@ export function ScanSmilePanel() {
           <canvas ref={canvasRef} className="hidden" />
         </div>
 
-        {preview && !report && (
+        {preview && !report && photoTooBlurry && (
+          <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+              <div>
+                <p className="text-sm font-semibold text-amber-950">
+                  This photo looks too blurry
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-amber-900/80">
+                  We cannot give an honest smile score from a soft or out-of-focus image.
+                  Retake in good light, hold steady, and tap to focus on your teeth before
+                  analyzing.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {preview && !report && !photoTooBlurry && (
           <div className="mt-4 rounded-2xl border border-[#84CC16]/30 bg-[#84CC16]/10 p-4">
             <Label htmlFor="smile-scan-name" className="text-sm font-semibold text-foreground">
               Your name
             </Label>
             <p className="mt-1 text-xs text-muted-foreground">
               Enter your name so we can personalize your smile report before analysis.
+              {isCheckingQuality
+                ? ' Checking photo quality…'
+                : sharpnessScore !== null
+                  ? ` Photo quality: ${sharpnessLabel(sharpnessScore)}.`
+                  : ''}
             </p>
             <Input
               id="smile-scan-name"
@@ -298,14 +371,24 @@ export function ScanSmilePanel() {
           )}
 
           {cameraOn && !preview && (
-            <Button
-              type="button"
-              onClick={capturePhoto}
-              className="rounded-full bg-[#84CC16] text-neutral-950 hover:bg-[#73b512]"
-            >
-              <ImagePlus className="h-4 w-4" />
-              Capture smile
-            </Button>
+            <>
+              <Button
+                type="button"
+                onClick={capturePhoto}
+                className="rounded-full bg-[#84CC16] text-neutral-950 hover:bg-[#73b512]"
+              >
+                <ImagePlus className="h-4 w-4" />
+                Capture smile
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={stopCamera}
+                className="rounded-full"
+              >
+                Cancel
+              </Button>
+            </>
           )}
 
           {preview && (

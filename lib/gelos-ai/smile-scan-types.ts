@@ -4,8 +4,15 @@ export type SmileScanProductPick = {
   reason: string
 }
 
+export type SmileScanImageQuality = {
+  analyzable: boolean
+  clarity: number
+  issues: string[]
+}
+
 export type SmileScanReport = {
   snapshot: string
+  imageQuality?: SmileScanImageQuality
   scores: {
     brightness: number
     freshness: number

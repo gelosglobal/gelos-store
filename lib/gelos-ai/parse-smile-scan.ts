@@ -1,4 +1,8 @@
-import type { SmileScanReport } from '@/lib/gelos-ai/smile-scan-types'
+import { enforceSmileReportQuality } from '@/lib/gelos-ai/enforce-smile-report'
+import type {
+  SmileScanImageQuality,
+  SmileScanReport,
+} from '@/lib/gelos-ai/smile-scan-types'
 
 function clampScore(value: unknown): number {
   const num = Number(value)
@@ -14,6 +18,22 @@ function stripMarkdown(text: string): string {
     .replace(/^[-*]\s+/gm, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
+}
+
+function parseImageQuality(value: unknown): SmileScanImageQuality | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const record = value as Record<string, unknown>
+  const issues = Array.isArray(record.issues)
+    ? record.issues.map((issue) => String(issue).trim()).filter(Boolean)
+    : []
+
+  const clarity = clampScore(record.clarity)
+
+  return {
+    analyzable: record.analyzable !== false,
+    clarity: clarity > 0 ? clarity : 5,
+    issues,
+  }
 }
 
 function parseProducts(value: unknown): SmileScanReport['products'] {
@@ -32,7 +52,10 @@ function parseProducts(value: unknown): SmileScanReport['products'] {
     .slice(0, 3)
 }
 
-export function parseSmileScanReport(raw: string): SmileScanReport {
+export function parseSmileScanReport(
+  raw: string,
+  measuredSharpness?: number,
+): SmileScanReport {
   const cleaned = raw
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/i, '')
@@ -50,8 +73,9 @@ export function parseSmileScanReport(raw: string): SmileScanReport {
       ? parsed.tips.map((t) => stripMarkdown(String(t).trim())).filter(Boolean).slice(0, 3)
       : []
 
-    return {
+    const report: SmileScanReport = {
       snapshot: stripMarkdown(String(parsed.snapshot ?? '').trim()),
+      imageQuality: parseImageQuality(parsed.imageQuality),
       scores: {
         brightness: clampScore(scores.brightness),
         freshness: clampScore(scores.freshness),
@@ -69,8 +93,10 @@ export function parseSmileScanReport(raw: string): SmileScanReport {
         ),
       ),
     }
+
+    return enforceSmileReportQuality(report, measuredSharpness)
   } catch {
-    return fallbackFromMarkdown(raw)
+    return enforceSmileReportQuality(fallbackFromMarkdown(raw), measuredSharpness)
   }
 }
 
