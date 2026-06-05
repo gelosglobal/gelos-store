@@ -1,10 +1,5 @@
+import { RETAKE_TIPS, sanitizeAnalyzableTips } from '@/lib/gelos-ai/smile-scan-tips'
 import type { SmileScanReport } from '@/lib/gelos-ai/smile-scan-types'
-
-const RETAKE_TIPS = [
-  'Stand in bright, natural light and face the light source.',
-  'Hold your phone steady, tap to focus on your teeth, then capture.',
-  'Fill the frame with your face — teeth and gums clearly visible.',
-]
 
 function zeroScores(): SmileScanReport['scores'] {
   return { brightness: 0, freshness: 0, confidence: 0 }
@@ -78,5 +73,6 @@ export function enforceSmileReportQuality(
     ...report,
     imageQuality: quality ?? { analyzable: true, clarity, issues },
     scores: cappedScores,
+    tips: sanitizeAnalyzableTips(report.tips, cappedScores),
   }
 }

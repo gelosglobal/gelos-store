@@ -28,9 +28,16 @@ SCORING RULES (only if imageQuality.analyzable is true):
 
 When imageQuality.analyzable is false:
 - Set all scores to 0
-- Set tips to exactly 3 retake tips (lighting, focus, framing)
+- Set tips to exactly 3 photo retake tips only (lighting, focus, framing) — NOT teeth care
 - Set products to []
 - Snapshot: politely explain why the photo cannot be scored honestly and ask for a retake
+
+When imageQuality.analyzable is true:
+- Set tips to exactly 3 short oral care tips about TEETH and smile hygiene only
+- Tips must be actionable dental routine advice: brushing, flossing, mouthwash, enamel care, stain habits, gum care, tongue cleaning, etc.
+- NEVER include photo, camera, lighting, environment, or retake advice in tips once the photo has been analyzed
+- Bad tip examples (forbidden when analyzable): "stand near a window", "hold your phone steady", "tap to focus", "take a clearer photo"
+- Good tip examples (required style): "Brush twice daily for two minutes along the gum line", "Floss once daily between teeth", "Use fluoride toothpaste morning and night"
 
 Respond with JSON only. No markdown, no hashtags, no asterisks, no bullet symbols.
 
@@ -47,7 +54,7 @@ Use this exact JSON shape:
     "freshness": 5,
     "confidence": 6
   },
-  "tips": ["tip one", "tip two", "tip three"],
+  "tips": ["Brush twice daily along the gum line", "Floss once daily between teeth", "Use mouthwash after brushing for fresher breath"],
   "products": [
     {
       "name": "Exact product name from catalog",
@@ -64,7 +71,7 @@ ${catalogContext}
 
 Additional rules:
 - scores must be integers from 0 to 10 (0 when not analyzable)
-- tips: exactly 3 short practical tips (retake tips when not analyzable)
+- tips: exactly 3 tips — photo retake tips when not analyzable; teeth/oral care tips only when analyzable
 - products: 0 items when not analyzable; otherwise 2 to 3 items copied exactly from the catalog
 - For whitening goals suggest Whitening products; for freshness suggest Mouthwash; for daily care suggest Toothpaste
 - Do not invent clinical conditions

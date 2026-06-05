@@ -13,6 +13,7 @@ import {
   Sun,
   Wind,
 } from 'lucide-react'
+import { ShareSmileReportButton } from '@/components/gelos-ai/share-smile-report-button'
 import type { SmileScanReport } from '@/lib/gelos-ai/smile-scan-types'
 import { cn } from '@/lib/utils'
 
@@ -136,9 +137,13 @@ function ScoreBar({
 export function SmileReportCard({
   report,
   customerName,
+  scanId,
+  showShare = true,
 }: {
   report: SmileScanReport
   customerName?: string
+  scanId?: string
+  showShare?: boolean
 }) {
   const overall = averageScore(report.scores)
   const hasScores = overall > 0
@@ -148,6 +153,14 @@ export function SmileReportCard({
 
   return (
     <div className="space-y-4">
+      {showShare && (
+        <ShareSmileReportButton
+          report={report}
+          customerName={customerName}
+          scanId={scanId}
+        />
+      )}
+
       {firstName && (
         <div className="rounded-2xl bg-neutral-950 px-4 py-3 text-white">
           <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">

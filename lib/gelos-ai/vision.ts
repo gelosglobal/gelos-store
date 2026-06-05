@@ -45,6 +45,7 @@ export async function analyzeSmileImage(
                 `Carefully analyze this smile photo for ${customerName.trim()}.`,
                 'Step 1: Judge image quality (sharpness, lighting, visibility of teeth) — be strict and honest.',
                 'Step 2: Only score if the photo is clear enough; otherwise set analyzable to false and scores to 0.',
+                'Step 3: If analyzable, tips must be about teeth and oral care only — never photo, lighting, or camera advice.',
                 measuredSharpness !== undefined
                   ? `Automated sharpness check: ${Math.round(measuredSharpness)} (below 85 usually means too blurry to score honestly).`
                   : null,

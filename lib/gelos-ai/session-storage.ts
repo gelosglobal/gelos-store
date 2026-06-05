@@ -7,6 +7,7 @@ export type SmileScanSession = {
   preview: string | null
   report: SmileScanReport | null
   name: string
+  scanId?: string
 }
 
 const KEYS = {
@@ -62,6 +63,7 @@ export function loadSmileScanSession(): SmileScanSession | null {
     preview: typeof session.preview === 'string' ? session.preview : null,
     report: session.report ?? null,
     name: typeof session.name === 'string' ? session.name : '',
+    scanId: typeof session.scanId === 'string' ? session.scanId : undefined,
   }
 }
 

@@ -63,6 +63,7 @@ export function ScanSmilePanel() {
   const [name, setName] = useState('')
   const [cameraOn, setCameraOn] = useState(false)
   const [report, setReport] = useState<SmileScanReport | null>(null)
+  const [scanId, setScanId] = useState<string | undefined>()
   const [isScanning, setIsScanning] = useState(false)
   const [sharpnessScore, setSharpnessScore] = useState<number | null>(null)
   const [isCheckingQuality, setIsCheckingQuality] = useState(false)
@@ -75,14 +76,15 @@ export function ScanSmilePanel() {
       setPreview(saved.preview)
       setReport(saved.report)
       setName(saved.name)
+      setScanId(saved.scanId)
     }
     setHydrated(true)
   }, [])
 
   useEffect(() => {
     if (!hydrated) return
-    saveSmileScanSession({ preview, report, name })
-  }, [hydrated, preview, report, name])
+    saveSmileScanSession({ preview, report, name, scanId })
+  }, [hydrated, preview, report, name, scanId])
 
   useEffect(() => {
     if (!preview) {
@@ -120,6 +122,7 @@ export function ScanSmilePanel() {
   const startCamera = async () => {
     setError(null)
     setReport(null)
+    setScanId(undefined)
     stopCamera()
 
     if (!isCameraSupported()) {
@@ -179,6 +182,7 @@ export function ScanSmilePanel() {
 
     setError(null)
     setReport(null)
+    setScanId(undefined)
     stopCamera()
 
     const reader = new FileReader()
@@ -221,6 +225,7 @@ export function ScanSmilePanel() {
       }
 
       setReport(data.report)
+      setScanId(data.scanId)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Smile scan failed.')
     } finally {
@@ -233,6 +238,7 @@ export function ScanSmilePanel() {
     setPreview(null)
     setName('')
     setReport(null)
+    setScanId(undefined)
     setError(null)
     clearSmileScanSession()
   }
@@ -443,7 +449,11 @@ export function ScanSmilePanel() {
             </p>
           </div>
         ) : report ? (
-          <SmileReportCard report={report} customerName={name.trim()} />
+          <SmileReportCard
+            report={report}
+            customerName={name.trim()}
+            scanId={scanId}
+          />
         ) : (
           <div className="flex min-h-[18rem] flex-col items-center justify-center rounded-xl border border-neutral-200 bg-white px-6 text-center">
             <ScanFace className="mb-3 h-10 w-10 text-neutral-300" />
