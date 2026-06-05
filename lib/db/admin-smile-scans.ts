@@ -62,9 +62,14 @@ function prismaToAdminSmileScan(record: PrismaSmileScan): AdminSmileScan {
 export async function listAdminSmileScans(): Promise<AdminSmileScan[]> {
   if (!isDatabaseConfigured()) return []
 
-  const scans = await prisma.smileScan.findMany({
-    orderBy: { createdAt: 'desc' },
-  })
+  try {
+    const scans = await prisma.smileScan.findMany({
+      orderBy: { createdAt: 'desc' },
+    })
 
-  return scans.map(prismaToAdminSmileScan)
+    return scans.map(prismaToAdminSmileScan)
+  } catch (error) {
+    console.error('[listAdminSmileScans]', error)
+    throw error
+  }
 }

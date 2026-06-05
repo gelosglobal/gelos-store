@@ -41,9 +41,7 @@ function getPrismaClient() {
     void existing.$disconnect()
   }
   const client = createPrismaClient()
-  if (process.env.NODE_ENV !== 'production') {
-    globalForPrisma.prisma = client
-  }
+  globalForPrisma.prisma = client
   return client
 }
 

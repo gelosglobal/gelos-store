@@ -19,11 +19,11 @@ export default function Home() {
 
       <BestSellers />
 
-      <NewArrivals />
-
       <ShopByCollection className="bg-muted/20" />
 
       <RadiantSmileSection />
+
+      <NewArrivals />
 
       <LifestyleGallery />
 

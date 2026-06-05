@@ -114,6 +114,7 @@ function ScanDetail({ scan }: { scan: AdminSmileScan }) {
 export default function AdminSmileScansPage() {
   const [scans, setScans] = useState<AdminSmileScan[]>([])
   const [databaseConnected, setDatabaseConnected] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshedAt, setRefreshedAt] = useState<Date | null>(null)
@@ -133,17 +134,23 @@ export default function AdminSmileScansPage() {
         scans?: AdminSmileScan[]
         databaseConnected?: boolean
         error?: string
+        detail?: string
       }
 
       if (!res.ok) {
+        setDatabaseConnected(Boolean(data.databaseConnected))
         throw new Error(data.error ?? 'Failed to load smile scans')
       }
 
       setScans(data.scans ?? [])
       setDatabaseConnected(Boolean(data.databaseConnected))
+      setLoadError(null)
       setRefreshedAt(new Date())
-    } catch {
-      toast.error('Failed to load smile scans')
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to load smile scans'
+      setLoadError(message)
+      toast.error(message)
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -242,6 +249,18 @@ export default function AdminSmileScansPage() {
       {!databaseConnected && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           Database is not connected. Smile scans will appear here once MongoDB is configured.
+        </div>
+      )}
+
+      {databaseConnected && loadError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+          {loadError}. Redeploy the site with a fresh build so the SmileScan database model is included.
+        </div>
+      )}
+
+      {databaseConnected && !loadError && !loading && scans.length === 0 && (
+        <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
+          No smile scans yet. Reports appear here after customers scan on the storefront.
         </div>
       )}
 
