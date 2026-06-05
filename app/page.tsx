@@ -14,7 +14,7 @@ export default function Home() {
         <div className="relative mx-auto flex min-h-[min(85vh,640px)] w-full max-w-7xl flex-col items-center justify-center overflow-hidden rounded-[2rem] shadow-xl md:min-h-[560px] lg:max-w-[90rem] lg:min-h-[min(78vh,820px)] lg:rounded-[2.5rem] xl:max-w-[100rem] xl:min-h-[min(82vh,900px)]">
           <video
             className="absolute inset-0 h-full w-full object-cover"
-            src="/gelos/gelos-video2.mp4"
+            src="/gelos/GELOS%20VIDEO.mp4"
             autoPlay
             loop
             muted

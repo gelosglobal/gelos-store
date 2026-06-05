@@ -19,6 +19,7 @@ tsconfig.tsbuildinfo
 public/gelos/*
 !public/gelos/*.png
 !public/gelos/gelos-video2.mp4
+!public/gelos/GELOS VIDEO.mp4
 !public/gelos/GELOS1042.jpg
 !public/gelos/GELOS1083.jpg
 !public/gelos/GELOS1254.jpg
