@@ -81,13 +81,15 @@ export type CreateSmileScanInput = {
   report: SmileScanReport
 }
 
-export async function createSmileScan(input: CreateSmileScanInput) {
+export async function createSmileScan(
+  input: CreateSmileScanInput,
+): Promise<{ scanId: string; persisted: true } | { persisted: false }> {
+  if (!isDatabaseConfigured()) {
+    return { persisted: false }
+  }
+
   const scanId = generateSmileScanId()
   const overallScore = averageScore(input.report.scores)
-
-  if (!isDatabaseConfigured()) {
-    return { scanId, persisted: false as const }
-  }
 
   const record = await prisma.smileScan.create({
     data: {
@@ -103,24 +105,29 @@ export async function createSmileScan(input: CreateSmileScanInput) {
     },
   })
 
-  return { scanId: record.scanId, persisted: true as const }
+  return { scanId: record.scanId, persisted: true }
 }
 
 export async function getSmileScanByScanId(
   scanId: string,
 ): Promise<PublicSmileScan | null> {
-  if (!isDatabaseConfigured()) return null
+  if (!isDatabaseConfigured() || !scanId.trim()) return null
 
-  const record = await prisma.smileScan.findUnique({
-    where: { scanId },
-  })
+  try {
+    const record = await prisma.smileScan.findUnique({
+      where: { scanId: scanId.trim() },
+    })
 
-  if (!record) return null
+    if (!record) return null
 
-  return {
-    scanId: record.scanId,
-    customerName: record.customerName,
-    report: asSmileScanReport(record.report),
-    createdAt: record.createdAt,
+    return {
+      scanId: record.scanId,
+      customerName: record.customerName,
+      report: asSmileScanReport(record.report),
+      createdAt: record.createdAt,
+    }
+  } catch (error) {
+    console.error('[getSmileScanByScanId]', error)
+    return null
   }
 }

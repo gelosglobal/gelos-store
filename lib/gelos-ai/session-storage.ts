@@ -8,6 +8,7 @@ export type SmileScanSession = {
   report: SmileScanReport | null
   name: string
   scanId?: string
+  shareable?: boolean
 }
 
 const KEYS = {
@@ -64,6 +65,7 @@ export function loadSmileScanSession(): SmileScanSession | null {
     report: session.report ?? null,
     name: typeof session.name === 'string' ? session.name : '',
     scanId: typeof session.scanId === 'string' ? session.scanId : undefined,
+    shareable: session.shareable === true,
   }
 }
 

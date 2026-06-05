@@ -27,6 +27,7 @@ function isPrismaClientStale(_client: PrismaClient) {
     !('order' in _client) ||
     !('storeSettings' in _client) ||
     !('tagCollection' in _client) ||
+    !('smileScan' in _client) ||
     !('galleryImages' in productFields)
   )
 }

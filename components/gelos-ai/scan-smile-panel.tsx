@@ -64,6 +64,7 @@ export function ScanSmilePanel() {
   const [cameraOn, setCameraOn] = useState(false)
   const [report, setReport] = useState<SmileScanReport | null>(null)
   const [scanId, setScanId] = useState<string | undefined>()
+  const [shareable, setShareable] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
   const [sharpnessScore, setSharpnessScore] = useState<number | null>(null)
   const [isCheckingQuality, setIsCheckingQuality] = useState(false)
@@ -77,14 +78,15 @@ export function ScanSmilePanel() {
       setReport(saved.report)
       setName(saved.name)
       setScanId(saved.scanId)
+      setShareable(saved.shareable === true)
     }
     setHydrated(true)
   }, [])
 
   useEffect(() => {
     if (!hydrated) return
-    saveSmileScanSession({ preview, report, name, scanId })
-  }, [hydrated, preview, report, name, scanId])
+    saveSmileScanSession({ preview, report, name, scanId, shareable })
+  }, [hydrated, preview, report, name, scanId, shareable])
 
   useEffect(() => {
     if (!preview) {
@@ -123,6 +125,7 @@ export function ScanSmilePanel() {
     setError(null)
     setReport(null)
     setScanId(undefined)
+    setShareable(false)
     stopCamera()
 
     if (!isCameraSupported()) {
@@ -183,6 +186,7 @@ export function ScanSmilePanel() {
     setError(null)
     setReport(null)
     setScanId(undefined)
+    setShareable(false)
     stopCamera()
 
     const reader = new FileReader()
@@ -217,6 +221,7 @@ export function ScanSmilePanel() {
       const data = (await res.json()) as {
         report?: SmileScanReport
         scanId?: string
+        persisted?: boolean
         error?: string
       }
 
@@ -225,7 +230,8 @@ export function ScanSmilePanel() {
       }
 
       setReport(data.report)
-      setScanId(data.scanId)
+      setScanId(data.persisted ? data.scanId : undefined)
+      setShareable(data.persisted === true && Boolean(data.scanId))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Smile scan failed.')
     } finally {
@@ -239,6 +245,7 @@ export function ScanSmilePanel() {
     setName('')
     setReport(null)
     setScanId(undefined)
+    setShareable(false)
     setError(null)
     clearSmileScanSession()
   }
@@ -452,7 +459,7 @@ export function ScanSmilePanel() {
           <SmileReportCard
             report={report}
             customerName={name.trim()}
-            scanId={scanId}
+            scanId={shareable ? scanId : undefined}
           />
         ) : (
           <div className="flex min-h-[18rem] flex-col items-center justify-center rounded-xl border border-neutral-200 bg-white px-6 text-center">

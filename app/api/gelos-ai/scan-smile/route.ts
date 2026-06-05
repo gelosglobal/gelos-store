@@ -63,7 +63,9 @@ export async function POST(request: Request) {
       products: resolveSmileScanProducts(report.products, catalog, report),
     }
 
-    let saved = { scanId: '', persisted: false as const }
+    let saved: { scanId: string; persisted: true } | { persisted: false } = {
+      persisted: false,
+    }
     try {
       saved = await createSmileScan({
         customerName,
@@ -76,7 +78,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       report: resolvedReport,
-      scanId: saved.scanId || undefined,
+      scanId: saved.persisted ? saved.scanId : undefined,
       persisted: saved.persisted,
     })
   } catch (error) {

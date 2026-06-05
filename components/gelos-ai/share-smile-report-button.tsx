@@ -14,6 +14,7 @@ type ShareSmileReportButtonProps = {
   report: SmileScanReport
   customerName?: string
   scanId?: string
+  shareable?: boolean
   className?: string
 }
 
@@ -21,12 +22,16 @@ export function ShareSmileReportButton({
   report,
   customerName,
   scanId,
+  shareable = Boolean(scanId),
   className,
 }: ShareSmileReportButtonProps) {
   const [copied, setCopied] = useState(false)
 
   const getSharePayload = () => {
-    const shareUrl = buildSmileReportShareUrl(scanId, window.location.origin)
+    const shareUrl = buildSmileReportShareUrl(
+      shareable ? scanId : undefined,
+      window.location.origin,
+    )
     const text = formatSmileReportShareText({ report, customerName, shareUrl })
     const firstName = customerName?.trim().split(/\s+/)[0]
     const title = firstName ? `${firstName}'s Gelos Smile Report` : 'My Gelos Smile Report'
@@ -93,9 +98,13 @@ export function ShareSmileReportButton({
           </Button>
         )}
       </div>
-      {scanId && (
+      {shareable && scanId ? (
         <p className="mt-2 text-xs text-muted-foreground">
           Anyone with the link can view this report.
+        </p>
+      ) : (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Share copies your report text. Scan again to get a shareable link.
         </p>
       )}
     </div>
