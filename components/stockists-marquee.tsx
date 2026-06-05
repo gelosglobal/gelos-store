@@ -1,3 +1,4 @@
+import { Star } from 'lucide-react'
 import { stockists } from '@/lib/stockists'
 
 /** Enough duplicated tracks to keep the marquee full with any partner count */
@@ -50,10 +51,21 @@ export function StockistsMarquee() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <h2
           id="stockists-heading"
-          className="text-center text-lg font-semibold tracking-tight text-foreground sm:text-xl"
+          className="text-center text-lg font-bold uppercase tracking-wide text-foreground sm:text-xl md:text-2xl"
         >
-          Where to find our products
+          Find us everywhere
         </h2>
+        <p className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground sm:text-base">
+          <span className="flex items-center gap-0.5" aria-hidden>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star
+                key={i}
+                className="size-3.5 fill-amber-400 text-amber-400 sm:size-4"
+              />
+            ))}
+          </span>
+          <span>Over 50,000 satisfied users</span>
+        </p>
       </div>
 
       <div className="relative mt-3">

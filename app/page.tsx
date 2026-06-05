@@ -1,10 +1,12 @@
 'use client'
 
-import Link from 'next/link'
 import { BestSellers } from '@/components/best-sellers'
 import { FeaturedProductsHero } from '@/components/featured-products-hero'
 import { LifestyleGallery } from '@/components/lifestyle-gallery'
+import { LifestylePromoBanner } from '@/components/lifestyle-promo-banner'
+import { RadiantSmileSection } from '@/components/radiant-smile-section'
 import { ShopByCollection } from '@/components/shop-by-collection'
+import { SiteFooter } from '@/components/site-footer'
 import { StockistsMarquee } from '@/components/stockists-marquee'
 
 export default function Home() {
@@ -18,7 +20,13 @@ export default function Home() {
 
       <ShopByCollection className="bg-muted/20" />
 
+      <RadiantSmileSection />
+
       <LifestyleGallery />
+
+     
+
+      {/* <LifestylePromoBanner /> */}
 
       {/* Ingredient Highlight Section — hidden
       <section className="py-20 bg-muted/20 border-b border-border">
@@ -174,79 +182,7 @@ export default function Home() {
       </section>
       */}
 
-      {/* Footer */}
-      <footer className="bg-neutral-950 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="border-b border-neutral-800 py-10 md:py-12">
-            <div className="mx-auto max-w-xl text-center md:max-w-2xl">
-              <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
-                Get Exclusive Offers
-              </h2>
-              <p className="mt-3 text-sm text-neutral-400 md:text-base">
-                Subscribe for 15% off your first order and tips from our dental experts.
-              </p>
-              <form
-                className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center"
-                onSubmit={(e) => e.preventDefault()}
-              >
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  aria-label="Email address"
-                  className="min-w-0 flex-1 rounded-full border border-neutral-700 bg-neutral-900 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-white focus:outline-none focus:ring-1 focus:ring-white sm:max-w-xs"
-                />
-                <button
-                  type="submit"
-                  className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-neutral-950 transition-colors hover:bg-neutral-200 whitespace-nowrap"
-                >
-                  Subscribe
-                </button>
-              </form>
-              <p className="mt-3 text-xs text-neutral-500">
-                We respect your privacy. Unsubscribe at any time.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-8 py-12 md:grid-cols-4">
-            <div>
-              <h4 className="font-semibold mb-4">Shop</h4>
-              <ul className="space-y-2 text-sm text-neutral-400">
-                <li><Link href="#" className="hover:text-white transition-colors">All Products</Link></li>
-                <li><Link href="#" className="hover:text-white transition-colors">Whitening</Link></li>
-                <li><Link href="#" className="hover:text-white transition-colors">Toothpaste</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-sm text-neutral-400">
-                <li><Link href="#" className="hover:text-white transition-colors">About</Link></li>
-                <li><Link href="#" className="hover:text-white transition-colors">Blog</Link></li>
-                <li><Link href="#" className="hover:text-white transition-colors">Contact</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-sm text-neutral-400">
-                <li><Link href="#" className="hover:text-white transition-colors">FAQ</Link></li>
-                <li><Link href="#" className="hover:text-white transition-colors">Shipping</Link></li>
-                <li><Link href="#" className="hover:text-white transition-colors">Returns</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Follow</h4>
-              <ul className="space-y-2 text-sm text-neutral-400">
-                <li><Link href="#" className="hover:text-white transition-colors">Instagram</Link></li>
-                <li><Link href="#" className="hover:text-white transition-colors">Twitter</Link></li>
-                <li><Link href="#" className="hover:text-white transition-colors">TikTok</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-neutral-800 py-8 text-center text-sm text-neutral-500">
-            <p>&copy; 2025 Gelos. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   )
 }
