@@ -22,20 +22,20 @@ const plusJakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: 'Gelos | Premium Dental Care',
   description: 'Discover premium dental care products including whitening kits, charcoal powder, tongue scrapers, and more.',
-  generator: 'v0.app',
   icons: {
     icon: [
+      { url: '/favicon.ico', sizes: 'any' },
       {
         url: '/icon-light-32x32.png',
+        sizes: '32x32',
+        type: 'image/png',
         media: '(prefers-color-scheme: light)',
       },
       {
         url: '/icon-dark-32x32.png',
+        sizes: '32x32',
+        type: 'image/png',
         media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
       },
     ],
     apple: '/apple-icon.png',
