@@ -182,6 +182,16 @@
   animation-play-state: paused;
 }
 
+.stockists-marquee {
+  display: flex;
+  width: max-content;
+  animation: announcement-marquee 32s linear infinite;
+}
+
+.stockists-marquee:hover {
+  animation-play-state: paused;
+}
+
 /* Smooth transitions for all interactive elements */
 a, button, input {
   @apply transition-all duration-200;

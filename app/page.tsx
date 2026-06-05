@@ -5,11 +5,14 @@ import { BestSellers } from '@/components/best-sellers'
 import { FeaturedProductsHero } from '@/components/featured-products-hero'
 import { LifestyleGallery } from '@/components/lifestyle-gallery'
 import { ShopByCollection } from '@/components/shop-by-collection'
+import { StockistsMarquee } from '@/components/stockists-marquee'
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <FeaturedProductsHero />
+
+      <StockistsMarquee />
 
       <BestSellers />
 
