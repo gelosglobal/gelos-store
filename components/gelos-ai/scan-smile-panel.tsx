@@ -43,6 +43,7 @@ async function compressImageDataUrl(dataUrl: string): Promise<string> {
 
 export function ScanSmilePanel() {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -70,28 +71,48 @@ export function ScanSmilePanel() {
   }, [hydrated, preview, report, name])
 
   const stopCamera = () => {
-    const stream = videoRef.current?.srcObject as MediaStream | null
+    const stream =
+      streamRef.current ?? (videoRef.current?.srcObject as MediaStream | null | undefined)
     stream?.getTracks().forEach((track) => track.stop())
+    streamRef.current = null
     if (videoRef.current) videoRef.current.srcObject = null
     setCameraOn(false)
   }
 
   useEffect(() => () => stopCamera(), [])
 
+  useEffect(() => {
+    if (!cameraOn || preview) return
+
+    const video = videoRef.current
+    const stream = streamRef.current
+    if (!video || !stream) return
+
+    video.srcObject = stream
+    void video.play().catch(() => {
+      setError('Could not start camera preview. Upload a photo instead.')
+      stopCamera()
+    })
+  }, [cameraOn, preview])
+
   const startCamera = async () => {
     setError(null)
     setReport(null)
+    stopCamera()
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError('Camera is not supported in this browser. Upload a photo instead.')
+      return
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 720 } },
         audio: false,
       })
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        await videoRef.current.play()
-      }
-      setCameraOn(true)
+      streamRef.current = stream
       setPreview(null)
+      setCameraOn(true)
     } catch {
       setError('Camera access was denied. Upload a photo instead.')
     }
@@ -204,9 +225,10 @@ export function ScanSmilePanel() {
           {cameraOn && !preview && (
             <video
               ref={videoRef}
-              className="h-full w-full object-cover"
+              className="absolute inset-0 h-full w-full scale-x-[-1] object-cover"
               playsInline
               muted
+              autoPlay
             />
           )}
 
