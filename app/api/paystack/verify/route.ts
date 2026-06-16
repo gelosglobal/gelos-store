@@ -91,6 +91,9 @@ export async function POST(request: Request) {
     const customerPhone = String(metadata.customer_phone ?? '') || undefined
     const shippingAddress = String(metadata.shipping_address ?? '') || undefined
     const channel = payment.channel ?? 'Paystack'
+    const affiliateCode = String(metadata.affiliate_code ?? '') || undefined
+    const affiliateId = String(metadata.affiliate_id ?? '') || undefined
+    const commissionAmount = Number(metadata.commission_amount ?? 0)
 
     const order = await createPaidOrder({
       orderNumber: generateOrderNumber(),
@@ -106,6 +109,11 @@ export async function POST(request: Request) {
       total,
       currency: payment.currency,
       channel,
+      affiliateCode,
+      affiliateId,
+      commissionAmount,
+      commissionStatus:
+        affiliateId && commissionAmount > 0 ? 'pending' : 'none',
     })
 
     notifyOrderPlaced({

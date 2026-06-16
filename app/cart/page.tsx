@@ -11,6 +11,7 @@ import { CartLineItem } from '@/components/cart-line-item'
 import { getProductHref } from '@/lib/product-utils'
 import { useProducts } from '@/components/products-provider'
 import { calculateCheckoutTotals } from '@/lib/checkout'
+import { hasSmileRewardFreeShipping } from '@/lib/gelos-ai/smile-reward-storage'
 import { convertForLocation } from '@/lib/exchange-rates'
 import {
   findActivePromo,
@@ -31,10 +32,15 @@ export default function CartPage() {
   } = useStorePromotions()
   const [promoCode, setPromoCode] = useState(appliedPromoCode)
   const [promoError, setPromoError] = useState('')
+  const [smileRewardFreeShipping, setSmileRewardFreeShipping] = useState(false)
 
   useEffect(() => {
     setPromoCode(appliedPromoCode)
   }, [appliedPromoCode])
+
+  useEffect(() => {
+    setSmileRewardFreeShipping(hasSmileRewardFreeShipping())
+  }, [])
 
   const appliedPromo = findActivePromo(appliedPromoCode, promotions.promos)
 
@@ -44,6 +50,7 @@ export default function CartPage() {
       promoCode: appliedPromoCode,
       locationId,
       promotions,
+      smileRewardFreeShipping,
     },
   )
   const afterDiscount = subtotal - discount

@@ -51,15 +51,18 @@ function parseTab(value: string | null): AiFeature {
 function GelosAiPageContent() {
   const searchParams = useSearchParams()
   const urlTab = searchParams.get('tab')
-  const [active, setActive] = useState<AiFeature>(() => {
-    if (urlTab) return parseTab(urlTab)
-    return loadActiveTab() ?? 'chat'
-  })
+  const [active, setActive] = useState<AiFeature>(() =>
+    urlTab ? parseTab(urlTab) : 'chat',
+  )
 
   useEffect(() => {
     if (urlTab) {
       setActive(parseTab(urlTab))
+      return
     }
+
+    const saved = loadActiveTab()
+    if (saved) setActive(saved)
   }, [urlTab])
 
   useEffect(() => {

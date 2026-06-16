@@ -40,69 +40,96 @@ function ScorePill({ value }: { value: number }) {
 }
 
 function ScanDetail({ scan }: { scan: AdminSmileScan }) {
-  return (
-    <div className="grid gap-4 rounded-xl border border-neutral-200 bg-neutral-50 p-4 md:grid-cols-2">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-          Snapshot
-        </p>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-800">
-          {scan.report.snapshot}
-        </p>
-      </div>
+  const scoreItems = [
+    { label: 'Brightness', value: scan.brightness },
+    { label: 'Freshness', value: scan.freshness },
+    { label: 'Confidence', value: scan.confidence },
+    { label: 'Overall', value: scan.overallScore },
+  ]
 
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-          Scores
-        </p>
-        <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-          <p>Brightness: <strong>{scan.brightness || '—'}</strong></p>
-          <p>Freshness: <strong>{scan.freshness || '—'}</strong></p>
-          <p>Confidence: <strong>{scan.confidence || '—'}</strong></p>
-          <p>Overall: <strong>{scan.overallScore || '—'}</strong></p>
+  return (
+    <div className="w-full max-w-full min-w-0 space-y-4 overflow-hidden">
+      <div className="grid w-full max-w-full min-w-0 gap-4 lg:grid-cols-2">
+        <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-neutral-200 bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Snapshot
+          </p>
+          <p className="mt-2 text-sm leading-relaxed whitespace-normal wrap-break-word text-neutral-800">
+            {scan.report.snapshot}
+          </p>
+        </div>
+
+        <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-neutral-200 bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Scores
+          </p>
+          <dl className="mt-3 grid grid-cols-2 gap-3">
+            {scoreItems.map((item) => (
+              <div
+                key={item.label}
+                className="rounded-lg bg-neutral-50 px-3 py-2 ring-1 ring-neutral-200"
+              >
+                <dt className="text-xs text-neutral-500">{item.label}</dt>
+                <dd className="mt-1 text-lg font-semibold text-neutral-950">
+                  {item.value > 0 ? (
+                    <ScorePill value={item.value} />
+                  ) : (
+                    <span className="text-sm text-neutral-400">—</span>
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
         </div>
       </div>
 
       {scan.report.tips.length > 0 && (
-        <div className="md:col-span-2">
+        <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-neutral-200 bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
             Tips
           </p>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-neutral-800">
+          <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm leading-relaxed whitespace-normal wrap-break-word text-neutral-800">
             {scan.report.tips.map((tip) => (
-              <li key={tip}>{tip}</li>
+              <li key={tip} className="wrap-break-word">
+                {tip}
+              </li>
             ))}
           </ul>
         </div>
       )}
 
       {scan.report.products.length > 0 && (
-        <div className="md:col-span-2">
+        <div className="min-w-0 rounded-xl border border-neutral-200 bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
             Recommended products
           </p>
-          <div className="mt-2 space-y-2">
+          <div className="mt-3 space-y-2">
             {scan.report.products.map((product) => (
               <div
                 key={`${scan.scanId}-${product.href}`}
-                className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm"
+                className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm"
               >
-                <Link href={product.href} className="font-medium text-[#4F6CF7] hover:underline">
+                <Link
+                  href={product.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-[#4F6CF7] hover:underline"
+                >
                   {product.name}
                 </Link>
-                <p className="mt-1 text-neutral-600">{product.reason}</p>
+                <p className="mt-1 whitespace-normal wrap-break-word text-neutral-600">{product.reason}</p>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      <div className="md:col-span-2 text-sm text-neutral-600">
-        <p>
+      <div className="min-w-0 max-w-full space-y-3 overflow-hidden rounded-xl border border-neutral-200 bg-white p-4 text-sm whitespace-normal wrap-break-word text-neutral-600">
+        <p className="leading-relaxed">
           <span className="font-medium text-neutral-800">Dentist note:</span>{' '}
           {scan.report.dentistNote}
         </p>
-        <p className="mt-1">
+        <p className="leading-relaxed">
           <span className="font-medium text-neutral-800">Disclaimer:</span>{' '}
           {scan.report.disclaimer}
         </p>
@@ -377,8 +404,10 @@ export default function AdminSmileScansPage() {
                     </TableRow>
                     {expanded && (
                       <TableRow>
-                        <TableCell colSpan={9} className="bg-white pb-4">
-                          <ScanDetail scan={scan} />
+                        <TableCell colSpan={9} className="whitespace-normal bg-neutral-50 p-0">
+                          <div className="w-full max-w-full min-w-0 overflow-hidden border-t border-neutral-200 p-4">
+                            <ScanDetail scan={scan} />
+                          </div>
                         </TableCell>
                       </TableRow>
                     )}

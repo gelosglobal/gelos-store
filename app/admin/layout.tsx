@@ -12,6 +12,9 @@ import {
   BarChart3,
   BadgePercent,
   ScanFace,
+  Share2,
+  Inbox,
+  Mail,
   Settings,
   ExternalLink,
   Menu,
@@ -59,13 +62,18 @@ const navSections: NavSection[] = [
       { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
       { href: '/admin/checkouts', label: 'Checkouts', icon: BadgePercent },
       { href: '/admin/customers', label: 'Customers', icon: Users },
+      { href: '/admin/inbox', label: 'Inbox', icon: Inbox },
+      { href: '/admin/affiliates', label: 'Affiliates', icon: Share2 },
       { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
       { href: '/admin/smile-scans', label: 'Smile scans', icon: ScanFace },
     ],
   },
   {
     title: 'System',
-    items: [{ href: '/admin/settings', label: 'Settings', icon: Settings }],
+    items: [
+      { href: '/admin/email', label: 'Email', icon: Mail },
+      { href: '/admin/settings', label: 'Settings', icon: Settings },
+    ],
   },
 ]
 

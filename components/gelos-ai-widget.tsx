@@ -98,18 +98,12 @@ export function GelosAiWidget() {
 
   return (
     <>
-      <div
-        className={cn(
-          'fixed bottom-5 right-4 z-[60] flex flex-col items-end gap-3 sm:right-6',
-          open && 'pointer-events-none sm:pointer-events-auto',
-        )}
-      >
+      <div className="pointer-events-none fixed bottom-5 right-4 z-[60] flex flex-col items-end gap-3 sm:right-6">
+        {open ? (
         <div
           className={cn(
             'pointer-events-auto flex w-[min(100vw-2rem,24rem)] flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-2xl transition-all duration-300 sm:w-[24rem]',
-            open
-              ? 'translate-y-0 opacity-100'
-              : 'pointer-events-none translate-y-4 opacity-0',
+            'translate-y-0 opacity-100',
           )}
           aria-hidden={!open}
         >
@@ -236,6 +230,7 @@ export function GelosAiWidget() {
             </Button>
           </form>
         </div>
+        ) : null}
 
         {open ? (
           <button

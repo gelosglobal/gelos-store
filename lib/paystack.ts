@@ -68,6 +68,10 @@ export type InitializeTransactionInput = {
     total: number
   }
   promoApplied?: boolean
+  promoCode?: string
+  affiliateCode?: string
+  affiliateId?: string
+  commissionAmount?: number
   callbackUrl: string
 }
 
@@ -103,6 +107,10 @@ export async function initializeTransaction(
         location_id: input.locationId,
         charge_currency: currency,
         promo_applied: Boolean(input.promoApplied),
+        promo_code: input.promoCode ?? '',
+        affiliate_code: input.affiliateCode ?? '',
+        affiliate_id: input.affiliateId ?? '',
+        commission_amount: input.commissionAmount ?? 0,
         subtotal: input.totals.subtotal,
         discount: input.totals.discount,
         shipping: input.totals.shipping,

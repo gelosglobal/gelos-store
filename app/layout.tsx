@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Plus_Jakarta_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { CartProvider } from '@/components/cart-provider'
 import { StorePromotionsProvider } from '@/components/store-promotions-provider'
+import { AffiliateProvider } from '@/components/affiliate-provider'
 import { LocationProvider } from '@/components/location-provider'
 import { ProductsProvider } from '@/components/products-provider'
 import { GelosAiWidget } from '@/components/gelos-ai-widget'
@@ -56,6 +57,7 @@ export default function RootLayout({
         <ProductsProvider>
         <LocationProvider>
           <StorePromotionsProvider>
+            <AffiliateProvider>
             <CartProvider>
               <SiteNavbar />
               {children}
@@ -63,6 +65,7 @@ export default function RootLayout({
               <Toaster position="top-center" richColors closeButton />
               {process.env.NODE_ENV === 'production' && <Analytics />}
             </CartProvider>
+            </AffiliateProvider>
           </StorePromotionsProvider>
         </LocationProvider>
         </ProductsProvider>

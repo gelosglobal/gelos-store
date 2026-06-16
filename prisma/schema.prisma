@@ -70,10 +70,35 @@ model Order {
   paymentStatus     String   @default("Payment pending")
   fulfillmentStatus String   @default("Unfulfilled")
   channel           String   @default("Online store")
+  affiliateCode     String?
+  affiliateId       String?
+  commissionAmount  Float    @default(0)
+  commissionStatus  String   @default("none")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   @@map("orders")
+}
+
+model Affiliate {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  affiliateId       String   @unique
+  code              String   @unique
+  name              String
+  email             String   @default("")
+  phone             String   @default("")
+  commissionPercent Float    @default(10)
+  enabled           Boolean  @default(true)
+  totalOrders       Int      @default(0)
+  totalRevenue      Float    @default(0)
+  totalCommission   Float    @default(0)
+  pendingCommission Float    @default(0)
+  paidCommission    Float    @default(0)
+  notes             String   @default("")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("affiliates")
 }
 
 model Customer {
@@ -84,6 +109,9 @@ model Customer {
   phone             String   @default("")
   location          String   @default("")
   emailSubscription String   @default("Not subscribed")
+  lifetimeOrders    Int      @default(0)
+  lifetimeSpent     Float    @default(0)
+  lifetimeCurrency  String   @default("GHS")
   source            String   @default("manual")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -105,4 +133,47 @@ model SmileScan {
   createdAt    DateTime @default(now())
 
   @@map("smile_scans")
+}
+
+model SmileRewardClaim {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  claimId      String   @unique
+  email        String   @unique
+  customerName String   @default("")
+  scanId       String?
+  rewardType   String
+  rewardTitle  String
+  promoCode    String   @default("")
+  productHref  String   @default("")
+  redeemedAt   DateTime?
+  createdAt    DateTime @default(now())
+
+  @@map("smile_reward_claims")
+}
+
+model InboxThread {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  threadId      String   @unique
+  customerName  String
+  customerEmail String
+  customerPhone String   @default("")
+  subject       String   @default("")
+  status        String   @default("open") // open | closed
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("inbox_threads")
+}
+
+model InboxMessage {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  messageId String   @unique
+  threadId  String
+  direction String   @default("in") // in | out
+  body      String
+  sentBy    String   @default("") // optional admin identifier
+  createdAt DateTime @default(now())
+
+  @@map("inbox_messages")
 }

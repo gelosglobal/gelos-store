@@ -1,11 +1,13 @@
 'use client'
 
 import Image from 'next/image'
-import { AlertTriangle, Camera, ImagePlus, Loader2, ScanFace, Upload } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { AlertTriangle, Camera, Gift, ImagePlus, Loader2, ScanFace, Upload } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { SmileReportCard } from '@/components/gelos-ai/smile-report-card'
+import { MysteryRewardRevealDialog } from '@/components/gelos-ai/mystery-reward-reveal-dialog'
 import { Button } from '@/components/ui/button'
+import { useProducts } from '@/components/products-provider'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -26,9 +28,11 @@ import {
   sharpnessLabel,
 } from '@/lib/gelos-ai/image-sharpness'
 import type { SmileScanReport } from '@/lib/gelos-ai/smile-scan-types'
+import { buildMysteryRewardBoard, type MysteryRewardBoard } from '@/lib/gelos-ai/mystery-reward'
 import { cn } from '@/lib/utils'
 
 const MAX_IMAGE_EDGE = 1024
+const REWARD_REVEAL_DELAY_MS = 3500
 
 async function compressImageDataUrl(dataUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -54,10 +58,12 @@ async function compressImageDataUrl(dataUrl: string): Promise<string> {
 }
 
 export function ScanSmilePanel() {
+  const { products } = useProducts()
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const rewardRevealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [preview, setPreview] = useState<string | null>(null)
   const [name, setName] = useState('')
@@ -70,6 +76,31 @@ export function ScanSmilePanel() {
   const [isCheckingQuality, setIsCheckingQuality] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hydrated, setHydrated] = useState(false)
+  const [mysteryRewardBoard, setMysteryRewardBoard] = useState<MysteryRewardBoard | null>(
+    null,
+  )
+  const [mysteryRewardOpen, setMysteryRewardOpen] = useState(false)
+  const [mysteryRewardShown, setMysteryRewardShown] = useState(false)
+  const [rewardRevealPending, setRewardRevealPending] = useState(false)
+
+  const clearRewardRevealTimeout = useCallback(() => {
+    if (rewardRevealTimeoutRef.current) {
+      clearTimeout(rewardRevealTimeoutRef.current)
+      rewardRevealTimeoutRef.current = null
+    }
+  }, [])
+
+  const scheduleRewardReveal = useCallback(() => {
+    clearRewardRevealTimeout()
+    setRewardRevealPending(true)
+    rewardRevealTimeoutRef.current = setTimeout(() => {
+      setMysteryRewardOpen(true)
+      setRewardRevealPending(false)
+      rewardRevealTimeoutRef.current = null
+    }, REWARD_REVEAL_DELAY_MS)
+  }, [clearRewardRevealTimeout])
+
+  useEffect(() => () => clearRewardRevealTimeout(), [clearRewardRevealTimeout])
 
   useEffect(() => {
     const saved = loadSmileScanSession()
@@ -79,14 +110,33 @@ export function ScanSmilePanel() {
       setName(saved.name)
       setScanId(saved.scanId)
       setShareable(saved.shareable === true)
+      setMysteryRewardShown(saved.mysteryRewardShown === true)
+      setMysteryRewardBoard(saved.mysteryRewardBoard ?? null)
     }
     setHydrated(true)
   }, [])
 
   useEffect(() => {
     if (!hydrated) return
-    saveSmileScanSession({ preview, report, name, scanId, shareable })
-  }, [hydrated, preview, report, name, scanId, shareable])
+    saveSmileScanSession({
+      preview,
+      report,
+      name,
+      scanId,
+      shareable,
+      mysteryRewardShown,
+      mysteryRewardBoard,
+    })
+  }, [
+    hydrated,
+    preview,
+    report,
+    name,
+    scanId,
+    shareable,
+    mysteryRewardShown,
+    mysteryRewardBoard,
+  ])
 
   useEffect(() => {
     if (!preview) {
@@ -126,6 +176,10 @@ export function ScanSmilePanel() {
     setReport(null)
     setScanId(undefined)
     setShareable(false)
+    setMysteryRewardBoard(null)
+    setMysteryRewardOpen(false)
+    setRewardRevealPending(false)
+    clearRewardRevealTimeout()
     stopCamera()
 
     if (!isCameraSupported()) {
@@ -187,6 +241,10 @@ export function ScanSmilePanel() {
     setReport(null)
     setScanId(undefined)
     setShareable(false)
+    setMysteryRewardBoard(null)
+    setMysteryRewardOpen(false)
+    setRewardRevealPending(false)
+    clearRewardRevealTimeout()
     stopCamera()
 
     const reader = new FileReader()
@@ -232,6 +290,13 @@ export function ScanSmilePanel() {
       setReport(data.report)
       setScanId(data.persisted ? data.scanId : undefined)
       setShareable(data.persisted === true && Boolean(data.scanId))
+
+      const board = buildMysteryRewardBoard(data.report, products)
+      if (board) {
+        setMysteryRewardBoard(board)
+        setMysteryRewardShown(true)
+        scheduleRewardReveal()
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Smile scan failed.')
     } finally {
@@ -246,6 +311,11 @@ export function ScanSmilePanel() {
     setReport(null)
     setScanId(undefined)
     setShareable(false)
+    setMysteryRewardBoard(null)
+    setMysteryRewardOpen(false)
+    setRewardRevealPending(false)
+    clearRewardRevealTimeout()
+    setMysteryRewardShown(false)
     setError(null)
     clearSmileScanSession()
   }
@@ -260,7 +330,17 @@ export function ScanSmilePanel() {
     !photoTooBlurry
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <>
+      <MysteryRewardRevealDialog
+        open={mysteryRewardOpen}
+        onOpenChange={setMysteryRewardOpen}
+        board={mysteryRewardBoard}
+        report={report}
+        customerName={name.trim()}
+        scanId={shareable ? scanId : undefined}
+      />
+
+      <div className="grid gap-6 lg:grid-cols-2">
       <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#84CC16]/20 text-neutral-900">
@@ -445,6 +525,43 @@ export function ScanSmilePanel() {
 
       <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5 shadow-sm">
         <h3 className="mb-3 font-semibold text-foreground">Your smile report</h3>
+        {rewardRevealPending ? (
+          <div className="mb-4 flex items-center gap-3 rounded-2xl border border-[#84CC16]/30 bg-[#84CC16]/10 px-4 py-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#84CC16]/20 text-neutral-900">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </span>
+            <span>
+              <span className="block text-sm font-semibold text-foreground">
+                Preparing your mystery reward…
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Hang tight — your surprise unlocks in a moment.
+              </span>
+            </span>
+          </div>
+        ) : null}
+        {report && mysteryRewardBoard && !mysteryRewardOpen && !rewardRevealPending ? (
+          <button
+            type="button"
+            onClick={() => setMysteryRewardOpen(true)}
+            className="mb-4 flex w-full items-center justify-between gap-3 rounded-2xl border border-[#84CC16]/30 bg-[#84CC16]/10 px-4 py-3 text-left transition-colors hover:bg-[#84CC16]/15"
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#84CC16]/20 text-neutral-900">
+                <Gift className="h-5 w-5" />
+              </span>
+              <span>
+                <span className="block text-sm font-semibold text-foreground">
+                  Mystery reward waiting
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Tap to reveal your Gelos product reward
+                </span>
+              </span>
+            </span>
+            <span className="text-sm font-semibold text-[#4d7c0f]">Reveal</span>
+          </button>
+        ) : null}
         {isScanning ? (
           <div className="flex min-h-[18rem] flex-col items-center justify-center rounded-xl border border-neutral-200 bg-white px-6 text-center">
             <Loader2 className="mb-3 h-10 w-10 animate-spin text-[#84CC16]" />
@@ -473,5 +590,6 @@ export function ScanSmilePanel() {
         )}
       </div>
     </div>
+    </>
   )
 }

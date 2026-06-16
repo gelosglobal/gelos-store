@@ -8,6 +8,7 @@ import {
   Package,
   Percent,
   Sparkles,
+  ScanFace,
 } from 'lucide-react'
 import { bestSellerIds } from '@/lib/best-seller-meta'
 
@@ -44,7 +45,7 @@ export const mainNavLinks: MainNavLink[] = [
     id: 'gelos-ai',
     label: 'Gelos AI',
     href: '/ai',
-    icon: Bot,
+    icon: ScanFace,
   },
 ]
 

@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import { CustomerFormDialog } from '@/components/admin/customer-form-dialog'
 import { CustomerImportDialog } from '@/components/admin/customer-import-dialog'
 import { SubscriptionBadge } from '@/components/admin/subscription-badge'
+import type { ParsedCustomerImportRow } from '@/lib/admin/customer-import'
 import type { AdminCustomerInput } from '@/lib/admin/customer-input'
 import { formatOrderTotal } from '@/lib/admin/order-format'
 import { formatCustomerCount } from '@/lib/admin/customers-data'
@@ -21,6 +22,17 @@ import type { StoreCustomer } from '@/lib/types/customer'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import {
   Table,
   TableBody,
@@ -37,6 +49,7 @@ export default function AdminCustomersPage() {
   const [importOpen, setImportOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [resetting, setResetting] = useState(false)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [summaryOpen, setSummaryOpen] = useState(true)
@@ -123,19 +136,18 @@ export default function AdminCustomersPage() {
     }
   }
 
-  const handleImportCustomers = async (file: File) => {
+  const handleImportCustomers = async (rows: ParsedCustomerImportRow[]) => {
     setImporting(true)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-
       const res = await fetch('/api/admin/customers/import', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows }),
       })
       const data = (await res.json()) as {
         error?: string
         created?: number
+        updated?: number
         skipped?: number
         errors?: Array<{ rowNumber: number; message: string }>
       }
@@ -143,15 +155,27 @@ export default function AdminCustomersPage() {
       if (!res.ok) throw new Error(data.error ?? 'Failed to import customers')
 
       const created = data.created ?? 0
+      const updated = data.updated ?? 0
       const skipped = data.skipped ?? 0
       const rowErrors = data.errors ?? []
 
-      if (created > 0) {
-        toast.success(
-          `Imported ${created} customer${created === 1 ? '' : 's'}${skipped ? ` (${skipped} skipped)` : ''}`,
-        )
+      if (created > 0 || updated > 0) {
+        const parts = [
+          created > 0
+            ? `imported ${created} customer${created === 1 ? '' : 's'}`
+            : null,
+          updated > 0
+            ? `updated ${updated} customer${updated === 1 ? '' : 's'}`
+            : null,
+        ].filter(Boolean)
+
+        toast.success(parts.join(', '), {
+          description: skipped
+            ? `${skipped} duplicate row${skipped === 1 ? '' : 's'} skipped in file.`
+            : undefined,
+        })
       } else if (skipped > 0) {
-        toast.message('No new customers imported', {
+        toast.message('No customers imported', {
           description: `${skipped} duplicate or empty row${skipped === 1 ? '' : 's'} skipped.`,
         })
       } else {
@@ -170,7 +194,7 @@ export default function AdminCustomersPage() {
         )
       }
 
-      if (created > 0) {
+      if (created > 0 || updated > 0) {
         setImportOpen(false)
         await loadCustomers()
       }
@@ -180,6 +204,30 @@ export default function AdminCustomersPage() {
       )
     } finally {
       setImporting(false)
+    }
+  }
+
+  const handleResetImportedCustomers = async () => {
+    setResetting(true)
+    try {
+      const res = await fetch('/api/admin/customers/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'import' }),
+      })
+      const data = (await res.json()) as { deleted?: number; error?: string }
+      if (!res.ok) throw new Error(data.error ?? 'Failed to reset customers')
+
+      const deleted = data.deleted ?? 0
+      toast.success(`Deleted ${deleted} imported customer${deleted === 1 ? '' : 's'}`)
+      setSelected(new Set())
+      await loadCustomers()
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to reset customers',
+      )
+    } finally {
+      setResetting(false)
     }
   }
 
@@ -204,10 +252,40 @@ export default function AdminCustomersPage() {
             >
               Import
             </Button>
-            <Button variant="outline" size="sm" className="h-8 gap-1">
-              More actions
-              <ChevronDown className="h-3.5 w-3.5" />
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1"
+                  disabled={resetting}
+                >
+                  More actions
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reset imported customers?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete all customers that were added via CSV import.
+                    Checkout customers and manually added customers will be kept.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={resetting}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-white hover:bg-destructive/90"
+                    onClick={handleResetImportedCustomers}
+                    disabled={resetting}
+                  >
+                    {resetting ? 'Deleting…' : 'Delete imported customers'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <Button
               size="sm"
               className="h-8 gap-1 bg-neutral-950 hover:bg-neutral-800"
@@ -279,6 +357,9 @@ export default function AdminCustomersPage() {
                 <TableHead className="font-semibold text-neutral-600">
                   Location
                 </TableHead>
+                <TableHead className="font-semibold text-neutral-600">
+                  Phone
+                </TableHead>
                 <TableHead className="text-right font-semibold text-neutral-600">
                   Orders
                 </TableHead>
@@ -291,7 +372,7 @@ export default function AdminCustomersPage() {
               {loading ? (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={7}
                     className="py-12 text-center text-sm text-neutral-500"
                   >
                     Loading customers…
@@ -300,7 +381,7 @@ export default function AdminCustomersPage() {
               ) : paged.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={7}
                     className="py-12 text-center text-sm text-neutral-500"
                   >
                     {search
@@ -404,6 +485,9 @@ function CustomerRow({
         <SubscriptionBadge status={customer.emailSubscription} />
       </TableCell>
       <TableCell className="text-neutral-600">{customer.location}</TableCell>
+      <TableCell className="text-neutral-600">
+        {customer.phone?.trim() ? customer.phone : '—'}
+      </TableCell>
       <TableCell className="text-right text-neutral-950">
         {customer.orders}
       </TableCell>

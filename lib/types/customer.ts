@@ -12,6 +12,9 @@ export type StoreCustomer = {
   orders: number
   totalSpent: number
   currency: string
+  lifetimeOrders?: number
+  lifetimeSpent?: number
+  lifetimeCurrency?: string
   joinDate: string
   source?: CustomerSource
 }

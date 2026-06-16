@@ -1,12 +1,16 @@
 import Link from 'next/link'
 import { FooterWhatSetsUsApart } from '@/components/footer-trust-sections'
 
-export function SiteFooter() {
+type SiteFooterProps = {
+  showWhatSetsUsApart?: boolean
+}
+
+export function SiteFooter({ showWhatSetsUsApart = true }: SiteFooterProps) {
   return (
     <footer>
-      <FooterWhatSetsUsApart />
+      {showWhatSetsUsApart ? <FooterWhatSetsUsApart /> : null}
 
-      <div className="bg-neutral-950 text-white">
+      <div className="bg-neutral-950 text-white [&_a]:cursor-pointer">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="border-b border-neutral-800 py-10 md:py-12">
             <div className="mx-auto max-w-xl text-center md:max-w-2xl">
@@ -53,7 +57,17 @@ export function SiteFooter() {
               <ul className="space-y-2 text-sm text-neutral-400">
                 <li><Link href="#" className="transition-colors hover:text-white">About</Link></li>
                 <li><Link href="#" className="transition-colors hover:text-white">Blog</Link></li>
-                <li><Link href="#" className="transition-colors hover:text-white">Contact</Link></li>
+                <li><Link href="/contact" className="transition-colors hover:text-white">Contact</Link></li>
+                <li>
+                  <Link href="/affiliate/register" className="transition-colors hover:text-white">
+                    Become an affiliate
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/affiliate" className="transition-colors hover:text-white">
+                    Affiliate dashboard
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>
@@ -67,9 +81,36 @@ export function SiteFooter() {
             <div>
               <h4 className="mb-4 font-semibold">Follow</h4>
               <ul className="space-y-2 text-sm text-neutral-400">
-                <li><Link href="#" className="transition-colors hover:text-white">Instagram</Link></li>
-                <li><Link href="#" className="transition-colors hover:text-white">Twitter</Link></li>
-                <li><Link href="#" className="transition-colors hover:text-white">TikTok</Link></li>
+                <li>
+                  <Link
+                    href="https://www.instagram.com/gelosglobal/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="transition-colors hover:text-white"
+                  >
+                    Instagram
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="https://facebook.com/p/GELOS-61558412705085/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="transition-colors hover:text-white"
+                  >
+                    Facebook
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="https://www.tiktok.com/@gelosglobal"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="transition-colors hover:text-white"
+                  >
+                    TikTok
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>

@@ -35,7 +35,8 @@ export function getAdminNotificationEmail(): string | undefined {
 export function getAppUrl(): string {
   const url = process.env.NEXT_PUBLIC_APP_URL?.trim()
   if (url) return url.replace(/\/$/, '')
-  return 'http://localhost:3000'
+  // Used for absolute URLs in emails (logo, links). `localhost` breaks in real inboxes.
+  return 'https://gelosglobal.com'
 }
 
 /** Groq — powers Gelos AI shopping assistant */

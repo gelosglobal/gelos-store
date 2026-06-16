@@ -8,6 +8,7 @@ import { ProductAccordionSection } from '@/components/product-accordion-section'
 import { ProductAdminVariantPicker } from '@/components/product-admin-variant-picker'
 import { ProductFlavorPicker } from '@/components/product-flavor-picker'
 import { ProductGallery } from '@/components/product-gallery'
+import { ProductShareMenu } from '@/components/product-share-menu'
 import { getAdminGalleryImages } from '@/lib/product-gallery-images'
 import {
   getAdminVariantImages,
@@ -15,6 +16,7 @@ import {
   getVariantPickerLabel,
 } from '@/lib/product-variant-images'
 import { normalizeImageUrl } from '@/lib/image-url'
+import { getProductHref } from '@/lib/product-utils'
 import { ShopCollectionCard } from '@/components/shop-collection-card'
 import { getProductDisplayBadge } from '@/lib/product-tags'
 import {
@@ -150,9 +152,15 @@ export function ProductEnhancedPdp({
 
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-neutral-950 sm:text-4xl lg:text-[2.5rem] lg:leading-tight">
-                {displayName}
-              </h1>
+              <div className="flex items-start justify-between gap-3">
+                <h1 className="text-3xl font-bold tracking-tight text-neutral-950 sm:text-4xl lg:text-[2.5rem] lg:leading-tight">
+                  {displayName}
+                </h1>
+                <ProductShareMenu
+                  productName={displayName}
+                  productHref={getProductHref(product)}
+                />
+              </div>
               {variantPicker}
             </div>
 

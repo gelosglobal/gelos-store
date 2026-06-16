@@ -2,13 +2,15 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Banknote, Loader2, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCart } from '@/components/cart-provider'
 import { useLocation } from '@/components/location-provider'
 import { useStorePromotions } from '@/components/store-promotions-provider'
+import { useAffiliate } from '@/components/affiliate-provider'
 import { calculateCheckoutTotals } from '@/lib/checkout'
+import { hasSmileRewardFreeShipping } from '@/lib/gelos-ai/smile-reward-storage'
 import { findActivePromo } from '@/lib/store-promotions'
 import { cn } from '@/lib/utils'
 
@@ -19,6 +21,7 @@ export default function CheckoutPage() {
   const { items, isHydrated, clearCart } = useCart()
   const { formatPrice, location, locationId } = useLocation()
   const { promotions, appliedPromoCode } = useStorePromotions()
+  const { affiliateCode, affiliate } = useAffiliate()
   const appliedPromo = findActivePromo(appliedPromoCode, promotions.promos)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -26,6 +29,11 @@ export default function CheckoutPage() {
   const [shippingAddress, setShippingAddress] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('paystack')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [smileRewardFreeShipping, setSmileRewardFreeShipping] = useState(false)
+
+  useEffect(() => {
+    setSmileRewardFreeShipping(hasSmileRewardFreeShipping())
+  }, [])
 
   const totals = useMemo(
     () =>
@@ -33,8 +41,9 @@ export default function CheckoutPage() {
         promoCode: appliedPromoCode,
         locationId,
         promotions,
+        smileRewardFreeShipping,
       }),
-    [items, locationId, appliedPromoCode, promotions],
+    [items, locationId, appliedPromoCode, promotions, smileRewardFreeShipping],
   )
 
   const checkoutPayload = {
@@ -50,6 +59,8 @@ export default function CheckoutPage() {
       variantLabel: item.variantLabel,
     })),
     promoCode: appliedPromoCode || undefined,
+    affiliateCode: affiliateCode || undefined,
+    smileRewardFreeShipping: smileRewardFreeShipping || undefined,
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -158,6 +169,12 @@ export default function CheckoutPage() {
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-neutral-950">
             Checkout
           </h1>
+          {affiliate && (
+            <p className="mt-2 text-sm text-neutral-600">
+              Referred by <span className="font-medium">{affiliate.name}</span>{' '}
+              <span className="font-mono text-neutral-500">({affiliate.code})</span>
+            </p>
+          )}
         </div>
 
         <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12">

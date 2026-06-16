@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 
     checkoutLocationId = parsed.data.locationId as LocationId
 
-    const { localizedItems, totals, promoCode } =
+    const { localizedItems, totals, promoCode, affiliate } =
       await buildLocalizedCheckoutOrder(parsed.data)
     const { email, name, phone, shippingAddress } = parsed.data
 
@@ -55,6 +55,9 @@ export async function POST(request: Request) {
       totals,
       promoApplied: Boolean(promoCode),
       promoCode,
+      affiliateCode: affiliate?.code,
+      affiliateId: affiliate?.affiliateId,
+      commissionAmount: affiliate?.commissionAmount,
       callbackUrl,
     })
 

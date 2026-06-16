@@ -3,6 +3,8 @@ import { calculateCheckoutTotals } from '@/lib/checkout'
 import { convertForLocation, getPaystackCurrencyForLocation } from '@/lib/exchange-rates'
 import { getAllProducts } from '@/lib/db/products'
 import { getStorePromotions } from '@/lib/db/store-settings'
+import { findAffiliateByCode } from '@/lib/db/affiliates'
+import { calculateAffiliateCommission } from '@/lib/affiliates'
 import { findActivePromo } from '@/lib/store-promotions'
 import type { LocationId } from '@/lib/locations'
 import { getCartDisplayName } from '@/lib/variant-display'
@@ -22,6 +24,8 @@ export const checkoutRequestSchema = z.object({
   locationId: z.enum(['international', 'nigeria', 'ghana', 'usa']),
   items: z.array(checkoutLineItemSchema).min(1),
   promoCode: z.string().max(40).optional(),
+  affiliateCode: z.string().max(40).optional(),
+  smileRewardFreeShipping: z.boolean().optional(),
   /** @deprecated Use promoCode */
   promoApplied: z.boolean().optional(),
 })
@@ -63,9 +67,19 @@ export async function buildLocalizedCheckoutOrder(body: CheckoutRequestBody) {
     throw new Error('Invalid or expired promo code')
   }
 
+  const affiliateCode = body.affiliateCode?.trim()
+  const affiliate = affiliateCode
+    ? await findAffiliateByCode(affiliateCode)
+    : null
+
+  if (affiliateCode && !affiliate) {
+    throw new Error('Invalid or inactive affiliate code')
+  }
+
   const totals = calculateCheckoutTotals(localizedItems, {
     promoCode,
     promotions,
+    smileRewardFreeShipping: body.smileRewardFreeShipping === true,
   })
 
   if (totals.total <= 0) {
@@ -78,5 +92,17 @@ export async function buildLocalizedCheckoutOrder(body: CheckoutRequestBody) {
     totals,
     currency: getPaystackCurrencyForLocation(locationId),
     promoCode: promoCode || undefined,
+    affiliate: affiliate
+      ? {
+          affiliateId: affiliate.affiliateId,
+          code: affiliate.code,
+          name: affiliate.name,
+          commissionPercent: affiliate.commissionPercent,
+          commissionAmount: calculateAffiliateCommission(
+            totals.total,
+            affiliate.commissionPercent,
+          ),
+        }
+      : null,
   }
 }

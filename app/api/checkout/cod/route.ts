@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     }
 
     const { email, name, phone, shippingAddress } = parsed.data
-    const { localizedItems, totals, currency } =
+    const { localizedItems, totals, currency, affiliate } =
       await buildLocalizedCheckoutOrder(parsed.data)
 
     const order = await createCodOrder({
@@ -42,6 +42,10 @@ export async function POST(request: Request) {
       discount: totals.discount,
       total: totals.total,
       currency,
+      affiliateCode: affiliate?.code,
+      affiliateId: affiliate?.affiliateId,
+      commissionAmount: affiliate?.commissionAmount,
+      commissionStatus: affiliate ? 'pending' : 'none',
     })
 
     notifyOrderPlaced({

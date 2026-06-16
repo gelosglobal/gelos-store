@@ -26,6 +26,9 @@ const REQUIRED_DELEGATES = [
   'tagCollection',
   'smileScan',
   'customer',
+  'affiliate',
+  'inboxThread',
+  'inboxMessage',
 ] as const
 
 /** Hot reload can keep an old PrismaClient missing newly generated models/fields. */

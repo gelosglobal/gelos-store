@@ -38,6 +38,13 @@ export const DEFAULT_STORE_PROMOTIONS: StorePromotions = {
       enabled: true,
       label: '15% off',
     },
+    {
+      id: 'smile20',
+      code: 'SMILE20',
+      discountPercent: 20,
+      enabled: true,
+      label: '20% off — smile scan',
+    },
   ],
 }
 

@@ -28,6 +28,7 @@ export type CalculateCheckoutTotalsOptions = {
   promoCode?: string
   locationId?: LocationId
   promotions?: StorePromotions
+  smileRewardFreeShipping?: boolean
 }
 
 function localizeLineItems(
@@ -69,11 +70,13 @@ export function calculateCheckoutTotals(
   const shipping =
     localizedItems.length === 0
       ? 0
-      : !promotions.freeShippingEnabled
-        ? shippingFee
-        : afterDiscount >= freeShippingThreshold
-          ? 0
-          : shippingFee
+      : options.smileRewardFreeShipping
+        ? 0
+        : !promotions.freeShippingEnabled
+          ? shippingFee
+          : afterDiscount >= freeShippingThreshold
+            ? 0
+            : shippingFee
   const total = afterDiscount + shipping
 
   return { subtotal, discount, shipping, total }

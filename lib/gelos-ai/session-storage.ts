@@ -1,6 +1,7 @@
 import { migrateChatMessages } from '@/lib/gelos-ai/welcome-message'
 import type { GelosAiMessage } from '@/lib/gelos-ai/types'
 import type { SmileScanReport } from '@/lib/gelos-ai/smile-scan-types'
+import type { MysteryRewardBoard } from '@/lib/gelos-ai/mystery-reward'
 
 export type AiFeatureTab = 'chat' | 'scan' | 'dentist'
 
@@ -10,6 +11,8 @@ export type SmileScanSession = {
   name: string
   scanId?: string
   shareable?: boolean
+  mysteryRewardShown?: boolean
+  mysteryRewardBoard?: MysteryRewardBoard | null
 }
 
 const KEYS = {
@@ -67,6 +70,13 @@ export function loadSmileScanSession(): SmileScanSession | null {
     name: typeof session.name === 'string' ? session.name : '',
     scanId: typeof session.scanId === 'string' ? session.scanId : undefined,
     shareable: session.shareable === true,
+    mysteryRewardShown: session.mysteryRewardShown === true,
+    mysteryRewardBoard:
+      session.mysteryRewardBoard &&
+      typeof session.mysteryRewardBoard === 'object' &&
+      Array.isArray(session.mysteryRewardBoard.cards)
+        ? session.mysteryRewardBoard
+        : null,
   }
 }
 

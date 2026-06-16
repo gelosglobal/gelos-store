@@ -94,11 +94,65 @@ function upsertCustomerBucket(
   }
 }
 
+function customerOrderStats(
+  stored: StoredCustomer,
+  bucket?: CustomerBucket,
+): Pick<StoreCustomer, 'orders' | 'totalSpent' | 'currency'> {
+  const lifetimeOrders = stored.lifetimeOrders ?? 0
+  const lifetimeSpent = stored.lifetimeSpent ?? 0
+  const lifetimeCurrency = stored.lifetimeCurrency ?? 'GHS'
+
+  if (stored.source === 'import' && (lifetimeOrders > 0 || lifetimeSpent > 0)) {
+    return {
+      orders: lifetimeOrders,
+      totalSpent: lifetimeSpent,
+      currency: lifetimeCurrency,
+    }
+  }
+
+  if (bucket) {
+    return {
+      orders: Math.max(bucket.orders, lifetimeOrders),
+      totalSpent: Math.max(bucket.totalSpent, lifetimeSpent),
+      currency: bucket.currency || lifetimeCurrency,
+    }
+  }
+
+  return {
+    orders: lifetimeOrders,
+    totalSpent: lifetimeSpent,
+    currency: lifetimeCurrency,
+  }
+}
+
 function bucketToStoreCustomer(
   bucket: CustomerBucket,
-  overrides?: Partial<Pick<StoreCustomer, 'id' | 'name' | 'email' | 'phone' | 'location' | 'emailSubscription' | 'source'>>,
+  overrides?: Partial<
+    Pick<
+      StoreCustomer,
+      | 'id'
+      | 'name'
+      | 'email'
+      | 'phone'
+      | 'location'
+      | 'emailSubscription'
+      | 'lifetimeOrders'
+      | 'lifetimeSpent'
+      | 'lifetimeCurrency'
+      | 'source'
+    >
+  >,
+  stored?: StoredCustomer,
 ): StoreCustomer {
   const email = overrides?.email ?? bucket.email
+  const stats = stored
+    ? customerOrderStats(stored, bucket)
+    : {
+        orders: bucket.orders,
+        totalSpent: bucket.totalSpent,
+        currency: bucket.currency,
+      }
+
   return {
     id: overrides?.id ?? bucket.id,
     name: overrides?.name ?? bucket.name,
@@ -107,9 +161,12 @@ function bucketToStoreCustomer(
     location: overrides?.location ?? bucket.location,
     emailSubscription:
       overrides?.emailSubscription ?? subscriptionFromEmail(email),
-    orders: bucket.orders,
-    totalSpent: bucket.totalSpent,
-    currency: bucket.currency,
+    orders: stats.orders,
+    totalSpent: stats.totalSpent,
+    currency: stats.currency,
+    lifetimeOrders: overrides?.lifetimeOrders ?? stored?.lifetimeOrders,
+    lifetimeSpent: overrides?.lifetimeSpent ?? stored?.lifetimeSpent,
+    lifetimeCurrency: overrides?.lifetimeCurrency ?? stored?.lifetimeCurrency,
     joinDate: bucket.joinDate.toISOString().slice(0, 10),
     source: overrides?.source ?? 'checkout',
   }
@@ -119,16 +176,25 @@ function storedToStoreCustomer(
   stored: StoredCustomer,
   bucket?: CustomerBucket,
 ): StoreCustomer {
+  const stats = customerOrderStats(stored, bucket)
+
   if (bucket) {
-    return bucketToStoreCustomer(bucket, {
-      id: stored.customerId,
-      name: stored.name,
-      email: stored.email,
-      phone: stored.phone,
-      location: stored.location || bucket.location,
-      emailSubscription: stored.emailSubscription,
-      source: stored.source,
-    })
+    return bucketToStoreCustomer(
+      bucket,
+      {
+        id: stored.customerId,
+        name: stored.name,
+        email: stored.email,
+        phone: stored.phone,
+        location: stored.location || bucket.location,
+        emailSubscription: stored.emailSubscription,
+        lifetimeOrders: stored.lifetimeOrders,
+        lifetimeSpent: stored.lifetimeSpent,
+        lifetimeCurrency: stored.lifetimeCurrency,
+        source: stored.source,
+      },
+      stored,
+    )
   }
 
   return {
@@ -138,9 +204,12 @@ function storedToStoreCustomer(
     phone: stored.phone,
     location: stored.location,
     emailSubscription: stored.emailSubscription,
-    orders: 0,
-    totalSpent: 0,
-    currency: 'GHS',
+    orders: stats.orders,
+    totalSpent: stats.totalSpent,
+    currency: stats.currency,
+    lifetimeOrders: stored.lifetimeOrders,
+    lifetimeSpent: stored.lifetimeSpent,
+    lifetimeCurrency: stored.lifetimeCurrency,
     joinDate: stored.createdAt.toISOString().slice(0, 10),
     source: stored.source,
   }

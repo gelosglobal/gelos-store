@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CheckCircle2, Loader2 } from 'lucide-react'
 import { useLocation } from '@/components/location-provider'
+import { clearSmileRewardFreeShipping } from '@/lib/gelos-ai/smile-reward-storage'
 
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams()
@@ -15,6 +16,10 @@ function CheckoutSuccessContent() {
   const parsedTotal = total ? Number(total) : null
 
   const isCod = method === 'cod'
+
+  useEffect(() => {
+    clearSmileRewardFreeShipping()
+  }, [])
 
   return (
     <div className="w-full max-w-md rounded-3xl border border-neutral-200 bg-white px-8 py-12 text-center shadow-sm">

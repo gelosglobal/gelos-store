@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { isDatabaseConfigured } from '@/lib/env'
+import { recordAffiliateConversion } from '@/lib/db/affiliates'
 import type { CheckoutLineItem } from '@/lib/checkout'
 
 export type CreateOrderInput = {
@@ -18,6 +19,10 @@ export type CreateOrderInput = {
   currency: string
   paymentStatus?: string
   channel?: string
+  affiliateCode?: string
+  affiliateId?: string
+  commissionAmount?: number
+  commissionStatus?: 'none' | 'pending' | 'paid'
 }
 
 export function generateOrderNumber(): string {
@@ -61,8 +66,20 @@ export async function createOrder(input: CreateOrderInput) {
       paymentStatus: input.paymentStatus ?? 'Payment pending',
       fulfillmentStatus: 'Unfulfilled',
       channel: input.channel ?? 'Online store',
+      affiliateCode: input.affiliateCode,
+      affiliateId: input.affiliateId,
+      commissionAmount: input.commissionAmount ?? 0,
+      commissionStatus: input.commissionStatus ?? 'none',
     },
   })
+
+  if (input.affiliateId && (input.commissionAmount ?? 0) > 0) {
+    await recordAffiliateConversion({
+      affiliateId: input.affiliateId,
+      orderTotal: input.total,
+      commissionAmount: input.commissionAmount ?? 0,
+    })
+  }
 
   return {
     orderNumber: order.orderNumber,
