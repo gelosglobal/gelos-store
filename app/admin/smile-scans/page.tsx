@@ -254,7 +254,7 @@ export default function AdminSmileScansPage() {
 
       {databaseConnected && loadError && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
-          {loadError}. Redeploy the site with a fresh build so the SmileScan database model is included.
+          {loadError}. Try refreshing — if this persists, restart the dev server after schema updates.
         </div>
       )}
 

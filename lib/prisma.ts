@@ -20,15 +20,23 @@ function createPrismaClient() {
   })
 }
 
+const REQUIRED_DELEGATES = [
+  'order',
+  'storeSettings',
+  'tagCollection',
+  'smileScan',
+  'customer',
+] as const
+
 /** Hot reload can keep an old PrismaClient missing newly generated models/fields. */
-function isPrismaClientStale(_client: PrismaClient) {
+function isPrismaClientStale(client: PrismaClient) {
   const productFields = Prisma.ProductScalarFieldEnum
   return (
-    !('order' in _client) ||
-    !('storeSettings' in _client) ||
-    !('tagCollection' in _client) ||
-    !('smileScan' in _client) ||
-    !('galleryImages' in productFields)
+    REQUIRED_DELEGATES.some(
+      (delegate) =>
+        !(delegate in client) ||
+        !(client as Record<string, unknown>)[delegate],
+    ) || !('galleryImages' in productFields)
   )
 }
 
@@ -53,5 +61,8 @@ export const prisma = new Proxy({} as PrismaClient, {
     const client = getPrismaClient()
     const value = Reflect.get(client, prop, client)
     return typeof value === 'function' ? value.bind(client) : value
+  },
+  has(_target, prop) {
+    return Reflect.has(getPrismaClient(), prop)
   },
 })

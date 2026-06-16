@@ -11,7 +11,10 @@ import {
   Users,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { CustomerFormDialog } from '@/components/admin/customer-form-dialog'
+import { CustomerImportDialog } from '@/components/admin/customer-import-dialog'
 import { SubscriptionBadge } from '@/components/admin/subscription-badge'
+import type { AdminCustomerInput } from '@/lib/admin/customer-input'
 import { formatOrderTotal } from '@/lib/admin/order-format'
 import { formatCustomerCount } from '@/lib/admin/customers-data'
 import type { StoreCustomer } from '@/lib/types/customer'
@@ -30,6 +33,10 @@ import {
 export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<StoreCustomer[]>([])
   const [loading, setLoading] = useState(true)
+  const [addOpen, setAddOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [summaryOpen, setSummaryOpen] = useState(true)
@@ -93,6 +100,89 @@ export default function AdminCustomersPage() {
   const allSelected =
     paged.length > 0 && paged.every((c) => selected.has(c.id))
 
+  const handleAddCustomer = async (input: AdminCustomerInput) => {
+    setSaving(true)
+    try {
+      const res = await fetch('/api/admin/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      const data = (await res.json()) as { error?: string }
+      if (!res.ok) throw new Error(data.error ?? 'Failed to add customer')
+
+      toast.success('Customer added')
+      setAddOpen(false)
+      await loadCustomers()
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to add customer',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleImportCustomers = async (file: File) => {
+    setImporting(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res = await fetch('/api/admin/customers/import', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = (await res.json()) as {
+        error?: string
+        created?: number
+        skipped?: number
+        errors?: Array<{ rowNumber: number; message: string }>
+      }
+
+      if (!res.ok) throw new Error(data.error ?? 'Failed to import customers')
+
+      const created = data.created ?? 0
+      const skipped = data.skipped ?? 0
+      const rowErrors = data.errors ?? []
+
+      if (created > 0) {
+        toast.success(
+          `Imported ${created} customer${created === 1 ? '' : 's'}${skipped ? ` (${skipped} skipped)` : ''}`,
+        )
+      } else if (skipped > 0) {
+        toast.message('No new customers imported', {
+          description: `${skipped} duplicate or empty row${skipped === 1 ? '' : 's'} skipped.`,
+        })
+      } else {
+        toast.error('No customers were imported')
+      }
+
+      if (rowErrors.length > 0) {
+        toast.error(
+          `${rowErrors.length} row${rowErrors.length === 1 ? '' : 's'} had errors`,
+          {
+            description: rowErrors
+              .slice(0, 3)
+              .map((entry) => `Row ${entry.rowNumber}: ${entry.message}`)
+              .join(' · '),
+          },
+        )
+      }
+
+      if (created > 0) {
+        setImportOpen(false)
+        await loadCustomers()
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to import customers',
+      )
+    } finally {
+      setImporting(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
@@ -106,7 +196,12 @@ export default function AdminCustomersPage() {
             <Button variant="outline" size="sm" className="h-8">
               Export
             </Button>
-            <Button variant="outline" size="sm" className="h-8">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8"
+              onClick={() => setImportOpen(true)}
+            >
               Import
             </Button>
             <Button variant="outline" size="sm" className="h-8 gap-1">
@@ -116,6 +211,7 @@ export default function AdminCustomersPage() {
             <Button
               size="sm"
               className="h-8 gap-1 bg-neutral-950 hover:bg-neutral-800"
+              onClick={() => setAddOpen(true)}
             >
               <Plus className="h-3.5 w-3.5" />
               Add customer
@@ -258,6 +354,20 @@ export default function AdminCustomersPage() {
           </div>
         </div>
       </div>
+
+      <CustomerFormDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onSubmit={handleAddCustomer}
+        saving={saving}
+      />
+
+      <CustomerImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImport={handleImportCustomers}
+        importing={importing}
+      />
     </div>
   )
 }

@@ -1,5 +1,7 @@
 export type EmailSubscription = 'Subscribed' | 'Not subscribed'
 
+export type CustomerSource = 'checkout' | 'manual' | 'import'
+
 export type StoreCustomer = {
   id: string
   name: string
@@ -11,4 +13,5 @@ export type StoreCustomer = {
   totalSpent: number
   currency: string
   joinDate: string
+  source?: CustomerSource
 }

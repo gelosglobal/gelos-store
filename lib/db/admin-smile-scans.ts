@@ -42,6 +42,86 @@ function asSmileScanReport(value: unknown): SmileScanReport {
   }
 }
 
+export async function repairSmileScansMissingNames(): Promise<void> {
+  if (!isDatabaseConfigured()) return
+
+  try {
+    await prisma.smileScan.updateMany({
+      where: { customerName: null },
+      data: { customerName: 'Guest' },
+    })
+  } catch {
+    try {
+      await prisma.$runCommandRaw({
+        update: 'smile_scans',
+        updates: [
+          {
+            q: { customerName: null },
+            u: { $set: { customerName: 'Guest' } },
+            multi: true,
+          },
+        ],
+      })
+    } catch (error) {
+      console.error('[repairSmileScansMissingNames]', error)
+    }
+  }
+}
+
+type RawSmileScanDocument = {
+  _id: { $oid: string } | string
+  scanId: string
+  customerName?: string | null
+  sessionId?: string | null
+  report: unknown
+  brightness?: number | null
+  freshness?: number | null
+  confidence?: number | null
+  overallScore?: number | null
+  productCount?: number | null
+  createdAt: { $date: string } | string | Date
+}
+
+function parseRawDate(value: RawSmileScanDocument['createdAt']): Date {
+  if (value instanceof Date) return value
+  if (typeof value === 'string') return new Date(value)
+  if (value && typeof value === 'object' && '$date' in value) {
+    return new Date(value.$date)
+  }
+  return new Date()
+}
+
+function rawToAdminSmileScan(doc: RawSmileScanDocument): AdminSmileScan {
+  const createdAt = parseRawDate(doc.createdAt)
+  const id =
+    typeof doc._id === 'object' && doc._id && '$oid' in doc._id
+      ? doc._id.$oid
+      : String(doc._id)
+
+  return {
+    id,
+    scanId: doc.scanId,
+    customerName: doc.customerName?.trim() || 'Guest',
+    sessionId: doc.sessionId ?? undefined,
+    report: asSmileScanReport(doc.report),
+    brightness: Number(doc.brightness) || 0,
+    freshness: Number(doc.freshness) || 0,
+    confidence: Number(doc.confidence) || 0,
+    overallScore: Number(doc.overallScore) || 0,
+    productCount: Number(doc.productCount) || 0,
+    createdAt: createdAt.toISOString(),
+    dateLabel: formatOrderDateLabel(createdAt),
+  }
+}
+
+async function listSmileScansRaw(): Promise<AdminSmileScan[]> {
+  const result = (await prisma.smileScan.findRaw({
+    options: { sort: { createdAt: -1 } },
+  })) as unknown as RawSmileScanDocument[]
+
+  return result.map(rawToAdminSmileScan)
+}
+
 function prismaToAdminSmileScan(record: PrismaSmileScan): AdminSmileScan {
   return {
     id: record.id,
@@ -63,12 +143,27 @@ export async function listAdminSmileScans(): Promise<AdminSmileScan[]> {
   if (!isDatabaseConfigured()) return []
 
   try {
+    await repairSmileScansMissingNames()
+
     const scans = await prisma.smileScan.findMany({
       orderBy: { createdAt: 'desc' },
     })
 
     return scans.map(prismaToAdminSmileScan)
   } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    const isNullNameError =
+      message.includes('customerName') ||
+      (error as { code?: string }).code === 'P2032'
+
+    if (isNullNameError) {
+      try {
+        return await listSmileScansRaw()
+      } catch (rawError) {
+        console.error('[listAdminSmileScans] raw fallback failed', rawError)
+      }
+    }
+
     console.error('[listAdminSmileScans]', error)
     throw error
   }

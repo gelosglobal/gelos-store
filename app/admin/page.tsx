@@ -34,7 +34,10 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetch('/api/admin/stats')
       .then((r) => r.json())
-      .then(setStats)
+      .then((data: Stats & { error?: string }) => {
+        if (data.error) return
+        setStats(data)
+      })
       .catch(() => {})
 
     fetch('/api/admin/orders', { cache: 'no-store' })
@@ -167,7 +170,7 @@ export default function AdminDashboard() {
             </Button>
           </div>
 
-          {stats && stats.categories.length > 0 && (
+          {stats?.categories && stats.categories.length > 0 && (
             <div className="rounded-2xl border border-neutral-200 bg-white p-4">
               <h3 className="text-sm font-semibold text-neutral-950">
                 By category

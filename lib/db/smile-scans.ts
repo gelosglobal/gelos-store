@@ -94,7 +94,7 @@ export async function createSmileScan(
   const record = await prisma.smileScan.create({
     data: {
       scanId,
-      customerName: input.customerName.trim(),
+      customerName: input.customerName.trim() || 'Guest',
       sessionId: input.sessionId?.trim() || null,
       report: input.report as Prisma.InputJsonValue,
       brightness: input.report.scores.brightness,
@@ -122,12 +122,51 @@ export async function getSmileScanByScanId(
 
     return {
       scanId: record.scanId,
-      customerName: record.customerName,
+      customerName: record.customerName || 'Guest',
       report: asSmileScanReport(record.report),
       createdAt: record.createdAt,
     }
   } catch (error) {
-    console.error('[getSmileScanByScanId]', error)
-    return null
+    const message = error instanceof Error ? error.message : ''
+    const isNullNameError =
+      message.includes('customerName') ||
+      (error as { code?: string }).code === 'P2032'
+
+    if (!isNullNameError) {
+      console.error('[getSmileScanByScanId]', error)
+      return null
+    }
+
+    try {
+      const result = (await prisma.smileScan.findRaw({
+        filter: { scanId: scanId.trim() },
+        options: { limit: 1 },
+      })) as unknown as Array<{
+        scanId: string
+        customerName?: string | null
+        report: unknown
+        createdAt: { $date: string } | string | Date
+      }>
+
+      const doc = result[0]
+      if (!doc) return null
+
+      const createdAt =
+        doc.createdAt instanceof Date
+          ? doc.createdAt
+          : typeof doc.createdAt === 'string'
+            ? new Date(doc.createdAt)
+            : new Date(doc.createdAt.$date)
+
+      return {
+        scanId: doc.scanId,
+        customerName: doc.customerName?.trim() || 'Guest',
+        report: asSmileScanReport(doc.report),
+        createdAt,
+      }
+    } catch (rawError) {
+      console.error('[getSmileScanByScanId] raw fallback failed', rawError)
+      return null
+    }
   }
 }

@@ -76,10 +76,25 @@ model Order {
   @@map("orders")
 }
 
+model Customer {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  customerId        String   @unique
+  name              String
+  email             String   @default("")
+  phone             String   @default("")
+  location          String   @default("")
+  emailSubscription String   @default("Not subscribed")
+  source            String   @default("manual")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("customers")
+}
+
 model SmileScan {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   scanId       String   @unique
-  customerName String
+  customerName String?
   sessionId    String?
   report       Json
   brightness   Int      @default(0)

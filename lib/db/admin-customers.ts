@@ -1,4 +1,9 @@
 import type { Order as PrismaOrder } from '@prisma/client'
+import {
+  customerMatchKey,
+  subscriptionFromEmail,
+} from '@/lib/admin/customer-input'
+import { listStoredCustomers, type StoredCustomer } from '@/lib/db/customers'
 import { isDatabaseConfigured } from '@/lib/env'
 import { prisma } from '@/lib/prisma'
 import type { EmailSubscription, StoreCustomer } from '@/lib/types/customer'
@@ -46,10 +51,6 @@ function locationFromOrder(order: PrismaOrder): string {
   }
 }
 
-function emailSubscriptionFor(email: string): EmailSubscription {
-  return email.trim() ? 'Subscribed' : 'Not subscribed'
-}
-
 function upsertCustomerBucket(
   buckets: Map<string, CustomerBucket>,
   order: PrismaOrder,
@@ -93,36 +94,117 @@ function upsertCustomerBucket(
   }
 }
 
-function bucketToStoreCustomer(bucket: CustomerBucket): StoreCustomer {
+function bucketToStoreCustomer(
+  bucket: CustomerBucket,
+  overrides?: Partial<Pick<StoreCustomer, 'id' | 'name' | 'email' | 'phone' | 'location' | 'emailSubscription' | 'source'>>,
+): StoreCustomer {
+  const email = overrides?.email ?? bucket.email
   return {
-    id: bucket.id,
-    name: bucket.name,
-    email: bucket.email,
-    phone: bucket.phone,
-    location: bucket.location,
-    emailSubscription: emailSubscriptionFor(bucket.email),
+    id: overrides?.id ?? bucket.id,
+    name: overrides?.name ?? bucket.name,
+    email,
+    phone: overrides?.phone ?? bucket.phone,
+    location: overrides?.location ?? bucket.location,
+    emailSubscription:
+      overrides?.emailSubscription ?? subscriptionFromEmail(email),
     orders: bucket.orders,
     totalSpent: bucket.totalSpent,
     currency: bucket.currency,
     joinDate: bucket.joinDate.toISOString().slice(0, 10),
+    source: overrides?.source ?? 'checkout',
   }
+}
+
+function storedToStoreCustomer(
+  stored: StoredCustomer,
+  bucket?: CustomerBucket,
+): StoreCustomer {
+  if (bucket) {
+    return bucketToStoreCustomer(bucket, {
+      id: stored.customerId,
+      name: stored.name,
+      email: stored.email,
+      phone: stored.phone,
+      location: stored.location || bucket.location,
+      emailSubscription: stored.emailSubscription,
+      source: stored.source,
+    })
+  }
+
+  return {
+    id: stored.customerId,
+    name: stored.name,
+    email: stored.email,
+    phone: stored.phone,
+    location: stored.location,
+    emailSubscription: stored.emailSubscription,
+    orders: 0,
+    totalSpent: 0,
+    currency: 'GHS',
+    joinDate: stored.createdAt.toISOString().slice(0, 10),
+    source: stored.source,
+  }
+}
+
+function buildOrderBuckets(orders: PrismaOrder[]): Map<string, CustomerBucket> {
+  const buckets = new Map<string, CustomerBucket>()
+  for (const order of orders) {
+    upsertCustomerBucket(buckets, order)
+  }
+  return buckets
+}
+
+function findMatchingBucket(
+  stored: StoredCustomer,
+  buckets: Map<string, CustomerBucket>,
+): { key: string; bucket: CustomerBucket } | null {
+  const emailKey = stored.email
+    ? customerMatchKey(stored.email, '')
+    : null
+  if (emailKey && buckets.has(emailKey)) {
+    return { key: emailKey, bucket: buckets.get(emailKey)! }
+  }
+
+  const phoneKey = stored.phone
+    ? customerMatchKey('', stored.phone)
+    : null
+  if (phoneKey && buckets.has(phoneKey)) {
+    return { key: phoneKey, bucket: buckets.get(phoneKey)! }
+  }
+
+  return null
 }
 
 export async function listAdminCustomers(): Promise<StoreCustomer[]> {
   if (!isDatabaseConfigured()) return []
 
-  const orders = await prisma.order.findMany({
-    orderBy: { createdAt: 'desc' },
-  })
+  const [orders, storedCustomers] = await Promise.all([
+    prisma.order.findMany({ orderBy: { createdAt: 'desc' } }),
+    listStoredCustomers(),
+  ])
 
-  const buckets = new Map<string, CustomerBucket>()
-  for (const order of orders) {
-    upsertCustomerBucket(buckets, order)
+  const buckets = buildOrderBuckets(orders)
+  const matchedBucketKeys = new Set<string>()
+  const merged: StoreCustomer[] = []
+
+  for (const stored of storedCustomers) {
+    const match = findMatchingBucket(stored, buckets)
+    if (match) {
+      matchedBucketKeys.add(match.key)
+      merged.push(storedToStoreCustomer(stored, match.bucket))
+    } else {
+      merged.push(storedToStoreCustomer(stored))
+    }
   }
 
-  return Array.from(buckets.values())
-    .map(bucketToStoreCustomer)
-    .sort((a, b) => b.orders - a.orders || b.totalSpent - a.totalSpent)
+  for (const [key, bucket] of buckets) {
+    if (matchedBucketKeys.has(key)) continue
+    merged.push(bucketToStoreCustomer(bucket))
+  }
+
+  return merged.sort(
+    (a, b) => b.orders - a.orders || b.totalSpent - a.totalSpent,
+  )
 }
 
 export async function countAdminCustomers(): Promise<number> {
