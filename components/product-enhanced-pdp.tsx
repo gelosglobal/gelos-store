@@ -6,6 +6,7 @@ import { useCart } from '@/components/cart-provider'
 import { useLocation } from '@/components/location-provider'
 import { ProductAccordionSection } from '@/components/product-accordion-section'
 import { ProductAdminVariantPicker } from '@/components/product-admin-variant-picker'
+import { ProductFeatureGallery } from '@/components/product-feature-gallery'
 import { ProductFlavorPicker } from '@/components/product-flavor-picker'
 import { ProductGallery } from '@/components/product-gallery'
 import { ProductShareMenu } from '@/components/product-share-menu'
@@ -67,17 +68,16 @@ export function ProductEnhancedPdp({
     setActiveImage(normalizeImageUrl(product.image))
   }, [product.id, product.image])
 
+  const featureImages = useMemo(
+    () => getAdminGalleryImages(product),
+    [product],
+  )
+
   const galleryImages = useMemo(() => {
-    const adminGallery = getAdminGalleryImages(product)
     const codeFallback = content.galleryImages.map((s) => normalizeImageUrl(s))
 
-    // Extra carousel slides: admin gallery wins; else code defaults only when no admin variants
-    const extraGallery =
-      adminGallery.length > 0
-        ? adminGallery
-        : hasAdminVariants
-          ? []
-          : codeFallback
+    // Carousel extras: legacy code defaults only (admin gallery shows below description)
+    const extraGallery = hasAdminVariants ? [] : codeFallback
 
     const seen = new Set<string>()
     const merged: string[] = []
@@ -97,7 +97,6 @@ export function ProductEnhancedPdp({
     content.galleryImages,
     hasAdminVariants,
     pickerImages,
-    product,
   ])
 
   const displayName = getVariantDisplayName(product, activeImage)
@@ -248,6 +247,8 @@ export function ProductEnhancedPdp({
             </div>
           </div>
         </div>
+
+        <ProductFeatureGallery images={featureImages} alt={displayName} />
 
         {content.usageSteps && content.usageSteps.length > 0 && (
           <section className="mt-14 lg:mt-16">

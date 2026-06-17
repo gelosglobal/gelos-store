@@ -18,7 +18,7 @@ export function ProductGalleryImagesField({
       value={value}
       onChange={onChange}
       maxImages={MAX_GALLERY_IMAGES}
-      description="Extra carousel thumbnails on the product page (below the hero). When you add any gallery image here, it replaces old built-in defaults. Variant images above are separate — they power “Choose your flavour/style” and also appear in the carousel."
+      description="Lifestyle and detail images shown below the product description on the store. Variant images above are separate — they power “Choose your flavour/style” and the main product carousel."
       addButtonLabel="Add gallery image"
       listItemAltPrefix="Gallery"
     />

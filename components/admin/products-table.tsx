@@ -23,24 +23,33 @@ type ProductsTableProps = {
   onDelete: (product: Product) => void
 }
 
+function truncateDescription(text: string, maxLength = 100): string {
+  const trimmed = text.trim()
+  if (trimmed.length <= maxLength) return trimmed
+  return `${trimmed.slice(0, maxLength).trimEnd()}…`
+}
+
 export function ProductsTable({ products, onDelete }: ProductsTableProps) {
   return (
     <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
-      <Table>
+      <Table className="table-fixed">
         <TableHeader>
           <TableRow className="bg-neutral-50/80 hover:bg-neutral-50/80">
-            <TableHead className="pl-6">Product</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Price</TableHead>
-            <TableHead>Stock</TableHead>
-            <TableHead className="pr-6 text-right">Actions</TableHead>
+            <TableHead className="w-[38%] pl-6">Product</TableHead>
+            <TableHead className="w-[18%]">Category</TableHead>
+            <TableHead className="w-[12%]">Price</TableHead>
+            <TableHead className="w-[10%]">Stock</TableHead>
+            <TableHead className="w-[22%] pr-6 text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {products.map((product) => (
+          {products.map((product) => {
+            const shortDescription = truncateDescription(product.description)
+
+            return (
             <TableRow key={product.id}>
-              <TableCell className="pl-6">
-                <div className="flex items-center gap-3">
+              <TableCell className="whitespace-normal pl-6">
+                <div className="flex min-w-0 items-center gap-3">
                   <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
                     <Image
                       key={product.image}
@@ -52,15 +61,20 @@ export function ProductsTable({ products, onDelete }: ProductsTableProps) {
                       unoptimized={isExternalImageUrl(product.image)}
                     />
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-neutral-950">{product.name}</p>
-                    <p className="line-clamp-1 text-xs text-neutral-500">
-                      {product.description}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-neutral-950">
+                      {product.name}
+                    </p>
+                    <p
+                      className="line-clamp-2 text-xs text-neutral-500"
+                      title={product.description}
+                    >
+                      {shortDescription}
                     </p>
                   </div>
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="whitespace-normal">
                 <div className="flex flex-col gap-1.5">
                   <Badge variant="secondary">{product.category}</Badge>
                   {getEffectiveProductTags(product).length > 0 && (
@@ -124,7 +138,8 @@ export function ProductsTable({ products, onDelete }: ProductsTableProps) {
                 </div>
               </TableCell>
             </TableRow>
-          ))}
+            )
+          })}
         </TableBody>
       </Table>
     </div>
