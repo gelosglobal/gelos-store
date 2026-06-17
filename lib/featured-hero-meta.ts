@@ -66,8 +66,8 @@ export const featuredHeroSlides: Record<string, FeaturedHeroSlide> = {
     bodyLead: 'Foaming mouthwash that tastes as good as it works. ',
     bodyHighlight: 'NEW Watermelon Foaming Mouthwash.',
     bodyTail: ' Order NOW.',
-    image: '/gelos/GELOS2052.jpg',
-    imageFit: 'cover',
+    image: '/gelos/mouthwash-watermelon.png',
+    imageFit: 'contain',
   },
 }
 

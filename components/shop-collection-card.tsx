@@ -8,6 +8,7 @@ import { ProductVariantThumbnails } from '@/components/product-variant-thumbnail
 import { useLocation } from '@/components/location-provider'
 import { getEffectiveVariantImages } from '@/lib/product-variant-images'
 import { isExternalImageUrl } from '@/lib/image-url'
+import { getProductImageDisplayClass } from '@/lib/product-image-display'
 import { getProductHref } from '@/lib/product-utils'
 import {
   getVariantDisplayName,
@@ -44,7 +45,7 @@ export function ShopCollectionCard({
 
   return (
     <article className="flex flex-col">
-      <div className="relative aspect-[4/5] overflow-hidden bg-neutral-200">
+      <div className="relative aspect-[4/5] overflow-hidden bg-white">
         <Link
           href={productHref}
           className="absolute inset-0 block"
@@ -55,7 +56,11 @@ export function ShopCollectionCard({
             src={activeImage}
             alt={displayName}
             fill
-            className="object-cover object-center transition-transform duration-300 hover:scale-[1.05]"
+            className={getProductImageDisplayClass(
+              product.id,
+              activeImage,
+              'transition-transform duration-300 hover:scale-[1.05]',
+            )}
             sizes="(max-width: 640px) 50vw, 25vw"
             unoptimized={isExternalImageUrl(activeImage)}
           />

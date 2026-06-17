@@ -7,9 +7,8 @@ import { AddToCartButton } from '@/components/add-to-cart-button'
 import { ProductVariantThumbnails } from '@/components/product-variant-thumbnails'
 import {
   bestSellerMeta,
-  getBestSellerImageFit,
-  getBestSellerImagePadding,
 } from '@/lib/best-seller-meta'
+import { getProductImageDisplayClass } from '@/lib/product-image-display'
 import { getEffectiveVariantImages } from '@/lib/product-variant-images'
 import { getProductDisplayBadge } from '@/lib/product-tags'
 import type { ProductTagId } from '@/lib/product-tags'
@@ -19,7 +18,6 @@ import {
   getVariantDisplayName,
   getVariantSelectionForCart,
 } from '@/lib/variant-display'
-import { cn } from '@/lib/utils'
 
 type BestSellerCardProduct = {
   id: string
@@ -35,13 +33,6 @@ type BestSellerCardProps = {
   product: BestSellerCardProduct
 }
 
-const paddingClass = {
-  none: 'p-0',
-  sm: 'p-2 sm:p-3',
-  md: 'p-4 sm:p-5',
-  lg: 'p-6 sm:p-8',
-} as const
-
 export function BestSellerCard({ product }: BestSellerCardProps) {
   const meta = bestSellerMeta[product.id]
   const variantImages = getEffectiveVariantImages(product)
@@ -51,9 +42,6 @@ export function BestSellerCard({ product }: BestSellerCardProps) {
     setActiveImage(product.image)
   }, [product.image])
 
-  const imageFit = getBestSellerImageFit(product.id, activeImage)
-  const imagePadding = getBestSellerImagePadding(product.id)
-  const isContain = imageFit === 'contain'
   const badge =
     getProductDisplayBadge({ ...product, tags: product.tags ?? [] }) ??
     meta?.badge
@@ -78,11 +66,7 @@ export function BestSellerCard({ product }: BestSellerCardProps) {
             src={activeImage}
             alt={displayName}
             fill
-            className={cn(
-              isContain
-                ? cn('object-contain', paddingClass[imagePadding])
-                : 'object-cover object-center',
-            )}
+            className={getProductImageDisplayClass(product.id, activeImage)}
             sizes="280px"
             unoptimized={isExternalImageUrl(activeImage)}
           />

@@ -1,8 +1,7 @@
 import type { ProductPdpContent } from '@/lib/product-pdp-content'
 import type { Product } from '@/lib/types/product'
-import { normalizeImageUrl } from '@/lib/image-url'
 import { getProductSlug } from '@/lib/product-utils'
-import { getAdminGalleryImages } from '@/lib/product-gallery-images'
+import { getCodeDefaultGalleryImages } from '@/lib/product-gallery-images'
 
 const whiteningHighlights: ProductPdpContent['highlights'] = [
   { label: 'Shade correction', emoji: '💜' },
@@ -150,38 +149,6 @@ const stripsContent: ProductPdpContent = {
   faq: sharedFaq,
 }
 
-const charcoalContent: ProductPdpContent = {
-  galleryImages: [],
-  imageBadge: 'NATURAL',
-  headline: 'Charcoal-powered gentle brightening',
-  intro:
-    'Activated Charcoal Powder offers a natural approach to lifting surface stains — brush on, rinse off, and pair with your regular Gelos routine.',
-  bullets: [
-    'Fine activated charcoal powder',
-    'Complements daily brushing',
-    'For stain-conscious smile care',
-  ],
-  highlights: [
-    { label: 'Natural', emoji: '🌿' },
-    { label: 'Surface stains', emoji: '✨' },
-    { label: 'Daily add-on', emoji: '🪥' },
-  ],
-  detailsAccordion: [
-    {
-      id: 'different',
-      title: 'How do I use charcoal powder?',
-      content:
-        'Dip a damp brush into a small amount of powder, brush gently for about two minutes, then rinse well. Use as directed and avoid swallowing.',
-    },
-    {
-      id: 'included',
-      title: "*What's included?",
-      content: 'One jar of activated charcoal whitening powder.',
-    },
-  ],
-  faq: sharedFaq,
-}
-
 const defaultWhiteningContent = (product: Product): ProductPdpContent => ({
   galleryImages: [],
   headline: 'Brighten your smile with Gelos',
@@ -212,29 +179,19 @@ const contentBySlug: Record<string, ProductPdpContent> = {
   'v34-shade-correction-kit': v34Content,
   'led-whitening-device': ledDeviceContent,
   'premium-whitening-strips-30-pairs': stripsContent,
-  'activated-charcoal-powder': charcoalContent,
 }
 
-function mergeGallery(
-  base: ProductPdpContent,
-  product: Product,
-): ProductPdpContent {
-  const adminGallery = getAdminGalleryImages(product)
-  const galleryImages =
-    adminGallery.length > 0
-      ? adminGallery
-      : base.galleryImages.map((src) => normalizeImageUrl(src))
-
+function mergeGallery(base: ProductPdpContent): ProductPdpContent {
   return {
     ...base,
-    galleryImages,
+    galleryImages: getCodeDefaultGalleryImages(base.galleryImages),
   }
 }
 
 export function getWhiteningProductContent(product: Product): ProductPdpContent {
   const slug = getProductSlug(product)
   const base = contentBySlug[slug] ?? defaultWhiteningContent(product)
-  return mergeGallery(base, product)
+  return mergeGallery(base)
 }
 
 /** Cross-category picks for "People also love" on whitening PDPs */

@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Minus, Plus, Trash2 } from 'lucide-react'
 import { useLocation } from '@/components/location-provider'
+import { getProductImageDisplayClass } from '@/lib/product-image-display'
 import { getProductHref } from '@/lib/product-utils'
 
 export type CartLineItemData = {
@@ -35,13 +36,13 @@ export function CartLineItem({
     <article className="flex gap-4 rounded-2xl border border-neutral-200 bg-white p-4 sm:gap-5 sm:p-5">
       <Link
         href={getProductHref(item)}
-        className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-neutral-100 sm:h-28 sm:w-28"
+        className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-white sm:h-28 sm:w-28"
       >
         <Image
           src={item.image}
           alt={item.name}
           fill
-          className="object-cover object-center"
+          className={getProductImageDisplayClass(item.id, item.image)}
           sizes="112px"
         />
       </Link>

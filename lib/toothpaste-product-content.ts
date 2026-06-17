@@ -1,7 +1,7 @@
 import type { ProductPdpContent } from '@/lib/product-pdp-content'
 import type { Product } from '@/lib/types/product'
 import { normalizeImageUrl } from '@/lib/image-url'
-import { getAdminGalleryImages } from '@/lib/product-gallery-images'
+import { getCodeDefaultGalleryImages } from '@/lib/product-gallery-images'
 import { getProductSlug } from '@/lib/product-utils'
 
 export type { ProductHighlight, ProductAccordionItem, ProductPdpContent } from '@/lib/product-pdp-content'
@@ -272,26 +272,17 @@ const contentBySlug: Record<string, ProductPdpContent> = {
   'candy-cane-toothpaste': candyCaneContent,
 }
 
-function mergeGallery(
-  base: ProductPdpContent,
-  product: Product,
-): ProductPdpContent {
-  const adminGallery = getAdminGalleryImages(product)
-  const galleryImages =
-    adminGallery.length > 0
-      ? adminGallery
-      : base.galleryImages.map((src) => normalizeImageUrl(src))
-
+function mergeGallery(base: ProductPdpContent): ProductPdpContent {
   return {
     ...base,
-    galleryImages,
+    galleryImages: getCodeDefaultGalleryImages(base.galleryImages),
   }
 }
 
 export function getToothpasteProductContent(product: Product): ProductPdpContent {
   const slug = getProductSlug(product)
   const base = contentBySlug[slug] ?? defaultToothpasteContent(product)
-  return mergeGallery(base, product)
+  return mergeGallery(base)
 }
 
 /** Cross-category picks for "People also love" on toothpaste PDPs */

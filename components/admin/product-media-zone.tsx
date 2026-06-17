@@ -45,7 +45,7 @@ export function ProductMediaZone({ value, onChange }: ProductMediaZoneProps) {
   return (
     <div className="space-y-3">
       {hasImage && (
-        <div className="relative inline-block overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50">
+        <div className="relative inline-block overflow-hidden rounded-lg border border-neutral-200 bg-white">
           <div className="relative h-24 w-24">
             <Image
               src={value}

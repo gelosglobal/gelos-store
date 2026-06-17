@@ -1,7 +1,7 @@
 import type { ProductPdpContent } from '@/lib/product-pdp-content'
 import type { Product } from '@/lib/types/product'
 import { normalizeImageUrl } from '@/lib/image-url'
-import { getAdminGalleryImages } from '@/lib/product-gallery-images'
+import { getCodeDefaultGalleryImages } from '@/lib/product-gallery-images'
 const toolsHighlights: ProductPdpContent['highlights'] = [
   { label: 'Pro tools', emoji: '🛠️' },
   { label: 'Daily use', emoji: '✨' },
@@ -52,15 +52,9 @@ export function getToolsProductContent(product: Product): ProductPdpContent {
     faq: sharedFaq,
   }
 
-  const adminGallery = getAdminGalleryImages(product)
-  const galleryImages =
-    adminGallery.length > 0
-      ? adminGallery
-      : base.galleryImages.map((src) => normalizeImageUrl(src))
-
   return {
     ...base,
-    galleryImages,
+    galleryImages: getCodeDefaultGalleryImages(base.galleryImages),
   }
 }
 

@@ -10,15 +10,22 @@ export type BestSellerMeta = {
 }
 
 function inferImageFit(src: string): 'contain' | 'cover' {
+  const path = src.split('?')[0].toLowerCase()
+  if (path.endsWith('.png') || path.endsWith('.webp')) {
+    return 'contain'
+  }
+
   const lower = src.toLowerCase()
   if (
-    lower.endsWith('.png') ||
     lower.includes('watermelon-toothpaste') ||
     lower.includes('grape-mint-fruit-energy') ||
     lower.includes('energy-drink-toothpaste') ||
     lower.includes('mouthwash-') ||
     lower.includes('watermelon-foaming-mouthwash') ||
     lower.includes('led-whitening-device') ||
+    lower.includes('electric-toothbrush') ||
+    lower.includes('sonicwave') ||
+    lower.includes('strips') ||
     lower.includes('inhaler')
   ) {
     return 'contain'
@@ -67,7 +74,8 @@ export const bestSellerMeta: Record<string, BestSellerMeta> = {
   },
   '7': {
     badge: 'Best seller',
-    imageFit: 'cover',
+    imageFit: 'contain',
+    imagePadding: 'sm',
   },
   '8': {
     imageFit: 'cover',

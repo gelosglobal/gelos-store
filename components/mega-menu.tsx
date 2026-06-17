@@ -143,7 +143,7 @@ export function MegaMenu({ onNavigate }: MegaMenuProps) {
                 onClick={onNavigate}
                 className="group flex flex-col"
               >
-                <div className="relative aspect-square overflow-hidden rounded-2xl transition-transform group-hover:scale-[1.02]">
+                <div className="relative aspect-square overflow-hidden rounded-2xl bg-white transition-transform group-hover:scale-[1.02]">
                   <Image
                     src={product.image}
                     alt={product.name}

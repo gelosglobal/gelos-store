@@ -61,7 +61,7 @@ export function ProductWhiteningTreatmentPicker({
                 fill
                 className={cn(
                   'transition-transform duration-300 group-hover:scale-[1.04]',
-                  variant.id === '10' || variant.id === '7'
+                  variant.id === '7' || /\.png($|\?)/i.test(coverSrc)
                     ? 'object-contain p-1'
                     : 'object-cover',
                 )}

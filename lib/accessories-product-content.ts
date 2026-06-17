@@ -1,7 +1,7 @@
 import type { ProductPdpContent } from '@/lib/product-pdp-content'
 import type { Product } from '@/lib/types/product'
 import { normalizeImageUrl } from '@/lib/image-url'
-import { getAdminGalleryImages } from '@/lib/product-gallery-images'
+import { getCodeDefaultGalleryImages } from '@/lib/product-gallery-images'
 import { getProductSlug } from '@/lib/product-utils'
 
 const accessoriesHighlights: ProductPdpContent['highlights'] = [
@@ -89,17 +89,11 @@ const contentBySlug: Record<string, ProductPdpContent> = {
   'candy-cane-toothpaste': toothTattoosContent,
 }
 
-function mergeGallery(
-  base: ProductPdpContent,
-  product: Product,
-): ProductPdpContent {
-  const adminGallery = getAdminGalleryImages(product)
-  const galleryImages =
-    adminGallery.length > 0
-      ? adminGallery
-      : base.galleryImages.map((src) => normalizeImageUrl(src))
-
-  return { ...base, galleryImages }
+function mergeGallery(base: ProductPdpContent): ProductPdpContent {
+  return {
+    ...base,
+    galleryImages: getCodeDefaultGalleryImages(base.galleryImages),
+  }
 }
 
 export function getAccessoriesProductContent(
@@ -107,7 +101,7 @@ export function getAccessoriesProductContent(
 ): ProductPdpContent {
   const slug = getProductSlug(product)
   const base = contentBySlug[slug] ?? defaultAccessoriesContent(product)
-  return mergeGallery(base, product)
+  return mergeGallery(base)
 }
 
 export const accessoriesCommunityFavoriteIds = ['1', '15', '12', '9'] as const

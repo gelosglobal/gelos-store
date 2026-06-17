@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { formatPrice } from '@/lib/format-price'
+import { getProductImageDisplayClass } from '@/lib/product-image-display'
 import { getProductHref } from '@/lib/product-utils'
 
 type ProductCardProduct = {
@@ -24,13 +25,17 @@ export function ProductCard({ product }: ProductCardProps) {
     <article className="flex flex-col bg-background">
       <Link
         href={productHref}
-        className="relative block aspect-square overflow-hidden rounded-t-2xl bg-neutral-100"
+        className="relative block aspect-square overflow-hidden rounded-t-2xl bg-white"
       >
         <Image
           src={product.image}
           alt={product.name}
           fill
-          className="object-cover transition-transform duration-300 hover:scale-105"
+          className={getProductImageDisplayClass(
+            product.id,
+            product.image,
+            'transition-transform duration-300 hover:scale-105',
+          )}
           sizes="(max-width: 640px) 100vw, 50vw"
         />
       </Link>

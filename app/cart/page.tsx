@@ -9,6 +9,7 @@ import { useLocation } from '@/components/location-provider'
 import { useStorePromotions } from '@/components/store-promotions-provider'
 import { CartLineItem } from '@/components/cart-line-item'
 import { getProductHref } from '@/lib/product-utils'
+import { getProductImageDisplayClass } from '@/lib/product-image-display'
 import { useProducts } from '@/components/products-provider'
 import { calculateCheckoutTotals } from '@/lib/checkout'
 import { hasSmileRewardFreeShipping } from '@/lib/gelos-ai/smile-reward-storage'
@@ -339,12 +340,16 @@ export default function CartPage() {
                   href={getProductHref(product)}
                   className="group flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white transition-shadow hover:shadow-md"
                 >
-                  <div className="relative aspect-square bg-neutral-100">
+                  <div className="relative aspect-square bg-white">
                     <Image
                       src={product.image}
                       alt={product.name}
                       fill
-                      className="object-cover object-center transition-transform duration-300 group-hover:scale-[1.03]"
+                      className={getProductImageDisplayClass(
+                        product.id,
+                        product.image,
+                        'transition-transform duration-300 group-hover:scale-[1.03]',
+                      )}
                       sizes="(max-width: 640px) 50vw, 25vw"
                     />
                   </div>

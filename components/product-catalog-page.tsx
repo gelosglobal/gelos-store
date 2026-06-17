@@ -11,6 +11,7 @@ import { ProductWellnessFlavorPicker } from '@/components/product-wellness-flavo
 import { ProductWhiteningTreatmentPicker } from '@/components/product-whitening-treatment-picker'
 import {
   getCategoryNav,
+  getProductLineVariants,
   getProductPdpContent,
 } from '@/lib/product-page-data'
 import type { Product } from '@/lib/types/product'
@@ -86,16 +87,17 @@ export function ProductCatalogPage({
   communityFavorites,
 }: ProductCatalogPageProps) {
   const { label, shopHref } = getCategoryNav(product.category)
+  const lineVariants = getProductLineVariants(product, variants)
 
   return (
     <ProductEnhancedPdp
       product={product}
-      variants={variants}
+      variants={lineVariants}
       communityFavorites={communityFavorites}
       content={getProductPdpContent(product)}
       categoryLabel={label}
       categoryShopHref={shopHref}
-      flavorPicker={buildFlavorPicker(product, variants)}
+      flavorPicker={buildFlavorPicker(product, lineVariants)}
     />
   )
 }

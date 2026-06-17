@@ -2,7 +2,7 @@ import type { ProductPdpContent } from '@/lib/product-pdp-content'
 import type { Product } from '@/lib/types/product'
 import { normalizeImageUrl } from '@/lib/image-url'
 import { getProductSlug } from '@/lib/product-utils'
-import { getAdminGalleryImages } from '@/lib/product-gallery-images'
+import { getCodeDefaultGalleryImages } from '@/lib/product-gallery-images'
 
 const wellnessHighlights: ProductPdpContent['highlights'] = [
   { label: 'On-the-go energy', emoji: '⚡' },
@@ -133,26 +133,17 @@ const contentBySlug: Record<string, ProductPdpContent> = {
   'aromatherapy-nasal-inhaler': inhalerContent,
 }
 
-function mergeGallery(
-  base: ProductPdpContent,
-  product: Product,
-): ProductPdpContent {
-  const adminGallery = getAdminGalleryImages(product)
-  const galleryImages =
-    adminGallery.length > 0
-      ? adminGallery
-      : base.galleryImages.map((src) => normalizeImageUrl(src))
-
+function mergeGallery(base: ProductPdpContent): ProductPdpContent {
   return {
     ...base,
-    galleryImages,
+    galleryImages: getCodeDefaultGalleryImages(base.galleryImages),
   }
 }
 
 export function getWellnessProductContent(product: Product): ProductPdpContent {
   const slug = getProductSlug(product)
   const base = contentBySlug[slug] ?? defaultWellnessContent(product)
-  return mergeGallery(base, product)
+  return mergeGallery(base)
 }
 
 /** Cross-category picks for "People also love" on wellness PDPs */

@@ -74,9 +74,12 @@ export function ProductEnhancedPdp({
   )
 
   const galleryImages = useMemo(() => {
-    const codeFallback = content.galleryImages.map((s) => normalizeImageUrl(s))
+    const featureSet = new Set(featureImages.map((src) => normalizeImageUrl(src)))
+    const codeFallback = content.galleryImages
+      .map((s) => normalizeImageUrl(s))
+      .filter((url) => !featureSet.has(url))
 
-    // Carousel extras: legacy code defaults only (admin gallery shows below description)
+    // Carousel: main + variant images + legacy code defaults (admin gallery is feature-only)
     const extraGallery = hasAdminVariants ? [] : codeFallback
 
     const seen = new Set<string>()
@@ -87,7 +90,7 @@ export function ProductEnhancedPdp({
 
     for (const src of sources) {
       const url = normalizeImageUrl(src)
-      if (seen.has(url)) continue
+      if (seen.has(url) || featureSet.has(url)) continue
       seen.add(url)
       merged.push(url)
     }
@@ -95,6 +98,7 @@ export function ProductEnhancedPdp({
   }, [
     activeImage,
     content.galleryImages,
+    featureImages,
     hasAdminVariants,
     pickerImages,
   ])

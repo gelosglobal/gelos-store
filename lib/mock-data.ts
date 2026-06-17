@@ -57,17 +57,6 @@ export const products = [
     stock: 28,
   },
   {
-    id: "4",
-    name: "Activated Charcoal Powder",
-    category: "Whitening",
-    price: 14.99,
-    rating: 4.6,
-    reviews: 156,
-    image: "/gelos/GELOS2052.jpg",
-    description: "Pure activated charcoal for natural teeth whitening",
-    stock: 92,
-  },
-  {
     id: "5",
     name: "Aromatherapy Nasal Inhaler",
     category: "Wellness",

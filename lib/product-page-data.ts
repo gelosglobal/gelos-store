@@ -20,6 +20,7 @@ import { toolsCommunityFavoriteIds } from '@/lib/tools-product-content'
 import { wellnessCommunityFavoriteIds } from '@/lib/wellness-product-content'
 import { whiteningCommunityFavoriteIds } from '@/lib/whitening-product-content'
 import type { Product } from '@/lib/types/product'
+import { getWhiteningLineVariants } from '@/lib/whitening-treatment-covers'
 
 const DEFAULT_COMMUNITY_FAVORITE_IDS = [
   '1',
@@ -76,6 +77,17 @@ export async function getVariantsForCategory(
 ): Promise<Product[]> {
   const all = await getAllProducts()
   return all.filter((p) => p.category === category)
+}
+
+/** Same-category products that share a flavor/style/treatment picker line. */
+export function getProductLineVariants(
+  product: Product,
+  categoryVariants: Product[],
+): Product[] {
+  if (product.category === 'Whitening') {
+    return getWhiteningLineVariants(product, categoryVariants)
+  }
+  return categoryVariants
 }
 
 export async function getCommunityFavoritesForCategory(

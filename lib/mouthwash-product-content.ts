@@ -1,7 +1,7 @@
 import type { ProductPdpContent } from '@/lib/product-pdp-content'
 import type { Product } from '@/lib/types/product'
 import { normalizeImageUrl } from '@/lib/image-url'
-import { getAdminGalleryImages } from '@/lib/product-gallery-images'
+import { getCodeDefaultGalleryImages } from '@/lib/product-gallery-images'
 import { getProductSlug } from '@/lib/product-utils'
 
 const mouthwashHighlights: ProductPdpContent['highlights'] = [
@@ -206,23 +206,17 @@ const contentBySlug: Record<string, ProductPdpContent> = {
   'grape-bubblegum-foaming-mouthwash': grapeBubblegumMouthwash,
 }
 
-function mergeGallery(
-  base: ProductPdpContent,
-  product: Product,
-): ProductPdpContent {
-  const adminGallery = getAdminGalleryImages(product)
-  const galleryImages =
-    adminGallery.length > 0
-      ? adminGallery
-      : base.galleryImages.map((src) => normalizeImageUrl(src))
-
-  return { ...base, galleryImages }
+function mergeGallery(base: ProductPdpContent): ProductPdpContent {
+  return {
+    ...base,
+    galleryImages: getCodeDefaultGalleryImages(base.galleryImages),
+  }
 }
 
 export function getMouthwashProductContent(product: Product): ProductPdpContent {
   const slug = getProductSlug(product)
   const base = contentBySlug[slug] ?? defaultMouthwashContent(product)
-  return mergeGallery(base, product)
+  return mergeGallery(base)
 }
 
 /** Cross-category picks for mouthwash PDPs */
