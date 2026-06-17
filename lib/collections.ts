@@ -49,8 +49,8 @@ export const collections: Collection[] = [
   },
   {
     id: 'flossers',
-    title: 'Flossers',
-    category: 'Accessories',
+    title: 'Water Flossers',
+    category: 'Water Flossers',
     image: '/gelos/IMG-0372.jpg',
     description: '',
     className: 'md:col-span-3 md:row-start-2 md:col-start-7',

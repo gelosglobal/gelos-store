@@ -1,56 +1,18 @@
 import { normalizeImageUrl } from '@/lib/image-url'
+import { getVariantLabelForImage } from '@/lib/product-variant-images'
 import { getToothpasteFlavorLabel } from '@/lib/toothpaste-flavor-covers'
-import {
-  getKnownVariantLabelFromImageUrl,
-  isOpaqueUploadFileKey,
-} from '@/lib/variant-image-label-overrides'
 import { getWellnessFlavorLabel } from '@/lib/wellness-flavor-covers'
+import type { ProductVariantOption } from '@/lib/types/product-variant'
 import type { Product } from '@/lib/types/product'
 
-function titleCase(value: string): string {
-  return value.replace(/\b\w/g, (char) => char.toUpperCase())
+type VariantLabelProduct = Pick<Product, 'name' | 'image' | 'category'> & {
+  variantImageOptions?: ProductVariantOption[]
 }
+
+export { getVariantLabelFromImageUrl } from '@/lib/variant-image-labels'
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-/** Human-readable label from a variant image path (admin flavour/style tiles). */
-export function getVariantLabelFromImageUrl(
-  imageUrl: string,
-  category?: string,
-): string | undefined {
-  const knownLabel = getKnownVariantLabelFromImageUrl(imageUrl)
-  if (knownLabel) return knownLabel
-
-  const file = decodeURIComponent(imageUrl.split('/').pop() ?? '')
-    .replace(/\.(png|jpe?g|webp|gif)$/i, '')
-    .trim()
-
-  if (!file || isOpaqueUploadFileKey(file)) return undefined
-
-  let label = file
-    .replace(/^mouthwash-cover-/i, '')
-    .replace(/^mouthwash-/i, '')
-    .replace(/-foaming-mouthwash$/i, '')
-    .replace(/-fruit-energy$/i, '')
-    .replace(/-toothpaste$/i, '')
-    .replace(/-with-fruity-design$/i, '')
-    .replace(/-/g, ' ')
-    .trim()
-
-  if (category === 'Whitening' && label) {
-    return titleCase(label)
-  }
-
-  if (label === 'bb brushbl') return 'Brush style'
-  if (label === 'bananaa') return 'Banana'
-  if (label === 'mango inhaler' || file === 'mango-inhaler') return 'Mango'
-  if (label === 'grape mint fruit energy' || file === 'grape-mint-fruit-energy') {
-    return 'Grape Mint'
-  }
-
-  return titleCase(label)
 }
 
 /** Flavour/style label for a specific product (category variant pages). */
@@ -76,6 +38,12 @@ export function getProductLineVariantLabel(product: Product): string | undefined
     }
     case 'Toothbrushes':
       return product.name.replace(/ Toothbrush.*$/i, '').trim() || undefined
+    case 'Water Flossers':
+      return (
+        product.name.replace(/ Water Flosser.*$/i, '').trim() ||
+        product.name.replace(/ Flosser.*$/i, '').trim() ||
+        undefined
+      )
     default:
       return undefined
   }
@@ -91,12 +59,12 @@ export function getCartDisplayName(
 
 /** Product title reflecting the currently selected flavour/style tile. */
 export function getVariantDisplayName(
-  product: Pick<Product, 'name' | 'image' | 'category'>,
+  product: VariantLabelProduct,
   activeImage: string,
 ): string {
   const mainImage = normalizeImageUrl(product.image)
   const selectedImage = normalizeImageUrl(activeImage)
-  const imageLabel = getVariantLabelFromImageUrl(selectedImage, product.category)
+  const imageLabel = getVariantLabelForImage(product, selectedImage)
   const nameLabel = getProductLineVariantLabel(product as Product)
 
   const labelsMatch =
@@ -118,12 +86,12 @@ export function getVariantDisplayName(
 
 /** Map the visible variant tile on cards/PDP to cart line metadata. */
 export function getVariantSelectionForCart(
-  product: Pick<Product, 'name' | 'image' | 'category'>,
+  product: VariantLabelProduct,
   activeImage: string,
 ): { variantImage?: string; variantLabel?: string } {
   const mainImage = normalizeImageUrl(product.image)
   const selectedImage = normalizeImageUrl(activeImage)
-  const imageLabel = getVariantLabelFromImageUrl(selectedImage, product.category)
+  const imageLabel = getVariantLabelForImage(product, selectedImage)
   const nameLabel = getProductLineVariantLabel(product as Product)
   const displayName = getVariantDisplayName(product, activeImage)
 

@@ -21,6 +21,8 @@ model Product {
   stock       Int
   tags           String[] @default([])
   variantImages  String[] @default([])
+  /** Named variant tiles: [{ url, label }] for flavour/style picker labels. */
+  variantImageOptions Json     @default("[]")
   /** Extra images for the product page gallery carousel (lifestyle, detail shots). */
   galleryImages  String[] @default([])
   createdAt      DateTime @default(now())

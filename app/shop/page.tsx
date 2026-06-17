@@ -26,6 +26,7 @@ const categories = [
   'Mouthwash',
   'Tongue Scraper',
   'Whitening',
+  'Water Flossers',
   'Tools',
   'Accessories',
   'Wellness',
@@ -107,6 +108,13 @@ function ShopPageContent() {
         title: 'Teeth whitening',
         description:
           'V34 shade correction, LED devices, strips, and charcoal — professional-inspired brightening for every routine.',
+      }
+    }
+    if (categoryParam === 'Water Flossers') {
+      return {
+        title: 'Water flossers',
+        description:
+          'Cordless and countertop water flossers — gentle pressurised cleaning between teeth and along the gum line.',
       }
     }
     if (categoryParam === 'Toothbrushes') {

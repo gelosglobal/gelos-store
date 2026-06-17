@@ -7,6 +7,7 @@ import {
   LayoutGrid,
   Package,
   Percent,
+  ShowerHead,
   Sparkles,
   ScanFace,
 } from 'lucide-react'
@@ -57,6 +58,7 @@ export type NavCategoryId =
   | 'toothpaste'
   | 'mouthwash'
   | 'whitening'
+  | 'water-flossers'
   | 'packages'
   | 'bestsellers'
   | 'all'
@@ -93,6 +95,13 @@ export const navCategories: NavCategory[] = [
     icon: Sparkles,
     href: '/shop?category=Whitening',
     productCategory: 'Whitening',
+  },
+  {
+    id: 'water-flossers',
+    label: 'Water flossers',
+    icon: ShowerHead,
+    href: '/shop?category=Water%20Flossers',
+    productCategory: 'Water Flossers',
   },
   {
     id: 'packages',

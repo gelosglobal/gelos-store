@@ -37,6 +37,7 @@ function toProduct(p: (typeof mockProducts)[number]): Product {
     image: normalizeImageUrl(p.image),
     tags: [],
     variantImages: [],
+    variantImageOptions: [],
     galleryImages: [],
   }
 }

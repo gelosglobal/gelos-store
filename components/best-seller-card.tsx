@@ -27,6 +27,7 @@ type BestSellerCardProduct = {
   image: string
   tags?: ProductTagId[]
   variantImages?: string[]
+  variantImageOptions?: { url: string; label: string }[]
 }
 
 type BestSellerCardProps = {

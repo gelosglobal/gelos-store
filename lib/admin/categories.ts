@@ -3,6 +3,7 @@ export const productCategories = [
   'Mouthwash',
   'Tongue Scraper',
   'Whitening',
+  'Water Flossers',
   'Tools',
   'Accessories',
   'Wellness',

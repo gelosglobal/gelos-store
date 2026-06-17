@@ -6,10 +6,18 @@ import { getProductSlug } from '@/lib/product-utils'
 import { normalizeProductTags } from '@/lib/product-tags'
 import { normalizeImageUrl } from '@/lib/image-url'
 import { normalizeGalleryImages } from '@/lib/product-gallery-images'
-import { normalizeVariantImages } from '@/lib/product-variant-images'
+import {
+  normalizeVariantImageOptions,
+  normalizeVariantImages,
+} from '@/lib/product-variant-images'
 import type { Product } from '@/lib/types/product'
 
 function prismaToProduct(doc: PrismaProduct): Product {
+  const variantImageOptions = normalizeVariantImageOptions(
+    doc.variantImageOptions,
+    doc.variantImages,
+  )
+
   return {
     id: doc.productId,
     name: doc.name,
@@ -21,7 +29,8 @@ function prismaToProduct(doc: PrismaProduct): Product {
     description: doc.description,
     stock: doc.stock,
     tags: normalizeProductTags(doc.tags),
-    variantImages: normalizeVariantImages(doc.variantImages),
+    variantImageOptions,
+    variantImages: variantImageOptions.map((option) => option.url),
     galleryImages: normalizeGalleryImages(doc.galleryImages),
   }
 }
@@ -32,6 +41,7 @@ function mockFallback(): Product[] {
     image: normalizeImageUrl(p.image),
     tags: [],
     variantImages: [],
+    variantImageOptions: [],
     galleryImages: [],
   }))
 }
@@ -66,6 +76,7 @@ export async function getProductBySlugOrId(
       image: normalizeImageUrl(found.image),
       tags: [],
       variantImages: [],
+    variantImageOptions: [],
     galleryImages: [],
     }
   }
@@ -87,6 +98,7 @@ export async function getProductBySlugOrId(
         image: normalizeImageUrl(found.image),
         tags: [],
         variantImages: [],
+    variantImageOptions: [],
     galleryImages: [],
       }
     }
@@ -147,6 +159,7 @@ export async function getRelatedProducts(
         image: normalizeImageUrl(p.image),
     tags: [],
     variantImages: [],
+    variantImageOptions: [],
     galleryImages: [],
   }))
 }

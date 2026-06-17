@@ -40,6 +40,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       rating: Number(body.rating) ?? 4.8,
       reviews: Number(body.reviews) ?? 0,
       tags: body.tags,
+      variantImageOptions: body.variantImageOptions,
       variantImages: body.variantImages,
       galleryImages: body.galleryImages,
     })

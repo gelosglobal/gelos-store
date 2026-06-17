@@ -23,6 +23,7 @@ type ShopCollectionCardProps = {
     price: number
     image: string
     variantImages?: string[]
+    variantImageOptions?: { url: string; label: string }[]
   }
   badge?: 'NEW' | 'Best seller'
 }

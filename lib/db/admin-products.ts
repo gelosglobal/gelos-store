@@ -8,10 +8,18 @@ import { getProductSlug } from '@/lib/product-utils'
 import { normalizeImageUrl } from '@/lib/image-url'
 import { normalizeProductTags } from '@/lib/product-tags'
 import { normalizeGalleryImages } from '@/lib/product-gallery-images'
-import { normalizeVariantImages } from '@/lib/product-variant-images'
+import {
+  normalizeVariantImageOptions,
+  normalizeVariantImages,
+} from '@/lib/product-variant-images'
 import type { Product } from '@/lib/types/product'
 
 function prismaToProduct(doc: PrismaProduct): Product {
+  const variantImageOptions = normalizeVariantImageOptions(
+    doc.variantImageOptions,
+    doc.variantImages,
+  )
+
   return {
     id: doc.productId,
     name: doc.name,
@@ -23,7 +31,8 @@ function prismaToProduct(doc: PrismaProduct): Product {
     description: doc.description,
     stock: doc.stock,
     tags: normalizeProductTags(doc.tags),
-    variantImages: normalizeVariantImages(doc.variantImages),
+    variantImageOptions,
+    variantImages: variantImageOptions.map((option) => option.url),
     galleryImages: normalizeGalleryImages(doc.galleryImages),
   }
 }
@@ -60,6 +69,11 @@ export async function createAdminProduct(
   const productId = nextProductId(existing.map((p) => p.productId))
   const slug = getProductSlug({ name: input.name })
 
+  const variantImageOptions = normalizeVariantImageOptions(
+    input.variantImageOptions,
+    input.variantImages,
+  )
+
   const doc = await prisma.product.create({
     data: {
       productId,
@@ -73,7 +87,8 @@ export async function createAdminProduct(
       rating: input.rating ?? 4.8,
       reviews: input.reviews ?? 0,
       tags: normalizeProductTags(input.tags),
-      variantImages: normalizeVariantImages(input.variantImages),
+      variantImageOptions,
+      variantImages: variantImageOptions.map((option) => option.url),
       galleryImages: normalizeGalleryImages(input.galleryImages),
     },
   })
@@ -92,6 +107,10 @@ export async function updateAdminProduct(
   await seedCatalogIfEmpty()
 
   const slug = getProductSlug({ name: input.name })
+  const variantImageOptions = normalizeVariantImageOptions(
+    input.variantImageOptions,
+    input.variantImages,
+  )
   const data = {
     slug,
     name: input.name.trim(),
@@ -103,7 +122,8 @@ export async function updateAdminProduct(
     rating: input.rating ?? 4.8,
     reviews: input.reviews ?? 0,
     tags: normalizeProductTags(input.tags),
-    variantImages: normalizeVariantImages(input.variantImages),
+    variantImageOptions,
+    variantImages: variantImageOptions.map((option) => option.url),
     galleryImages: normalizeGalleryImages(input.galleryImages),
   }
 

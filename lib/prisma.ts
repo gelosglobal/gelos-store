@@ -39,7 +39,7 @@ function isPrismaClientStale(client: PrismaClient) {
       (delegate) =>
         !(delegate in client) ||
         !(client as Record<string, unknown>)[delegate],
-    ) || !('galleryImages' in productFields)
+    ) || !('galleryImages' in productFields) || !('variantImageOptions' in productFields)
   )
 }
 

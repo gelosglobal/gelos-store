@@ -14,6 +14,8 @@ import { getAdminGalleryImages } from '@/lib/product-gallery-images'
 import {
   getAdminVariantImages,
   getProductPickerImages,
+  getProductVariantPickerOptions,
+  getVariantLabelForImage,
   getVariantPickerLabel,
 } from '@/lib/product-variant-images'
 import { normalizeImageUrl } from '@/lib/image-url'
@@ -58,6 +60,31 @@ export function ProductEnhancedPdp({
   const adminVariantImages = getAdminVariantImages(product)
   const hasAdminVariants = adminVariantImages.length > 0
   const pickerImages = getProductPickerImages(product)
+  const variantPickerOptions = useMemo(() => {
+    const tiles = getProductVariantPickerOptions(product)
+    if (tiles.length > 0) {
+      const main = normalizeImageUrl(product.image)
+      const hasMain = tiles.some(
+        (option) => normalizeImageUrl(option.url) === main,
+      )
+      if (hasMain) return tiles
+      return [
+        {
+          url: main,
+          label:
+            getVariantLabelForImage(product, main) ||
+            product.name.split(' ')[0] ||
+            'Default',
+        },
+        ...tiles,
+      ]
+    }
+
+    return pickerImages.map((url) => ({
+      url,
+      label: getVariantLabelForImage(product, url) || 'Variant',
+    }))
+  }, [pickerImages, product])
   const pickerLabel = getVariantPickerLabel(product.category)
 
   const [activeImage, setActiveImage] = useState(
@@ -107,7 +134,7 @@ export function ProductEnhancedPdp({
 
   const variantPicker = hasAdminVariants ? (
     <ProductAdminVariantPicker
-      images={pickerImages}
+      options={variantPickerOptions}
       activeImage={activeImage}
       onSelect={setActiveImage}
       label={pickerLabel}

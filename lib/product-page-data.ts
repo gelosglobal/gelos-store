@@ -8,6 +8,7 @@ import { getToothbrushProductContent } from '@/lib/toothbrush-product-content'
 import { getToothpasteProductContent } from '@/lib/toothpaste-product-content'
 import { getTongueScraperProductContent } from '@/lib/tongue-scraper-product-content'
 import { getToolsProductContent } from '@/lib/tools-product-content'
+import { getWaterFlosserProductContent } from '@/lib/water-flosser-product-content'
 import { getWellnessProductContent } from '@/lib/wellness-product-content'
 import { getWhiteningProductContent } from '@/lib/whitening-product-content'
 import type { ProductPdpContent } from '@/lib/product-pdp-content'
@@ -17,6 +18,7 @@ import { toothbrushCommunityFavoriteIds } from '@/lib/toothbrush-product-content
 import { toothpasteCommunityFavoriteIds } from '@/lib/toothpaste-product-content'
 import { tongueScraperCommunityFavoriteIds } from '@/lib/tongue-scraper-product-content'
 import { toolsCommunityFavoriteIds } from '@/lib/tools-product-content'
+import { waterFlosserCommunityFavoriteIds } from '@/lib/water-flosser-product-content'
 import { wellnessCommunityFavoriteIds } from '@/lib/wellness-product-content'
 import { whiteningCommunityFavoriteIds } from '@/lib/whitening-product-content'
 import type { Product } from '@/lib/types/product'
@@ -35,6 +37,7 @@ const communityIdsByCategory: Record<string, readonly string[]> = {
   'Tongue Scraper': tongueScraperCommunityFavoriteIds,
   Wellness: wellnessCommunityFavoriteIds,
   Whitening: whiteningCommunityFavoriteIds,
+  'Water Flossers': waterFlosserCommunityFavoriteIds,
   Toothbrushes: toothbrushCommunityFavoriteIds,
   Accessories: accessoriesCommunityFavoriteIds,
   Tools: toolsCommunityFavoriteIds,
@@ -52,6 +55,10 @@ const categoryNav: Record<string, { label: string; shopHref: string }> = {
   },
   Wellness: { label: 'Wellness', shopHref: '/shop?category=Wellness' },
   Whitening: { label: 'Whitening', shopHref: '/shop?category=Whitening' },
+  'Water Flossers': {
+    label: 'Water Flossers',
+    shopHref: '/shop?category=Water%20Flossers',
+  },
   Toothbrushes: {
     label: 'Toothbrushes',
     shopHref: '/shop?category=Toothbrushes',
@@ -110,6 +117,8 @@ export function getProductPdpContent(product: Product): ProductPdpContent {
       return getWellnessProductContent(product)
     case 'Whitening':
       return getWhiteningProductContent(product)
+    case 'Water Flossers':
+      return getWaterFlosserProductContent(product)
     case 'Toothbrushes':
       return getToothbrushProductContent(product)
     case 'Accessories':

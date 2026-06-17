@@ -39,6 +39,7 @@ export async function seedCatalog(): Promise<number> {
         stock: product.stock,
         tags,
         variantImages,
+        variantImageOptions: [],
         galleryImages: [],
       },
       update: {

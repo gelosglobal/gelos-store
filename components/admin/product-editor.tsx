@@ -33,8 +33,8 @@ import {
   normalizeGalleryImages,
 } from '@/lib/product-gallery-images'
 import {
-  getEffectiveVariantImages,
-  normalizeVariantImages,
+  getEffectiveVariantImageOptions,
+  normalizeVariantImageOptions,
 } from '@/lib/product-variant-images'
 import { normalizeImageUrl } from '@/lib/image-url'
 import { notifyProductsUpdated } from '@/lib/products-events'
@@ -64,7 +64,7 @@ const emptyForm: AdminProductInput = {
   rating: 4.8,
   reviews: 0,
   tags: [],
-  variantImages: [],
+  variantImageOptions: [],
   galleryImages: [],
 }
 
@@ -124,7 +124,7 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
           rating: product.rating,
           reviews: product.reviews,
           tags: getEffectiveProductTags(product),
-          variantImages: getEffectiveVariantImages(product),
+          variantImageOptions: getEffectiveVariantImageOptions(product),
           galleryImages: getAdminGalleryImages(product),
         })
         setGhStock(product.stock)
@@ -184,7 +184,7 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
       stock: inventoryTracked ? ghStock + usaStock : 999,
       price: Number(form.price) || 0,
       tags: normalizeProductTags(form.tags),
-      variantImages: normalizeVariantImages(form.variantImages),
+      variantImageOptions: normalizeVariantImageOptions(form.variantImageOptions),
       galleryImages: normalizeGalleryImages(form.galleryImages),
     }
 
@@ -336,9 +336,9 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
             <ProductFormCardHeader title="Variant images" />
             <ProductFormCardBody>
               <ProductVariantImagesField
-                value={form.variantImages ?? []}
-                onChange={(variantImages) =>
-                  setForm((f) => ({ ...f, variantImages }))
+                value={form.variantImageOptions ?? []}
+                onChange={(variantImageOptions) =>
+                  setForm((f) => ({ ...f, variantImageOptions }))
                 }
               />
             </ProductFormCardBody>

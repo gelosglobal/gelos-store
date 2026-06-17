@@ -1,5 +1,6 @@
 import type { ProductTagId } from '@/lib/product-tags'
 import type { Product } from '@/lib/types/product'
+import type { ProductVariantOption } from '@/lib/types/product-variant'
 
 export type AdminProductInput = {
   name: string
@@ -11,6 +12,7 @@ export type AdminProductInput = {
   rating?: number
   reviews?: number
   tags?: ProductTagId[]
+  variantImageOptions?: ProductVariantOption[]
   variantImages?: string[]
   galleryImages?: string[]
 }
