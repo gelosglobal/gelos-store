@@ -66,6 +66,7 @@ const emptyForm: AdminProductInput = {
   tags: [],
   variantImageOptions: [],
   galleryImages: [],
+  active: true,
 }
 
 type ProductEditorProps = {
@@ -126,6 +127,7 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
           tags: getEffectiveProductTags(product),
           variantImageOptions: getEffectiveVariantImageOptions(product),
           galleryImages: getAdminGalleryImages(product),
+          active: product.active !== false,
         })
         setGhStock(product.stock)
         setUsaStock(0)
@@ -186,6 +188,7 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
       tags: normalizeProductTags(form.tags),
       variantImageOptions: normalizeVariantImageOptions(form.variantImageOptions),
       galleryImages: normalizeGalleryImages(form.galleryImages),
+      active: form.active !== false,
     }
 
     setSaving(true)
@@ -396,7 +399,12 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
           <ProductFormCard>
             <ProductFormCardHeader title="Status" />
             <ProductFormCardBody>
-              <Select defaultValue="active">
+              <Select
+                value={form.active !== false ? 'active' : 'draft'}
+                onValueChange={(value) =>
+                  setForm((f) => ({ ...f, active: value === 'active' }))
+                }
+              >
                 <SelectTrigger className="border-neutral-200 bg-white">
                   <SelectValue />
                 </SelectTrigger>

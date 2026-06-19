@@ -12,3 +12,8 @@ export function getProductSlug(product: Pick<Product, 'name'>): string {
 export function getProductHref(product: Pick<Product, 'id' | 'name'>): string {
   return `/product/${getProductSlug(product)}`
 }
+
+/** Published on the storefront unless explicitly drafted. */
+export function isProductPublished(product: Pick<Product, 'active'>): boolean {
+  return product.active !== false
+}

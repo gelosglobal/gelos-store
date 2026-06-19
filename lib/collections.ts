@@ -10,6 +10,8 @@ export type Collection = {
   className: string
   /** Featured = larger tile on mobile carousel */
   featured?: boolean
+  /** Default: contain for PNG, cover for photos */
+  imageFit?: 'cover' | 'contain'
 }
 
 export const collections: Collection[] = [
@@ -17,7 +19,7 @@ export const collections: Collection[] = [
     id: 'flavored-toothpastes',
     title: 'Flavored Toothpastes',
     category: 'Toothpaste',
-    image: '/gelos/watermelon.png',
+    image: '/gelos/IMG_8526.JPG',
     description: '',
     className: 'md:col-span-3 md:row-start-1 md:col-start-1',
   },
@@ -25,8 +27,9 @@ export const collections: Collection[] = [
     id: 'teeth-whiteners',
     title: 'Teeth Whiteners',
     category: 'Whitening',
-    image: '/gelos/led-whitening-device.png',
+    image: '/gelos/teethwhiteners2.png',
     description: '',
+    imageFit: 'cover',
     className: 'md:col-span-6 md:row-start-1 md:col-start-4',
     featured: true,
   },
@@ -34,7 +37,7 @@ export const collections: Collection[] = [
     id: 'tongue-scrapers',
     title: 'Tongue Scrapers',
     category: 'Tongue Scraper',
-    image: '/gelos/IMG_8030.JPG',
+    image: '/gelos/IMG_0785.JPG',
     description: '',
     className: 'md:col-span-3 md:row-start-1 md:col-start-10',
   },
@@ -42,7 +45,7 @@ export const collections: Collection[] = [
     id: 'toothbrushes',
     title: 'Toothbrushes',
     category: 'Toothbrushes',
-    image: '/gelos/toothbrush.png',
+    image: '/gelos/GELOS1335.jpg',
     description: '',
     className: 'md:col-span-6 md:row-start-2 md:col-start-1',
     featured: true,
@@ -51,7 +54,7 @@ export const collections: Collection[] = [
     id: 'flossers',
     title: 'Water Flossers',
     category: 'Water Flossers',
-    image: '/gelos/IMG-0372.jpg',
+    image: '/gelos/IMG_9442.JPG',
     description: '',
     className: 'md:col-span-3 md:row-start-2 md:col-start-7',
   },
@@ -60,8 +63,9 @@ export const collections: Collection[] = [
     title: 'Mouth Washes',
     category: 'Mouthwash',
     href: '/collections/mouth-washes',
-    image: '/gelos/IMG_2061.JPG',
+    image: '/gelos/black-male-model-close-up-with-blue-raspberry-mouthwash.png',
     description: '',
+    imageFit: 'cover',
     className: 'md:col-span-3 md:row-start-2 md:col-start-10',
   },
 ]

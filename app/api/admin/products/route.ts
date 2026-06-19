@@ -57,6 +57,7 @@ export async function POST(request: Request) {
       variantImageOptions: body.variantImageOptions,
       variantImages: body.variantImages,
       galleryImages: body.galleryImages,
+      active: body.active,
     })
 
     revalidateStorefront(getProductSlug(product))

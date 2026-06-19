@@ -9,7 +9,7 @@ import { bestSellerIds } from '@/lib/best-seller-meta'
 import { orderProductsForTagCollection } from '@/lib/product-tags'
 
 export function BestSellers() {
-  const { products, getTagCollectionOrder } = useProducts()
+  const { products, getTagCollectionOrder, isLoading } = useProducts()
 
   const bestSellers = useMemo(
     () =>
@@ -21,6 +21,8 @@ export function BestSellers() {
       ),
     [products, getTagCollectionOrder],
   )
+
+  if (isLoading || bestSellers.length === 0) return null
 
   return (
     <section

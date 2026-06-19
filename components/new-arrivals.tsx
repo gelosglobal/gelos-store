@@ -9,7 +9,7 @@ import { newArrivalProductIds } from '@/lib/new-arrivals'
 import { orderProductsForTagCollection } from '@/lib/product-tags'
 
 export function NewArrivals() {
-  const { products, getTagCollectionOrder } = useProducts()
+  const { products, getTagCollectionOrder, isLoading } = useProducts()
 
   const newArrivals = useMemo(
     () =>
@@ -22,7 +22,7 @@ export function NewArrivals() {
     [products, getTagCollectionOrder],
   )
 
-  if (!newArrivals.length) return null
+  if (isLoading || !newArrivals.length) return null
 
   return (
     <section

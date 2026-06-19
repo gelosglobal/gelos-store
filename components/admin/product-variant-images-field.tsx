@@ -11,7 +11,7 @@ import type { ProductVariantOption } from '@/lib/types/product-variant'
 import { useUploadThing } from '@/lib/uploadthing'
 import { cn } from '@/lib/utils'
 
-const MAX_VARIANT_IMAGES = 8
+const MAX_VARIANT_IMAGES = 15
 
 type ProductVariantImagesFieldProps = {
   value: ProductVariantOption[]

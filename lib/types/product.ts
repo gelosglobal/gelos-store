@@ -18,4 +18,6 @@ export type Product = {
   variantImageOptions: ProductVariantOption[]
   /** Extra images in the product page gallery carousel. */
   galleryImages: string[]
+  /** When false, product is hidden from the storefront (draft). */
+  active?: boolean
 }

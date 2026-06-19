@@ -32,6 +32,7 @@ function prismaToProduct(doc: PrismaProduct): Product {
     variantImageOptions,
     variantImages: variantImageOptions.map((option) => option.url),
     galleryImages: normalizeGalleryImages(doc.galleryImages),
+    active: doc.active !== false,
   }
 }
 
@@ -43,6 +44,7 @@ function mockFallback(): Product[] {
     variantImages: [],
     variantImageOptions: [],
     galleryImages: [],
+    active: true,
   }))
 }
 
@@ -56,7 +58,9 @@ export async function getAllProducts(): Promise<Product[]> {
       orderBy: { productId: 'asc' },
     })
     if (docs.length === 0) return mockFallback()
-    return docs.map(prismaToProduct)
+    return docs
+      .filter((doc) => doc.active !== false)
+      .map(prismaToProduct)
   } catch (error) {
     console.error('[getAllProducts]', error)
     return mockFallback()
@@ -76,8 +80,9 @@ export async function getProductBySlugOrId(
       image: normalizeImageUrl(found.image),
       tags: [],
       variantImages: [],
-    variantImageOptions: [],
-    galleryImages: [],
+      variantImageOptions: [],
+      galleryImages: [],
+      active: true,
     }
   }
 
@@ -88,7 +93,7 @@ export async function getProductBySlugOrId(
       },
     })
 
-    if (!doc) {
+    if (!doc || doc.active === false) {
       const found = mockProducts.find(
         (p) => p.id === slugOrId || getProductSlug(p) === slugOrId,
       )
@@ -98,8 +103,9 @@ export async function getProductBySlugOrId(
         image: normalizeImageUrl(found.image),
         tags: [],
         variantImages: [],
-    variantImageOptions: [],
-    galleryImages: [],
+        variantImageOptions: [],
+        galleryImages: [],
+        active: true,
       }
     }
 
@@ -157,11 +163,12 @@ export async function getRelatedProducts(
       .map((p) => ({
         ...p,
         image: normalizeImageUrl(p.image),
-    tags: [],
-    variantImages: [],
-    variantImageOptions: [],
-    galleryImages: [],
-  }))
+        tags: [],
+        variantImages: [],
+        variantImageOptions: [],
+        galleryImages: [],
+        active: true,
+      }))
 }
 
   try {
@@ -170,9 +177,11 @@ export async function getRelatedProducts(
         category: product.category,
         productId: { not: product.id },
       },
-      take: limit,
     })
-    return docs.map(prismaToProduct)
+    return docs
+      .filter((doc) => doc.active !== false)
+      .slice(0, limit)
+      .map(prismaToProduct)
   } catch (error) {
     console.error('[getRelatedProducts]', error)
     return []

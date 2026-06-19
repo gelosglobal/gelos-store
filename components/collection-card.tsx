@@ -16,6 +16,9 @@ export function CollectionCard({
   className,
 }: CollectionCardProps) {
   const isCarousel = variant === 'carousel'
+  const imageFit =
+    collection.imageFit ??
+    (collection.image.toLowerCase().endsWith('.png') ? 'contain' : 'cover')
 
   return (
     <Link
@@ -37,9 +40,7 @@ export function CollectionCard({
         fill
         className={cn(
           'transition-transform duration-500 group-hover:scale-[1.04]',
-          collection.image.toLowerCase().endsWith('.png')
-            ? 'object-contain p-4 md:p-6'
-            : 'object-cover',
+          imageFit === 'contain' ? 'object-contain p-4 md:p-6' : 'object-cover',
         )}
         sizes={isCarousel ? '300px' : '(max-width: 768px) 85vw, 33vw'}
       />

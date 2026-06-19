@@ -44,7 +44,7 @@ function toProduct(p: (typeof mockProducts)[number]): Product {
 
 export function ProductsProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname()
-  const [products, setProducts] = useState<Product[]>(mockProducts.map(toProduct))
+  const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [databaseConnected, setDatabaseConnected] = useState(false)
   const [tagCollections, setTagCollections] = useState<TagCollectionsMap>({})
@@ -61,9 +61,15 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
         setProducts(data.products)
         setTagCollections(data.tagCollections ?? {})
         setDatabaseConnected(Boolean(data.databaseConnected))
+      } else {
+        setProducts((current) =>
+          current.length === 0 ? mockProducts.map(toProduct) : current,
+        )
       }
     } catch {
-      // Keep last known catalog on network errors
+      setProducts((current) =>
+        current.length === 0 ? mockProducts.map(toProduct) : current,
+      )
     } finally {
       setIsLoading(false)
     }

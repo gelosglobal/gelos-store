@@ -25,6 +25,8 @@ model Product {
   variantImageOptions Json     @default("[]")
   /** Extra images for the product page gallery carousel (lifestyle, detail shots). */
   galleryImages  String[] @default([])
+  /** When false, product is hidden from the storefront (draft). */
+  active         Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

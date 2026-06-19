@@ -1,6 +1,5 @@
 import type { Product as PrismaProduct } from '@prisma/client'
 import type { AdminProductInput } from '@/lib/admin/types'
-import { getAllProducts } from '@/lib/db/products'
 import { seedCatalogIfEmpty } from '@/lib/db/seed-catalog'
 import { isDatabaseConfigured } from '@/lib/env'
 import { prisma } from '@/lib/prisma'
@@ -13,6 +12,7 @@ import {
   normalizeVariantImages,
 } from '@/lib/product-variant-images'
 import type { Product } from '@/lib/types/product'
+import { products as mockProducts } from '@/lib/mock-data'
 
 function prismaToProduct(doc: PrismaProduct): Product {
   const variantImageOptions = normalizeVariantImageOptions(
@@ -34,6 +34,7 @@ function prismaToProduct(doc: PrismaProduct): Product {
     variantImageOptions,
     variantImages: variantImageOptions.map((option) => option.url),
     galleryImages: normalizeGalleryImages(doc.galleryImages),
+    active: doc.active !== false,
   }
 }
 
@@ -49,9 +50,42 @@ export function isAdminDatabaseReady(): boolean {
   return isDatabaseConfigured()
 }
 
-/** Same catalog source as the storefront (`/api/products`). */
+/** Full catalog for admin — includes drafted products. */
 export async function listAdminProducts(): Promise<Product[]> {
-  return getAllProducts()
+  if (!isDatabaseConfigured()) {
+    return mockProducts.map((p) => ({
+      ...p,
+      image: normalizeImageUrl(p.image),
+      tags: [],
+      variantImages: [],
+      variantImageOptions: [],
+      galleryImages: [],
+      active: true,
+    }))
+  }
+
+  await seedCatalogIfEmpty()
+
+  try {
+    const docs = await prisma.product.findMany({
+      orderBy: { productId: 'asc' },
+    })
+    if (docs.length === 0) {
+      return mockProducts.map((p) => ({
+        ...p,
+        image: normalizeImageUrl(p.image),
+        tags: [],
+        variantImages: [],
+        variantImageOptions: [],
+        galleryImages: [],
+        active: true,
+      }))
+    }
+    return docs.map(prismaToProduct)
+  } catch (error) {
+    console.error('[listAdminProducts]', error)
+    return []
+  }
 }
 
 export async function createAdminProduct(
@@ -90,6 +124,7 @@ export async function createAdminProduct(
       variantImageOptions,
       variantImages: variantImageOptions.map((option) => option.url),
       galleryImages: normalizeGalleryImages(input.galleryImages),
+      active: input.active !== false,
     },
   })
 
@@ -125,12 +160,31 @@ export async function updateAdminProduct(
     variantImageOptions,
     variantImages: variantImageOptions.map((option) => option.url),
     galleryImages: normalizeGalleryImages(input.galleryImages),
+    active: input.active !== false,
   }
 
   const doc = await prisma.product.upsert({
     where: { productId },
     create: { productId, ...data },
     update: data,
+  })
+
+  return prismaToProduct(doc)
+}
+
+export async function setAdminProductActive(
+  productId: string,
+  active: boolean,
+): Promise<Product> {
+  if (!isDatabaseConfigured()) {
+    throw new Error('DATABASE_NOT_CONFIGURED')
+  }
+
+  await seedCatalogIfEmpty()
+
+  const doc = await prisma.product.update({
+    where: { productId },
+    data: { active },
   })
 
   return prismaToProduct(doc)

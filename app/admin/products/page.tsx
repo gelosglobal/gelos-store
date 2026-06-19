@@ -30,6 +30,7 @@ export default function AdminProductsPage() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All')
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
 
   const loadProducts = useCallback(async () => {
     setLoading(true)
@@ -72,6 +73,27 @@ export default function AdminProductsPage() {
       return matchesSearch && matchesCategory
     })
   }, [products, search, categoryFilter])
+
+  const handleToggleActive = async (product: Product) => {
+    const nextActive = product.active === false
+    setTogglingId(product.id)
+    try {
+      const res = await fetch(`/api/admin/products/${product.id}/active`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: nextActive }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Status update failed')
+      toast.success(nextActive ? 'Product published' : 'Product moved to draft')
+      await loadProducts()
+      notifyProductsUpdated()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Status update failed')
+    } finally {
+      setTogglingId(null)
+    }
+  }
 
   const handleDelete = async () => {
     if (!deleteTarget) return
@@ -144,6 +166,8 @@ export default function AdminProductsPage() {
         <ProductsTable
           products={filtered}
           onDelete={setDeleteTarget}
+          onToggleActive={handleToggleActive}
+          togglingId={togglingId}
         />
       )}
 

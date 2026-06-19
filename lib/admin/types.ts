@@ -15,6 +15,8 @@ export type AdminProductInput = {
   variantImageOptions?: ProductVariantOption[]
   variantImages?: string[]
   galleryImages?: string[]
+  /** Defaults to true (published) when omitted. */
+  active?: boolean
 }
 
 export type AdminProduct = Product
