@@ -23,6 +23,9 @@ export const featuredHeroProductIds = [
   '3',
 ] as const
 
+/** Temporary hero background while custom slide banners are in design. */
+export const featuredHeroVideoSrc = '/gelos/GELOS%20VIDEO.mp4'
+
 export const featuredHeroSlides: Record<string, FeaturedHeroSlide> = {
   '1': {
     productId: '1',

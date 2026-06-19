@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -14,8 +13,8 @@ import {
 import {
   featuredHeroProductIds,
   featuredHeroSlides,
+  featuredHeroVideoSrc,
 } from '@/lib/featured-hero-meta'
-import { normalizeImageUrl } from '@/lib/image-url'
 import { getProductHref } from '@/lib/product-utils'
 import type { Product } from '@/lib/types/product'
 import { cn } from '@/lib/utils'
@@ -24,11 +23,6 @@ const AUTOPLAY_MS = 5000
 
 const heroHeights =
   'min-h-[min(85vh,640px)] md:min-h-[560px] lg:min-h-[min(78vh,820px)] xl:min-h-[min(82vh,900px)]'
-
-function getHeroImageSrc(product: Product) {
-  const src = featuredHeroSlides[product.id]?.image ?? product.image
-  return normalizeImageUrl(src)
-}
 
 export function FeaturedProductsHero() {
   const { products } = useProducts()
@@ -100,27 +94,33 @@ export function FeaturedProductsHero() {
           heroHeights,
         )}
       >
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-hidden
+          className="absolute inset-0 z-0 h-full w-full object-cover object-center"
+        >
+          <source src={featuredHeroVideoSrc} type="video/mp4" />
+        </video>
+
         <Carousel
           opts={{ loop: slideCount > 1, align: 'start' }}
           setApi={setApi}
-          className={cn('size-full [&_[data-slot=carousel-content]]:h-full', heroHeights)}
+          className={cn(
+            'relative z-[1] size-full [&_[data-slot=carousel-content]]:h-full',
+            heroHeights,
+          )}
         >
           <CarouselContent className="-ml-0 h-full">
-            {featuredProducts.map((product, index) => (
+            {featuredProducts.map((product) => (
               <CarouselItem
                 key={product.id}
                 className={cn('h-full basis-full pl-0', heroHeights)}
               >
-                <div className={cn('relative h-full w-full', heroHeights)}>
-                  <Image
-                    src={getHeroImageSrc(product)}
-                    alt={product.name}
-                    fill
-                    className="object-cover object-center"
-                    sizes="(max-width: 1280px) 100vw, 1440px"
-                    priority={index === 0}
-                  />
-                </div>
+                <div className={cn('h-full w-full', heroHeights)} aria-hidden />
               </CarouselItem>
             ))}
           </CarouselContent>
@@ -128,7 +128,6 @@ export function FeaturedProductsHero() {
 
         <div className="pointer-events-none absolute inset-0 z-10 bg-black/35" />
 
-        {/* Title + button only */}
         <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center px-6 py-16 text-center sm:py-20 lg:px-12 lg:py-24 xl:py-28">
           {featuredProducts.map((product, index) => {
             const slide = featuredHeroSlides[product.id]

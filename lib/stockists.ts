@@ -56,12 +56,12 @@ export const stockists: Stockist[] = [
   {
     id: 'Smart Cart',
     name: 'Smart Cart',
-    logo: '/gelos/smart-gelos.PNG',
+    logo: '/gelos/smart-gelos.png',
   },
   {
     id: 'Whole Health',
     name: 'Whole Health',
-    logo: '/gelos/whole-gelos.PNG',
+    logo: '/gelos/whole-gelos.png',
   },
 ]
 
