@@ -26,7 +26,10 @@ import {
   getProductLineVariantLabel,
   getVariantDisplayName,
 } from '@/lib/variant-display'
-import type { ProductPdpContent } from '@/lib/product-pdp-content'
+import {
+  getUsageStepsSectionMeta,
+  type ProductPdpContent,
+} from '@/lib/product-pdp-content'
 import type { Product } from '@/lib/types/product'
 
 type ProductEnhancedPdpProps = {
@@ -131,6 +134,7 @@ export function ProductEnhancedPdp({
   ])
 
   const displayName = getVariantDisplayName(product, activeImage)
+  const usageSection = getUsageStepsSectionMeta(product.category, content)
 
   const variantPicker = hasAdminVariants ? (
     <ProductAdminVariantPicker
@@ -281,14 +285,13 @@ export function ProductEnhancedPdp({
 
         <ProductFeatureGallery images={featureImages} alt={displayName} />
 
-        {content.usageSteps && content.usageSteps.length > 0 && (
+        {usageSection && content.usageSteps && content.usageSteps.length > 0 && (
           <section className="mt-14 lg:mt-16">
             <h2 className="text-xl font-bold text-neutral-950 sm:text-2xl">
-              How to use your tongue scraper
+              {usageSection.title}
             </h2>
             <p className="mt-2 max-w-2xl text-sm text-neutral-600 sm:text-base">
-              Add this 30-second step before brushing for a cleaner tongue and
-              fresher breath.
+              {usageSection.intro}
             </p>
             <ol className="mt-8 grid gap-4 sm:grid-cols-3 sm:gap-6">
               {content.usageSteps.map((step, index) => (

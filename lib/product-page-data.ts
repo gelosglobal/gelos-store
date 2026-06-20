@@ -53,7 +53,7 @@ const categoryNav: Record<string, { label: string; shopHref: string }> = {
     label: 'Tongue Scraper',
     shopHref: '/shop?category=Tongue%20Scraper',
   },
-  Wellness: { label: 'Wellness', shopHref: '/shop?category=Wellness' },
+  Wellness: { label: 'Wellness and Care', shopHref: '/shop?category=Wellness' },
   Whitening: { label: 'Whitening', shopHref: '/shop?category=Whitening' },
   'Water Flossers': {
     label: 'Water Flossers',

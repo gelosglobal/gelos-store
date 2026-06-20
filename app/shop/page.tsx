@@ -98,9 +98,9 @@ function ShopPageContent() {
     }
     if (categoryParam === 'Wellness') {
       return {
-        title: 'Wellness & energy',
+        title: 'Wellness and Care',
         description:
-          'Portable fruit energy and aromatherapy picks — bold flavours and on-the-go refresh from Gelos.',
+          'Portable fruit energy, aromatherapy inhalers, and on-the-go refresh — bold flavours and wellness picks from Gelos.',
       }
     }
     if (categoryParam === 'Whitening') {

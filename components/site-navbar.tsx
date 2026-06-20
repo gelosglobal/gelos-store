@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Menu, ShoppingCart, X } from 'lucide-react'
+import { Menu, ShoppingCart, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { AnnouncementBar } from '@/components/announcement-bar'
 import { LocationSelector } from '@/components/location-selector'
@@ -182,17 +182,6 @@ export function SiteNavbar() {
                       })}
                   </div>
                   <MegaMenu onNavigate={() => setMobileOpen(false)} />
-                  <Link
-                    href="/admin"
-                    onClick={() => setMobileOpen(false)}
-                    className={cn(
-                      navItemClassName,
-                      'mt-4 w-full border-t border-neutral-100 pt-4 text-foreground/90 hover:bg-neutral-50',
-                    )}
-                  >
-                    <LayoutDashboard className="h-4 w-4 shrink-0" strokeWidth={2} />
-                    Admin
-                  </Link>
                 </div>
               </SheetContent>
             </Sheet>
@@ -230,16 +219,6 @@ export function SiteNavbar() {
                   {itemCount > 99 ? '99+' : itemCount}
                 </span>
               )}
-            </Link>
-            <Link
-              href="/admin"
-              className={cn(
-                navItemClassName,
-                'hidden text-foreground/70 hover:bg-neutral-50 hover:text-foreground sm:inline-flex',
-              )}
-            >
-              <LayoutDashboard className="h-4 w-4 shrink-0" strokeWidth={2} />
-              Admin
             </Link>
             {megaOpen && (
               <button

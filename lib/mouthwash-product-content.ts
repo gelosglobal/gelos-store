@@ -99,29 +99,84 @@ const strawberryMouthwash: ProductPdpContent = {
   faq: sharedFaq,
 }
 
-const blueRaspberryMouthwash: ProductPdpContent = {
-  galleryImages: [],
-  imageBadge: '60 USES',
-  headline: 'Bold blue raspberry?',
-  intro:
-    'Cool, candy-shop blue raspberry in an alcohol-free foaming rinse — fresh breath with a playful twist.',
-  bullets: [
-    'Flavour with a burst of freshness',
-    'Alcohol-free foaming formula',
-    'Fresh breath on the go',
-  ],
-  highlights: mouthwashHighlights,
-  detailsAccordion: [
+const mouthwashRangeBenefits = [
+  'Helps reduce bacteria in the mouth',
+  'Keeps breath fresh for longer',
+  'Enhances overall oral hygiene routine',
+  'Gentle and non-burning alcohol-free formula',
+  'Fun, flavorful experience for daily use',
+]
+
+const mouthwashUsageSteps: ProductPdpContent['usageSteps'] = [
+  {
+    title: 'Pour',
+    body: 'Pour a small amount into your mouth.',
+  },
+  {
+    title: 'Swish',
+    body: 'Swish for 30–60 seconds.',
+  },
+  {
+    title: 'Foam',
+    body: 'Let the foam reach all areas of the mouth.',
+  },
+  {
+    title: 'Spit',
+    body: 'Spit out after use. Do not swallow.',
+  },
+]
+
+const mouthwashRangeFaq: ProductPdpContent['faq'] = [
+  {
+    id: 'faq-different',
+    title: 'What makes Gelos Foaming Mouthwash different?',
+    content:
+      'An alcohol-free, foaming formula that spreads evenly for full-mouth coverage — fresh breath and a deep clean feel in seconds, without the burn of traditional rinses.',
+  },
+  {
+    id: 'faq-flavors',
+    title: 'Which flavours are available?',
+    content:
+      'Blue Raspberry, Strawberry, Watermelon, and Grape Bubble Gum. Use the flavour picker on this page to explore the full lineup.',
+  },
+  {
+    id: 'faq-everyday',
+    title: 'Can I use this as my everyday mouthwash?',
+    content:
+      'Yes. Use once or twice daily after brushing as part of your regular oral care routine.',
+  },
+  {
+    id: 'faq-children',
+    title: 'Can I purchase this for my children?',
+    content:
+      'We recommend this product for adults and supervised children over 6. Consult your dentist for younger children.',
+  },
+]
+
+function mouthwashRangeAccordion(flavorName: string): ProductPdpContent['detailsAccordion'] {
+  return [
+    {
+      id: 'flavors',
+      title: 'Available flavours',
+      content:
+        'Blue Raspberry · Strawberry · Watermelon · Grape Bubble Gum. Pick your favourite using the flavour picker above.',
+    },
+    {
+      id: 'features',
+      title: 'Key features',
+      content:
+        'Alcohol-free formula · Foaming action for full-mouth coverage · Helps fight bad breath · Leaves long-lasting freshness · Up to 60+ uses per bottle',
+    },
     {
       id: 'different',
-      title: 'What makes this mouthwash different?',
+      title: 'What makes Gelos Foaming Mouthwash different?',
       content:
-        'Our foaming formula pairs vivid blue raspberry flavour with alcohol-free fresh breath care.',
+        'A refreshing, alcohol-free rinse with a unique foaming formula designed to cleanse the mouth, fight bad breath, and leave a long-lasting fresh feeling in seconds.',
     },
     {
       id: 'included',
       title: "*What's included?",
-      content: 'One 85ml foaming mouthwash bottle with pump dispenser.',
+      content: `One foaming mouthwash bottle (${flavorName}) with pump dispenser. Sealed for freshness.`,
     },
     {
       id: 'ingredients',
@@ -129,8 +184,27 @@ const blueRaspberryMouthwash: ProductPdpContent = {
       content:
         'Aqua, Glycerin, Poloxamer 407, Aroma, Cetylpyridinium Chloride, Sodium Saccharin, CI 42090. Alcohol free.',
     },
+  ]
+}
+
+const blueRaspberryMouthwash: ProductPdpContent = {
+  galleryImages: [],
+  imageBadge: '4 FLAVOURS',
+  headline: 'Gelos Foaming Mouthwash',
+  intro:
+    'The Gelos Foaming Mouthwash is a refreshing, alcohol-free oral care rinse designed to cleanse the mouth, fight bad breath, and leave a long-lasting fresh feeling. Its unique foaming formula helps spread evenly across the mouth for a deep clean in seconds. You are viewing Blue Raspberry — use the flavour picker above to explore Watermelon, Strawberry, and Grape Bubble Gum.',
+  bullets: mouthwashRangeBenefits,
+  highlights: [
+    { label: 'Alcohol-free', emoji: '🧪' },
+    { label: 'Foaming clean', emoji: '✨' },
+    { label: '60+ uses', emoji: '👄' },
   ],
-  faq: sharedFaq,
+  usageSteps: mouthwashUsageSteps,
+  usageStepsTitle: 'How to use your Gelos mouthwash',
+  usageStepsIntro:
+    'Use once or twice daily for best results.',
+  detailsAccordion: mouthwashRangeAccordion('Blue Raspberry'),
+  faq: mouthwashRangeFaq,
 }
 
 const grapeBubblegumMouthwash: ProductPdpContent = {
@@ -165,6 +239,100 @@ const grapeBubblegumMouthwash: ProductPdpContent = {
     },
   ],
   faq: sharedFaq,
+}
+
+const mouthSprayBenefits = [
+  'Instantly freshens breath',
+  'Helps eliminate bad breath on the go',
+  'Gentle, non-drying formula',
+  'Convenient for travel, meetings, and daily use',
+  'Leaves a pleasant lasting taste',
+]
+
+const mouthSprayUsageSteps: ProductPdpContent['usageSteps'] = [
+  {
+    title: 'Spray',
+    body: 'Spray 1–2 times directly into the mouth.',
+  },
+  {
+    title: 'Anytime',
+    body: 'Use anytime you need fresh breath.',
+  },
+  {
+    title: 'No rinse',
+    body: 'No need to rinse after use.',
+  },
+]
+
+const mouthSprayFaq: ProductPdpContent['faq'] = [
+  {
+    id: 'faq-different',
+    title: 'What makes Gelos Mouth Spray different?',
+    content:
+      'An alcohol-free oral freshener in a pocket-sized spray — instant fresh breath without dryness or irritation.',
+  },
+  {
+    id: 'faq-flavors',
+    title: 'Which flavours are available?',
+    content:
+      'Grape, Strawberry, Peach, and Mint. See product packaging or the flavour picker when available.',
+  },
+  {
+    id: 'faq-daily',
+    title: 'How often can I use it?',
+    content:
+      'Spray 1–2 times as needed throughout the day. No rinsing required.',
+  },
+  {
+    id: 'faq-travel',
+    title: 'Is it travel-friendly?',
+    content:
+      'Yes. The compact spray format fits easily in a pocket or bag for meetings, travel, and on-the-go freshness.',
+  },
+]
+
+const mouthSprayContent: ProductPdpContent = {
+  galleryImages: [],
+  imageBadge: '4 FLAVOURS',
+  headline: 'Mouth Spray (Gelos Oral Freshener)',
+  intro:
+    'The Gelos Mouth Spray is a quick and convenient oral freshener designed to instantly eliminate bad breath and leave your mouth feeling clean, fresh, and refreshed anytime, anywhere. Its alcohol-free formula ensures a gentle experience without dryness or irritation.',
+  bullets: mouthSprayBenefits,
+  highlights: [
+    { label: 'Alcohol-free', emoji: '🧪' },
+    { label: 'Pocket-sized', emoji: '👜' },
+    { label: 'Instant fresh', emoji: '✨' },
+  ],
+  usageSteps: mouthSprayUsageSteps,
+  usageStepsTitle: 'How to use your Gelos mouth spray',
+  usageStepsIntro:
+    'Can be used multiple times daily as needed.',
+  detailsAccordion: [
+    {
+      id: 'flavors',
+      title: 'Available flavours',
+      content: 'Grape · Strawberry · Peach · Mint.',
+    },
+    {
+      id: 'features',
+      title: 'Key features',
+      content:
+        'Alcohol-free formula · Pocket-sized and travel-friendly · Instant fresh breath effect · Long-lasting freshness · Easy spray application',
+    },
+    {
+      id: 'different',
+      title: 'What makes Gelos Mouth Spray different?',
+      content:
+        'A gentle, alcohol-free spray that freshens breath instantly — no burn, no dryness, just clean freshness on the go.',
+    },
+    {
+      id: 'included',
+      title: "*What's included?",
+      content:
+        'One Gelos Mouth Spray bottle with spray applicator. See packaging for volume and flavour.',
+    },
+  ],
+  faq: mouthSprayFaq,
 }
 
 const defaultMouthwashContent = (product: Product): ProductPdpContent => {
@@ -204,6 +372,7 @@ const contentBySlug: Record<string, ProductPdpContent> = {
   'strawberry-foaming-mouthwash': strawberryMouthwash,
   'blue-raspberry-foaming-mouthwash': blueRaspberryMouthwash,
   'grape-bubblegum-foaming-mouthwash': grapeBubblegumMouthwash,
+  'mouth-spray': mouthSprayContent,
 }
 
 function mergeGallery(base: ProductPdpContent): ProductPdpContent {

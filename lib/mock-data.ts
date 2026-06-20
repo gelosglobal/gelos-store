@@ -9,7 +9,8 @@ export const products = [
     rating: 4.9,
     reviews: 286,
     image: "/gelos/watermelon-toothpaste.png",
-    description: "Fluoride+ watermelon toothpaste for a fresh, fruity clean",
+    description:
+      "Gelos Flavored Toothpaste — premium sugar-free, vegan-friendly fluoride formula in 15 exciting flavours. You're viewing Watermelon.",
     stock: 45,
   },
   {
@@ -20,7 +21,8 @@ export const products = [
     rating: 4.9,
     reviews: 312,
     image: "/gelos/grape-mint-fruit-energy.png",
-    description: "Portable fruit energy case with grape mint flavor",
+    description:
+      "Gelos Double Nasal Inhaler with aromatic vapors — helps clear nasal passages, boost energy, and leave you feeling fresh and revitalized on the go.",
     stock: 52,
   },
   {
@@ -31,7 +33,8 @@ export const products = [
     rating: 4.9,
     reviews: 89,
     image: "/gelos/IMG_8035.JPG",
-    description: "Professional-grade tongue scraper for optimal oral hygiene",
+    description:
+      "Gelos 3-in-1 Tongue Scraper — surgical-grade stainless steel to remove bacteria and buildup for fresher breath. Available in 6 elegant finishes.",
     stock: 72,
   },
   {
@@ -53,7 +56,8 @@ export const products = [
     rating: 4.7,
     reviews: 203,
     image: "/gelos/GELOS1967.jpg",
-    description: "Complete V34 shade correction system for professional results",
+    description:
+      "Gelos V34 Teeth Whitening Kit — serum, foaming cleanser, and whitening powder to help reduce stains and enhance smile brightness at home.",
     stock: 28,
   },
   {
@@ -64,7 +68,8 @@ export const products = [
     rating: 4.5,
     reviews: 67,
     image: "/gelos/mango-inhaler.png",
-    description: "Refreshing nasal inhaler with therapeutic essential oils",
+    description:
+      "Fruit Energy nasal inhaler with therapeutic essential oils — helps ease cold and flu discomfort, clear nasal passages, and deliver a cooling, revitalizing refresh on the go.",
     stock: 58,
   },
   {
@@ -86,7 +91,8 @@ export const products = [
     rating: 4.8,
     reviews: 178,
     image: "/gelos/strips.png",
-    description: "Professional whitening strips for 14-day results",
+    description:
+      "Gelos PAP+ Teeth Whitening Strips — convenient at-home strips to help reduce stains and support a brighter-looking smile.",
     stock: 36,
   },
   {
@@ -97,7 +103,8 @@ export const products = [
     rating: 4.7,
     reviews: 98,
     image: "/gelos/bb.brushbl.png",
-    description: "Eco-friendly bamboo toothbrushes with soft bristles",
+    description:
+      "Gelos Eco-Friendly Bamboo Toothbrush — sustainable 3-pack with soft bristles for gentle, effective daily cleaning.",
     stock: 64,
   },
   {
@@ -108,7 +115,8 @@ export const products = [
     rating: 4.8,
     reviews: 87,
     image: "/gelos/3d-sonicwave-g1-electric-toothbrush.png",
-    description: "Rechargeable sonic electric toothbrush for a deeper daily clean",
+    description:
+      "Gelos SonicWave G1 smart electric toothbrush — sonic technology, 5 cleaning modes, 60-day battery, and a 2-minute timer for a deeper, gentler clean.",
     stock: 32,
   },
   {
@@ -119,7 +127,8 @@ export const products = [
     rating: 4.9,
     reviews: 245,
     image: "/gelos/led-whitening-device.png",
-    description: "Professional LED teeth whitening device with purple light tray",
+    description:
+      "Gelos Teeth Whitening LED Kit — whitening gel plus LED light accelerator to help reduce surface stains and brighten your smile at home.",
     stock: 34,
   },
   {
@@ -240,7 +249,8 @@ export const products = [
     rating: 4.8,
     reviews: 164,
     image: "/gelos/mouthwash-blue-raspberry.png",
-    description: "Alcohol-free foaming mouthwash — bold blue raspberry flavour",
+    description:
+      "Gelos Foaming Mouthwash — alcohol-free foaming rinse for fresh breath and deep clean. You're viewing Blue Raspberry.",
     stock: 46,
   },
   {

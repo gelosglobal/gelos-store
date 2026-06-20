@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { AddToCartButton } from '@/components/add-to-cart-button'
+import { useLocation } from '@/components/location-provider'
 import { ProductVariantThumbnails } from '@/components/product-variant-thumbnails'
 import {
   bestSellerMeta,
@@ -35,6 +36,7 @@ type BestSellerCardProps = {
 }
 
 export function BestSellerCard({ product }: BestSellerCardProps) {
+  const { formatPrice } = useLocation()
   const meta = bestSellerMeta[product.id]
   const variantImages = getEffectiveVariantImages(product)
   const [activeImage, setActiveImage] = useState(product.image)
@@ -46,10 +48,6 @@ export function BestSellerCard({ product }: BestSellerCardProps) {
   const badge =
     getProductDisplayBadge({ ...product, tags: product.tags ?? [] }) ??
     meta?.badge
-
-  const displayPrice = Number.isInteger(product.price)
-    ? product.price.toString()
-    : product.price.toFixed(2).replace(/\.00$/, '')
 
   const variantSelection = getVariantSelectionForCart(product, activeImage)
   const displayName = getVariantDisplayName(product, activeImage)
@@ -93,11 +91,8 @@ export function BestSellerCard({ product }: BestSellerCardProps) {
         </h3>
       </Link>
 
-      <p className="mt-2 flex items-baseline justify-center gap-0.5">
-        <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">
-          GH
-        </span>
-        <span className="text-2xl font-bold leading-none text-[#E91E8C]">₵{displayPrice}</span>
+      <p className="mt-2 text-center text-2xl font-bold leading-none text-[#E91E8C]">
+        {formatPrice(product.price)}
       </p>
 
       <AddToCartButton

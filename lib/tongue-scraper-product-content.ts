@@ -46,40 +46,117 @@ const sharedFaq: ProductPdpContent['faq'] = [
   },
 ]
 
-const stainlessSteelContent: ProductPdpContent = {
-  galleryImages: [],
-  imageBadge: 'HYGIENE ESSENTIAL',
-  headline: 'Serious about fresh breath?',
-  intro:
-    'Meet your new daily essential — a professional-grade stainless steel tongue scraper that helps lift coating and bacteria so your mouth feels cleaner before you even brush.',
-  bullets: [
-    'Curved edge for comfortable control',
-    'Durable stainless steel — rinse and reuse',
-    'Pairs perfectly with Gelos toothpaste & mouthwash',
-  ],
-  highlights: scraperHighlights,
-  usageSteps: sharedUsageSteps,
-  detailsAccordion: [
+const scraperBenefits = [
+  'Helps remove bacteria and buildup that cause bad breath',
+  'Promotes long-lasting fresh breath',
+  'Improves overall oral hygiene and cleanliness',
+  'Enhances taste perception by clearing tongue coating',
+  'Made from surgical-grade stainless steel for durability and hygiene',
+  'Rust-resistant, easy to clean, and reusable',
+  'Smooth edge design for comfortable daily use',
+  'Long-lasting alternative to plastic tongue scrapers',
+]
+
+const scraperUsageSteps: ProductPdpContent['usageSteps'] = [
+  {
+    title: 'Extend',
+    body: 'Extend your tongue comfortably.',
+  },
+  {
+    title: 'Position',
+    body: 'Place the scraper gently at the back of the tongue (as far as comfortable).',
+  },
+  {
+    title: 'Scrape',
+    body: 'Pull forward slowly to the tip of the tongue.',
+  },
+  {
+    title: 'Rinse',
+    body: 'Rinse the scraper after each pass.',
+  },
+  {
+    title: 'Repeat',
+    body: 'Repeat 2–5 times until the tongue feels clean.',
+  },
+  {
+    title: 'Store',
+    body: 'Clean and dry after use, then store properly.',
+  },
+]
+
+const scraperRangeFaq: ProductPdpContent['faq'] = [
+  {
+    id: 'faq-different',
+    title: 'What makes the Gelos 3-in-1 Tongue Scraper different?',
+    content:
+      'Surgical-grade stainless steel, a smooth comfortable edge, and a 3-in-1 design built for daily tongue cleaning — durable, hygienic, and a long-lasting upgrade from disposable plastic scrapers.',
+  },
+  {
+    id: 'faq-finishes',
+    title: 'Which finishes are available?',
+    content:
+      'Choose from Silver, Rose Gold, Black, Blue-Black, Burgundy, and Turquoise. Use the style picker on this page to explore finishes in the lineup.',
+  },
+  {
+    id: 'faq-everyday',
+    title: 'Can I use this every day?',
+    content:
+      'Yes. Use once or twice daily, preferably morning and night, for best results. If you notice irritation, use lighter pressure and consult your dentist.',
+  },
+  {
+    id: 'faq-children',
+    title: 'Can I purchase this for my children?',
+    content:
+      'We recommend adult supervision for children. Consult your dentist for guidance on tongue cleaning for younger kids.',
+  },
+]
+
+function tongueScraperRangeAccordion(styleName: string): ProductPdpContent['detailsAccordion'] {
+  return [
+    {
+      id: 'finishes',
+      title: 'Available finishes',
+      content:
+        'Silver · Rose Gold · Black · Blue-Black · Burgundy · Turquoise. Pick the finish that suits your routine using the style picker above.',
+    },
     {
       id: 'different',
-      title: 'What makes this tongue scraper different?',
+      title: 'What makes the Gelos 3-in-1 scraper different?',
       content:
-        'Gelos Stainless Steel Tongue Scraper uses a smooth, rounded edge and ergonomic curve — effective cleaning without the harsh feel of plastic alternatives.',
+        'A premium oral hygiene tool that effectively removes bacteria, food debris, and buildup from the tongue surface — surgical-grade stainless steel for durability, hygiene, and a smooth scraping experience.',
     },
     {
       id: 'included',
       title: "*What's included?",
-      content:
-        'One stainless steel tongue scraper in protective packaging. Rinse before first use.',
+      content: `One Gelos 3-in-1 Tongue Scraper (${styleName} finish). Rinse before first use.`,
     },
     {
       id: 'materials',
       title: 'Materials & care',
       content:
-        'Made from stainless steel. Hand wash with mild soap after use, dry thoroughly, and store in a dry place. Not dishwasher safe.',
+        'Made from surgical-grade stainless steel. Rinse after each use, wash with mild soap, dry thoroughly, and store in a dry place. Rust-resistant and reusable.',
     },
+  ]
+}
+
+const stainlessSteelContent: ProductPdpContent = {
+  galleryImages: [],
+  imageBadge: '3-IN-1',
+  headline: 'Gelos 3-in-1 Tongue Scraper',
+  intro:
+    'The Gelos 3-in-1 Tongue Scraper is a premium oral hygiene tool designed to effectively remove bacteria, food debris, and buildup from the tongue surface. Made from surgical-grade stainless steel, it offers durability, hygiene, and a smooth scraping experience for fresher breath and a cleaner mouth. Designed for daily use, it helps support overall oral health by improving tongue cleanliness, reducing bad breath, and enhancing taste sensitivity. Use the style picker above to explore finishes across the range.',
+  bullets: scraperBenefits,
+  highlights: [
+    { label: 'Fresh breath', emoji: '✨' },
+    { label: 'Surgical steel', emoji: '🪥' },
+    { label: '6 finishes', emoji: '💎' },
   ],
-  faq: sharedFaq,
+  usageSteps: scraperUsageSteps,
+  usageStepsTitle: 'How to use your Gelos tongue scraper',
+  usageStepsIntro:
+    'Use once or twice daily, preferably morning and night, for best results.',
+  detailsAccordion: tongueScraperRangeAccordion('Silver'),
+  faq: scraperRangeFaq,
 }
 
 const copperContent: ProductPdpContent = {

@@ -74,21 +74,108 @@ function toothpasteAccordion(
   ]
 }
 
+const flavoredToothpasteBenefits = [
+  'Helps prevent cavities with fluoride protection',
+  'Strengthens enamel for healthier, stronger teeth',
+  'Sugar-free formulation for better oral care habits',
+  'Vegan-friendly ingredients',
+  'Deep cleaning action for a fresher, cleaner mouth',
+  'Long-lasting fresh breath',
+  'High-quality formulation for a superior clean',
+  'Makes brushing more enjoyable across all age groups',
+]
+
+const watermelonUsageSteps: ProductPdpContent['usageSteps'] = [
+  {
+    title: 'Apply',
+    body: 'Apply a pea-sized amount of Gelos Toothpaste onto your toothbrush.',
+  },
+  {
+    title: 'Brush',
+    body: 'Brush thoroughly for at least 2 minutes, ensuring all tooth surfaces are cleaned.',
+  },
+  {
+    title: 'Rinse',
+    body: 'Rinse thoroughly with water after brushing.',
+  },
+  {
+    title: 'Routine',
+    body: 'Use twice daily — morning and night — for best results.',
+  },
+]
+
+const watermelonRangeFaq: ProductPdpContent['faq'] = [
+  {
+    id: 'faq-different',
+    title: 'What makes Gelos Flavored Toothpaste different?',
+    content:
+      'Gelos pairs a sugar-free, vegan-friendly Fluoride+ formula with 15 bold flavours — so effective cavity protection and enamel support feel enjoyable, not clinical.',
+  },
+  {
+    id: 'faq-flavors',
+    title: 'How many flavours are available?',
+    content:
+      'Choose from 15 exciting flavours including Mint, Peach, Watermelon, Red Velvet, Coconut, Mango, Strawberry, Banana, Candy Cane, Vanilla, Energy Drink, Cola, Passion Fruit, and Grape Bubblegum. Use the flavour picker on this page to explore the full range.',
+  },
+  {
+    id: 'faq-everyday',
+    title: 'Can I use this as my everyday toothpaste?',
+    content:
+      'Yes. Gelos toothpastes are formulated for daily use. Brush twice a day as part of your regular oral care routine.',
+  },
+  {
+    id: 'faq-children',
+    title: 'Can I purchase this for my children?',
+    content:
+      'We recommend this product for adults and supervised children over 6. Consult your dentist for younger children.',
+  },
+]
+
+function watermelonRangeAccordion(flavorName: string): ProductPdpContent['detailsAccordion'] {
+  return [
+    {
+      id: 'flavors',
+      title: '15 exciting flavours',
+      content:
+        'Mint · Peach · Watermelon · Red Velvet · Coconut · Mango · Strawberry · Banana · Candy Cane · Vanilla · Energy Drink · Cola · Passion Fruit · Grape Bubblegum. Pick your favourite or rotate through the range using the flavour picker above.',
+    },
+    {
+      id: 'different',
+      title: 'What makes Gelos Flavored Toothpaste different?',
+      content:
+        'A premium oral care range designed to make brushing more enjoyable while delivering a powerful, effective clean — sugar-free, vegan-friendly, and formulated with fluoride to help strengthen enamel and protect against cavities.',
+    },
+    {
+      id: 'included',
+      title: "*What's included?",
+      content: `One 130g tube of ${flavorName} Toothpaste. Sealed for freshness.`,
+    },
+    {
+      id: 'ingredients',
+      title: 'List of ingredients',
+      content: standardIngredients,
+    },
+  ]
+}
+
 const watermelonContent: ProductPdpContent = {
   galleryImages: [],
-  imageBadge: '65% MORE*',
-  headline: 'Wild about watermelon?',
+  imageBadge: '15 FLAVOURS',
+  headline: 'Gelos Flavored Toothpaste',
   intro:
-    'Our Fluoride+ formula delivers a fresh, fruity clean with a burst of watermelon flavour — made for everyday smile care without the harsh aftertaste.',
-  bullets: [
-    'Watermelon burst with every brush',
-    'Fluoride+ formula for an effective clean',
-    '130g tube — more paste per pack',
+    'Gelos Flavored Toothpaste is a premium oral care range designed to make brushing more enjoyable while delivering a powerful, effective clean. Formulated with high-quality ingredients, it supports long-term oral health with a sugar-free, vegan-friendly formula that contains fluoride to help strengthen enamel and protect against cavities. With 15 exciting flavours, Gelos turns everyday brushing into a refreshing experience — use the picker above to explore Watermelon and the full lineup.',
+  bullets: flavoredToothpasteBenefits,
+  highlights: [
+    { label: 'Fluoride protection', emoji: '🦷' },
+    { label: 'Sugar-free & vegan', emoji: '🌿' },
+    { label: '15 bold flavours', emoji: '✨' },
   ],
-  highlights: toothpasteHighlights,
-  usageSteps: sharedUsageSteps,
-  detailsAccordion: toothpasteAccordion('Watermelon'),
-  faq: sharedFaq,
+  usageSteps: watermelonUsageSteps,
+  usageStepsTitle: 'How to use your Gelos toothpaste',
+  usageStepsIntro:
+    'A simple four-step routine for a fresher, cleaner mouth — morning and night.',
+  detailsAccordion: watermelonRangeAccordion('Watermelon'),
+  faq: watermelonRangeFaq,
 }
 
 const strawberryContent: ProductPdpContent = {

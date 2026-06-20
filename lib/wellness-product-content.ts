@@ -31,75 +31,183 @@ const sharedFaq: ProductPdpContent['faq'] = [
   },
 ]
 
+const doubleInhalerUsageSteps: ProductPdpContent['usageSteps'] = [
+  {
+    title: 'Uncap',
+    body: 'Take off the lid before each use.',
+  },
+  {
+    title: 'Position',
+    body: 'Place the inhaler close to your nostrils.',
+  },
+  {
+    title: 'Inhale',
+    body: 'Inhale deeply for 1–2 seconds through each nostril.',
+  },
+  {
+    title: 'Repeat',
+    body: 'Use again as needed throughout the day.',
+  },
+]
+
+const grapeMintFaq: ProductPdpContent['faq'] = [
+  {
+    id: 'faq-different',
+    title: 'What is the Gelos Double Nasal Inhaler?',
+    content:
+      'A compact, double-action nasal inhaler with aromatic vapors designed to help clear nasal passages, deliver a cooling invigorating sensation, and keep you feeling fresh at home, work, school, or on the go.',
+  },
+  {
+    id: 'faq-how-often',
+    title: 'How often can I use it?',
+    content:
+      'Inhale deeply for 1–2 seconds through each nostril and repeat as needed. Discontinue use if irritation occurs and consult a healthcare professional if symptoms persist.',
+  },
+  {
+    id: 'faq-storage',
+    title: 'How should I store it?',
+    content:
+      'Best used within 30 days of first opening for maximum strength of aromatic vapors. Store in a cool, dry place and keep the lid tightly closed when not in use.',
+  },
+]
+
 const grapeMintContent: ProductPdpContent = {
   galleryImages: [],
   imageBadge: 'BEST SELLER',
-  headline: 'Grape mint energy, on demand',
+  headline: 'Breathe easier. Feel energized.',
   intro:
-    'Grape Mint Fruit Energy delivers a bold grape-and-mint burst in a pocket-friendly case — made for moments when you want a quick, flavour-forward refresh on the go.',
+    'Stay refreshed and breathe easier with the Gelos Double Nasal Inhaler. Formulated with aromatic vapors that provide a cooling and invigorating sensation, this compact inhaler is designed to help clear nasal passages and leave you feeling refreshed throughout the day. Perfect for use at home, work, school, or while traveling.',
   bullets: [
-    'Grape mint flavour with an energising feel',
-    'Compact case — fits your bag or pocket',
-    'Pairs with your full Gelos smile-care routine',
+    'Nasal decongestant',
+    'Helps clear nasal passages',
+    'Natural energy booster',
+    'Helps reduce feelings of stress and anxiety',
+    'Mood uplifter',
+    'Helps provide relief during common cold and flu symptoms',
+    'Leaves you feeling fresh and revitalized',
+    'Portable and easy to use on the go',
   ],
-  highlights: wellnessHighlights,
+  highlights: [
+    { label: 'Clear breathing', emoji: '🌬️' },
+    { label: 'Natural energy', emoji: '⚡' },
+    { label: 'Mood boost', emoji: '✨' },
+  ],
+  usageSteps: doubleInhalerUsageSteps,
+  usageStepsTitle: 'How to use your Double Nasal Inhaler',
+  usageStepsIntro:
+    'A quick four-step ritual whenever you need clearer breathing and an invigorating refresh.',
   detailsAccordion: [
     {
       id: 'different',
-      title: 'What makes Grape Mint Fruit Energy different?',
+      title: 'What makes the Double Nasal Inhaler different?',
       content:
-        'A fan-favourite in the Gelos lineup — bold fruit flavour in a portable format that is easy to take anywhere your day takes you.',
+        'Gelos combines aromatic vapors in a slim, portable double inhaler — cooling, invigorating, and easy to slip into a pocket or bag for relief wherever your day takes you.',
     },
     {
       id: 'included',
       title: "*What's included?",
-      content: 'One Grape Mint Fruit Energy case. Sealed for freshness.',
+      content: 'One Gelos Double Nasal Inhaler. Sealed for freshness.',
     },
     {
-      id: 'use',
-      title: 'How to enjoy',
+      id: 'storage',
+      title: 'Storage instructions',
       content:
-        'Open your case and use as directed. Store in a cool, dry place and keep away from direct sunlight.',
+        'Best used within 30 days of first opening for maximum strength of aromatic vapors. Store in a cool, dry place and keep the lid tightly closed when not in use.',
+    },
+    {
+      id: 'caution',
+      title: 'Caution',
+      content:
+        'For external use only. Avoid direct contact with eyes. Keep out of reach of children. Discontinue use if irritation occurs. If symptoms persist, consult a healthcare professional.',
     },
   ],
-  faq: sharedFaq,
+  faq: grapeMintFaq,
 }
+
+const inhalerUsageSteps: ProductPdpContent['usageSteps'] = [
+  {
+    title: 'Uncap',
+    body: 'Remove the cap and hold the inhaler just below one nostril, keeping the other nostril gently closed.',
+  },
+  {
+    title: 'Inhale',
+    body: 'Breathe in slowly and deeply through your nose. Repeat on the other side for balanced relief.',
+  },
+  {
+    title: 'Reseal',
+    body: 'Replace the cap after each use to preserve the essential-oil blend and fruit-energy freshness.',
+  },
+]
+
+const inhalerFaq: ProductPdpContent['faq'] = [
+  {
+    id: 'faq-relief',
+    title: 'Can this help with cold and flu symptoms?',
+    content:
+      'The aromatherapy blend is designed to support easier breathing and a fresher feeling when you are dealing with common cold and flu congestion. It is a comfort aid — not a substitute for medical treatment. See a healthcare provider if symptoms persist.',
+  },
+  {
+    id: 'faq-how-often',
+    title: 'How often can I use it?',
+    content:
+      'Use as needed throughout the day whenever you want clearer nasal passages or a cooling refresh. Follow the directions on pack and discontinue use if irritation occurs.',
+  },
+  {
+    id: 'faq-daily',
+    title: 'Is it safe for everyday use?',
+    content:
+      'Many customers keep one in a bag, desk, or travel kit for on-the-go use. If you are pregnant, nursing, or managing a respiratory condition, consult your healthcare provider before regular use.',
+  },
+]
 
 const inhalerContent: ProductPdpContent = {
   galleryImages: [],
-  imageBadge: 'AROMA BOOST',
-  headline: 'Breathe in the good vibes',
+  imageBadge: 'FRUIT ENERGY',
+  headline: 'Breathe clear. Feel revitalized.',
   intro:
-    'Our Aromatherapy Nasal Inhaler blends therapeutic essential oils with a ripe mango note — a portable refresh for travel, work, or winding down.',
+    'Meet the Gelos Fruit Energy Nasal Inhaler — a pocket-sized aromatherapy boost that helps ease stuffy moments, opens nasal passages, and delivers a cooling fruit-energy freshness you can reach for all day long.',
   bullets: [
-    'Therapeutic essential oil blend',
-    'Mango-inspired aroma',
-    'Compact and travel-friendly',
+    'Helps provide relief from common cold and flu symptoms',
+    'Helps clear nasal passages for easier breathing',
+    'Delivers a refreshing cooling sensation',
+    'Helps you feel fresh and revitalized throughout the day',
   ],
   highlights: [
-    { label: 'Aromatherapy', emoji: '🌿' },
-    { label: 'Mango scent', emoji: '🥭' },
-    { label: 'Travel ready', emoji: '✈️' },
+    { label: 'Cold & flu relief', emoji: '🤧' },
+    { label: 'Clearer breathing', emoji: '🌬️' },
+    { label: 'Cooling sensation', emoji: '❄️' },
+    { label: 'All-day refresh', emoji: '✨' },
   ],
+  usageSteps: inhalerUsageSteps,
+  usageStepsTitle: 'How to use your Fruit Energy inhaler',
+  usageStepsIntro:
+    'A quick two-nostril ritual whenever you need clearer breathing and a cooling pick-me-up.',
   detailsAccordion: [
     {
       id: 'different',
-      title: 'What makes this inhaler different?',
+      title: 'What makes the Fruit Energy inhaler different?',
       content:
-        'Designed for quick aromatherapy on the go — uplifting mango notes in a slim, pocketable format.',
+        'Unlike ordinary rubs or sprays, Gelos packs therapeutic essential oils into a slim, travel-ready inhaler with a bright fruit-energy aroma — so relief is instant, mess-free, and easy to use anywhere.',
+    },
+    {
+      id: 'benefits',
+      title: 'Key benefits',
+      content:
+        'Formulated to help with common cold and flu discomfort, support clearer nasal breathing, deliver a cooling fresh sensation, and keep you feeling revitalized from morning meetings to late-night travel.',
     },
     {
       id: 'included',
       title: "*What's included?",
-      content: 'One aromatherapy nasal inhaler.',
+      content: 'One Gelos Fruit Energy Nasal Inhaler. Sealed for freshness.',
     },
     {
       id: 'care',
       title: 'Care & storage',
-      content: 'Keep the cap secured when not in use. Store upright in a cool, dry place.',
+      content:
+        'Keep the cap secured when not in use. Store upright in a cool, dry place away from direct sunlight and heat.',
     },
   ],
-  faq: sharedFaq,
+  faq: inhalerFaq,
 }
 
 const defaultWellnessContent = (product: Product): ProductPdpContent => ({

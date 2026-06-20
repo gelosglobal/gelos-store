@@ -46,92 +46,216 @@ const sharedFaq: ProductPdpContent['faq'] = [
   },
 ]
 
+const bambooBenefits = [
+  'Helps reduce plastic waste',
+  'Gentle on gums and teeth',
+  'Supports effective plaque removal',
+  'Comfortable grip for easy brushing',
+  'Sustainable alternative to plastic toothbrushes',
+  'Suitable for adults and children',
+]
+
+const bambooUsageSteps: ProductPdpContent['usageSteps'] = [
+  {
+    title: 'Apply',
+    body: 'Apply toothpaste to the bristles.',
+  },
+  {
+    title: 'Brush',
+    body: 'Brush teeth gently for 2 minutes.',
+  },
+  {
+    title: 'Cover',
+    body: 'Cover all surfaces — front, back, and chewing surfaces.',
+  },
+  {
+    title: 'Rinse',
+    body: 'Rinse thoroughly after use.',
+  },
+  {
+    title: 'Store',
+    body: 'Store in a dry place after brushing.',
+  },
+]
+
+const bambooFaq: ProductPdpContent['faq'] = [
+  {
+    id: 'faq-different',
+    title: 'What makes the Gelos Bamboo Toothbrush different?',
+    content:
+      'A natural bamboo handle with soft nylon bristles — effective daily cleaning with less plastic waste than conventional brushes.',
+  },
+  {
+    id: 'faq-pack',
+    title: 'How many brushes are in the set?',
+    content:
+      'Three bamboo toothbrushes per pack — enough for yourself or to share across the household.',
+  },
+  {
+    id: 'faq-replace',
+    title: 'How often should I replace my brush?',
+    content:
+      'Dentists typically recommend replacing your toothbrush every 3 months, or sooner if bristles look frayed.',
+  },
+  {
+    id: 'faq-children',
+    title: 'Can children use these brushes?',
+    content:
+      'Yes. The soft bristles are suitable for adults and supervised children. Consult your dentist for very young children.',
+  },
+]
+
 const bambooSetContent: ProductPdpContent = {
   galleryImages: [],
   imageBadge: '3-PACK',
-  headline: 'Eco-friendly clean, three at a time',
+  headline: 'Gelos Eco-Friendly Bamboo Toothbrush',
   intro:
-    'Our Bamboo Toothbrush Set gives you three sustainable handles with soft bristles — gentle on gums, tough on plaque, and ready for your full Gelos flavour routine.',
-  bullets: [
-    'Three bamboo-handle brushes per pack',
-    'Soft bristles for comfortable daily brushing',
-    'Pairs with any Gelos Fluoride+ toothpaste',
+    'The Gelos Bamboo Toothbrush is a sustainable oral care essential designed to provide effective cleaning while being environmentally friendly. Made with a natural bamboo handle and soft bristles, it offers a comfortable brushing experience while reducing plastic waste.',
+  bullets: bambooBenefits,
+  highlights: [
+    { label: 'Bamboo handle', emoji: '🌿' },
+    { label: 'Soft bristles', emoji: '🪥' },
+    { label: '3-pack value', emoji: '✨' },
   ],
-  highlights: brushHighlights,
-  usageSteps: sharedUsageSteps,
+  usageSteps: bambooUsageSteps,
+  usageStepsTitle: 'How to use your bamboo toothbrush',
+  usageStepsIntro:
+    'Use twice daily for best oral hygiene results.',
   detailsAccordion: [
     {
-      id: 'different',
-      title: 'What makes this brush set different?',
+      id: 'features',
+      title: 'Key features',
       content:
-        'Bamboo handles offer a planet-friendly alternative to plastic — with the same soft-bristle comfort you expect from a premium daily brush.',
+        'Eco-friendly bamboo handle · Soft nylon bristles for gentle cleaning · Lightweight and easy to hold · Biodegradable handle material · Designed for daily use',
+    },
+    {
+      id: 'different',
+      title: 'What makes the Gelos Bamboo Toothbrush different?',
+      content:
+        'Sustainable bamboo construction with the soft-bristle comfort you expect from a premium daily brush — three brushes per pack for lasting value.',
     },
     {
       id: 'included',
       title: "*What's included?",
-      content: 'Three bamboo toothbrushes with soft bristles in retail packaging.',
+      content:
+        'Three Gelos Eco-Friendly Bamboo Toothbrushes with soft nylon bristles in retail packaging.',
     },
     {
       id: 'care',
       title: 'Care & storage',
       content:
-        'Rinse after each use and store upright. Replace every 3 months or when bristles show wear.',
+        'Rinse after each use and store upright in a dry place. Replace every 3 months or when bristles show wear.',
     },
   ],
-  faq: sharedFaq,
+  faq: bambooFaq,
 }
+
+const sonicBrushBenefits = [
+  'Removes plaque more effectively than manual brushing',
+  'Helps improve gum health and oral hygiene',
+  'Supports teeth whitening over time',
+  'Encourages proper brushing duration with built-in timer',
+  'Long battery life, perfect for travel and daily use',
+  'Gentle on sensitive teeth and gums',
+]
+
+const sonicBrushUsageSteps: ProductPdpContent['usageSteps'] = [
+  {
+    title: 'Apply',
+    body: 'Apply toothpaste to the brush head.',
+  },
+  {
+    title: 'Position',
+    body: 'Place the brush on your teeth before switching on.',
+  },
+  {
+    title: 'Select mode',
+    body: 'Choose your preferred cleaning mode — Sensitive, Clean, Whitening, Gum Care, or Deep Clean.',
+  },
+  {
+    title: 'Brush',
+    body: 'Gently guide the brush across all tooth surfaces.',
+  },
+  {
+    title: 'Timer',
+    body: 'Let the 2-minute smart timer complete the session.',
+  },
+  {
+    title: 'Rinse',
+    body: 'Rinse the brush head after use and return to its charging base.',
+  },
+]
+
+const sonicBrushFaq: ProductPdpContent['faq'] = [
+  {
+    id: 'faq-modes',
+    title: 'What are the 5 cleaning modes?',
+    content:
+      'Sensitive, Clean, Whitening, Gum Care, and Deep Clean — switch modes to match how your teeth and gums feel that day.',
+  },
+  {
+    id: 'faq-battery',
+    title: 'How long does the battery last?',
+    content:
+      'Up to 60 days on a full charge with typical daily use. Recharge quickly via Type-C when needed.',
+  },
+  {
+    id: 'faq-replace',
+    title: 'How often should I replace the brush head?',
+    content:
+      'Dentists typically recommend replacing your brush head every 3 months, or sooner if bristles look frayed.',
+  },
+  {
+    id: 'faq-sensitive',
+    title: 'Is it suitable for sensitive teeth?',
+    content:
+      'Yes. Use Sensitive mode and soft nylon bristles for a gentle clean. Stop use if discomfort persists and consult your dentist.',
+  },
+]
 
 const sonicBrushContent: ProductPdpContent = {
   galleryImages: [],
-  imageBadge: 'SONIC TECH',
-  headline: 'Power up your daily brush',
+  imageBadge: 'SONIC G1',
+  headline: 'Gelos SonicWave G1',
   intro:
-    'The 3D Sonicwave G1 Electric Toothbrush delivers sonic cleaning power with a sleek design — upgrade your routine while keeping Gelos flavours front and centre.',
-  bullets: [
-    'Sonic cleaning action for a deeper feel',
-    'Rechargeable handle — designed for daily use',
-    'Ideal with Gelos Fluoride+ toothpaste',
-  ],
+    'The Gelos SonicWave G1 is a smart electric toothbrush designed for a deeper, more effective clean using sonic technology while being gentle on the gums. Choose from five colours using the style picker above — Black, Blue, White, Pink, and Green.',
+  bullets: sonicBrushBenefits,
   highlights: [
-    { label: 'Sonic clean', emoji: '⚡' },
-    { label: 'Rechargeable', emoji: '🔋' },
-    { label: 'Pro feel', emoji: '✨' },
+    { label: '5 smart modes', emoji: '⚡' },
+    { label: '60-day battery', emoji: '🔋' },
+    { label: '2-min timer', emoji: '⏱️' },
   ],
-  usageSteps: [
-    {
-      title: 'Charge',
-      body: 'Fully charge before first use per instructions in the box.',
-    },
-    {
-      title: 'Brush',
-      body: 'Apply Gelos toothpaste and guide the brush along each surface for two minutes.',
-    },
-    {
-      title: 'Rinse',
-      body: 'Rinse the brush head and return to its charging base.',
-    },
-  ],
+  usageSteps: sonicBrushUsageSteps,
+  usageStepsTitle: 'How to use your SonicWave G1',
+  usageStepsIntro:
+    'Use twice daily — morning and night — for best results.',
   detailsAccordion: [
     {
-      id: 'different',
-      title: 'Why go electric?',
+      id: 'colors',
+      title: 'Available colours',
       content:
-        'Sonic motion can help disrupt plaque in hard-to-reach areas — a step up from manual brushing when you want more from your routine.',
+        'Black · Blue · White · Pink · Green. Select your finish with the colour picker on this page.',
+    },
+    {
+      id: 'features',
+      title: 'Key features',
+      content:
+        '5 Smart Cleaning Modes (Sensitive, Clean, Whitening, Gum Care, Deep Clean) · Sonic cleaning technology for effective plaque removal · 60-day battery life on a full charge · Type-C fast charging · 2-minute smart timer (dentist-recommended brushing time) · Soft nylon bristles for gentle cleaning',
     },
     {
       id: 'included',
       title: "*What's included?",
       content:
-        'One 3D Sonicwave G1 electric toothbrush handle, charging base, and brush head. See pack for full contents.',
+        'One Gelos SonicWave G1 electric toothbrush handle, brush head, Type-C charging cable, and user manual. See pack for full contents.',
     },
     {
       id: 'care',
-      title: 'Head replacement',
+      title: 'Head replacement & care',
       content:
-        'Replace brush heads every 3 months or when bristles fray. Compatible replacement heads as listed on packaging.',
+        'Rinse the brush head after each use. Replace brush heads every 3 months or when bristles fray. Wipe the handle dry and store on its charging base.',
     },
   ],
-  faq: sharedFaq,
+  faq: sonicBrushFaq,
 }
 
 const defaultToothbrushContent = (product: Product): ProductPdpContent => ({
@@ -164,6 +288,7 @@ const defaultToothbrushContent = (product: Product): ProductPdpContent => ({
 const contentBySlug: Record<string, ProductPdpContent> = {
   'bamboo-toothbrush-set-3-pack': bambooSetContent,
   '3d-sonicwave-g1-electric-toothbrush': sonicBrushContent,
+  'sonicwave-g1-series-electric-toothbrush': sonicBrushContent,
 }
 
 function mergeGallery(base: ProductPdpContent): ProductPdpContent {
