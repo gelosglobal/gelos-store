@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   ArrowUpRight,
   Lightbulb,
-  RefreshCw,
 } from 'lucide-react'
 import {
   CartesianGrid,
@@ -16,6 +15,8 @@ import {
 } from 'recharts'
 import { toast } from 'sonner'
 import { AnalyticsMetricCard } from '@/components/admin/analytics-metric-card'
+import { AnalyticsOverviewHeader } from '@/components/admin/analytics-overview-header'
+import { LiveVisitorsPanel } from '@/components/admin/live-visitors-panel'
 import type {
   AnalyticsPayload,
   AnalyticsPeriod,
@@ -27,13 +28,6 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 
 const salesChartConfig = {
   sales: { label: 'Sales', color: 'hsl(221 83% 53%)' },
@@ -88,9 +82,14 @@ const emptyAnalytics: AnalyticsPayload = {
     totalSales: 0,
     orders: 0,
     customers: 0,
+    sessions: 0,
     averageOrderValue: 0,
     salesChange: 0,
     customersChange: 0,
+    ordersChange: 0,
+    sessionsChange: 0,
+    conversionRate: 0,
+    conversionRateChange: 0,
   },
   series: [],
   salesChannels: [],
@@ -108,7 +107,7 @@ export default function AnalyticsPage() {
   const [period, setPeriod] = useState<AnalyticsPeriod>('today')
   const [data, setData] = useState<AnalyticsPayload>(emptyAnalytics)
   const [loading, setLoading] = useState(true)
-  const [refreshedAt, setRefreshedAt] = useState<Date | null>(null)
+  const [showLiveActivity, setShowLiveActivity] = useState(false)
 
   const loadAnalytics = useCallback(async () => {
     try {
@@ -127,7 +126,6 @@ export default function AnalyticsPage() {
         paymentBreakdown: json.paymentBreakdown,
         insight: json.insight,
       })
-      setRefreshedAt(new Date())
     } catch {
       toast.error('Failed to load analytics')
     } finally {
@@ -163,49 +161,17 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-neutral-950 sm:text-3xl">
-            Analytics
-          </h1>
-          <p className="mt-1 flex items-center gap-2 text-sm text-neutral-500">
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-            {refreshedAt
-              ? `Last refreshed ${refreshedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
-              : 'Loading…'}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select
-            value={period}
-            onValueChange={(v) => setPeriod(v as AnalyticsPeriod)}
-          >
-            <SelectTrigger className="h-9 w-[130px] bg-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="last7">Last 7 days</SelectItem>
-              <SelectItem value="last30">Last 30 days</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9 bg-white"
-            onClick={() => {
-              setLoading(true)
-              loadAnalytics()
-            }}
-          >
-            Refresh
-          </Button>
-          <Button variant="outline" size="sm" className="h-9 bg-white">
-            GH₵ GHS
-          </Button>
-        </div>
-      </div>
+      <AnalyticsOverviewHeader
+        period={period}
+        onPeriodChange={setPeriod}
+        snapshot={snapshot}
+        series={series}
+        loading={loading}
+        liveVisitorsExpanded={showLiveActivity}
+        onLiveVisitorsClick={() => setShowLiveActivity((open) => !open)}
+      />
+
+      {showLiveActivity ? <LiveVisitorsPanel compact /> : null}
 
       {/* Insight */}
       <div className="flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">

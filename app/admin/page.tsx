@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   Package,
@@ -11,9 +11,14 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { formatOrderTotal } from '@/lib/admin/order-format'
+import type {
+  AnalyticsPayload,
+  AnalyticsPeriod,
+} from '@/lib/admin/analytics-types'
 import type { StoreOrder } from '@/lib/types/order'
 import { AdminPageHeader } from '@/components/admin/admin-page-header'
 import { AdminStatCard } from '@/components/admin/admin-stat-card'
+import { AnalyticsOverviewHeader } from '@/components/admin/analytics-overview-header'
 import { Button } from '@/components/ui/button'
 
 type Stats = {
@@ -27,9 +32,62 @@ type Stats = {
   categories: { name: string; count: number }[]
 }
 
+const emptyAnalytics: AnalyticsPayload = {
+  snapshot: {
+    totalSales: 0,
+    orders: 0,
+    customers: 0,
+    sessions: 0,
+    averageOrderValue: 0,
+    salesChange: 0,
+    customersChange: 0,
+    ordersChange: 0,
+    sessionsChange: 0,
+    conversionRate: 0,
+    conversionRateChange: 0,
+  },
+  series: [],
+  salesChannels: [],
+  topCategories: [],
+  topProducts: [],
+  paymentBreakdown: [],
+  insight: {
+    title: 'Loading analytics…',
+    body: '',
+    action: 'View orders',
+  },
+}
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [recentOrders, setRecentOrders] = useState<StoreOrder[]>([])
+  const [period, setPeriod] = useState<AnalyticsPeriod>('today')
+  const [analytics, setAnalytics] = useState<AnalyticsPayload>(emptyAnalytics)
+  const [analyticsLoading, setAnalyticsLoading] = useState(true)
+
+  const loadAnalytics = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/analytics?period=${period}`, {
+        cache: 'no-store',
+      })
+      const json = await res.json()
+      if (!res.ok) return
+
+      setAnalytics({
+        snapshot: json.snapshot,
+        series: json.series,
+        salesChannels: json.salesChannels,
+        topCategories: json.topCategories,
+        topProducts: json.topProducts,
+        paymentBreakdown: json.paymentBreakdown,
+        insight: json.insight,
+      })
+    } catch {
+      // ignore
+    } finally {
+      setAnalyticsLoading(false)
+    }
+  }, [period])
 
   useEffect(() => {
     fetch('/api/admin/stats')
@@ -46,8 +104,21 @@ export default function AdminDashboard() {
       .catch(() => {})
   }, [])
 
+  useEffect(() => {
+    setAnalyticsLoading(true)
+    loadAnalytics()
+  }, [loadAnalytics])
+
   return (
     <div className="space-y-6">
+      <AnalyticsOverviewHeader
+        period={period}
+        onPeriodChange={setPeriod}
+        snapshot={analytics.snapshot}
+        series={analytics.series}
+        loading={analyticsLoading}
+      />
+
       <AdminPageHeader
         title="Dashboard"
         description="Overview of your Gelos store catalog and operations."

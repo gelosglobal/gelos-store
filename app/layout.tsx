@@ -7,6 +7,8 @@ import { AffiliateProvider } from '@/components/affiliate-provider'
 import { LocationProvider } from '@/components/location-provider'
 import { ProductsProvider } from '@/components/products-provider'
 import { GelosAiWidget } from '@/components/gelos-ai-widget'
+import { LiveVisitorsTracker } from '@/components/live-visitors-tracker'
+import { MetaPixel } from '@/components/meta-pixel'
 import { SiteNavbar } from '@/components/site-navbar'
 import { Toaster } from 'sonner'
 import { UploadThingSSRPlugin } from '@/components/uploadthing-ssr-plugin'
@@ -60,6 +62,8 @@ export default function RootLayout({
             <AffiliateProvider>
             <CartProvider>
               <SiteNavbar />
+              <LiveVisitorsTracker />
+              <MetaPixel />
               {children}
               <GelosAiWidget />
               <Toaster position="top-center" richColors closeButton />

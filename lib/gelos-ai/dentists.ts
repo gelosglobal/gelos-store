@@ -2,36 +2,27 @@ export type DentistPartner = {
   id: string
   name: string
   title: string
-  specialty: string
-  location: string
-  area: string
-  rating: number
-  reviews: number
-  nextAvailable: string
+  clinic: string
+  address: string
+  postalBox: string
+  phone: string
+  mobile: string
+  emails: string[]
+  website: string
 }
 
 export const dentistPartners: DentistPartner[] = [
   {
-    id: 'ama-osei',
-    name: 'Dr. Ama Osei',
-    title: 'BDS, MSc Cosmetic Dentistry',
-    specialty: 'Cosmetic & whitening',
-    location: 'Smile Studio Accra',
-    area: 'East Legon',
-    rating: 4.9,
-    reviews: 128,
-    nextAvailable: 'Mon & Wed mornings',
-  },
-  {
-    id: 'kwame-asante',
-    name: 'Dr. Kwame Asante',
-    title: 'BDS, Family Dentistry',
-    specialty: 'General & preventive care',
-    location: 'Osu Dental Centre',
-    area: 'Osu',
-    rating: 4.8,
-    reviews: 94,
-    nextAvailable: 'Tue–Fri afternoons',
+    id: 'marks-dental-clinic',
+    name: 'Dr. Mark Nartey',
+    title: 'Specialist Dental Surgeon',
+    clinic: "Mark's Dental Clinic",
+    address: '1st floor, Valco Trust Hse, Ridge',
+    postalBox: 'Box AN 19698, Accra-North',
+    phone: '0302 963905 / 050 2734606',
+    mobile: '0537390626',
+    emails: ['info@marksdental-clinic.com', 'marks_dental@yahoo.com'],
+    website: 'www.marksdental-clinic.com',
   },
 ]
 

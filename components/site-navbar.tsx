@@ -17,13 +17,14 @@ import {
 } from '@/components/ui/sheet'
 import { useCart } from '@/components/cart-provider'
 import { mainNavLinks, navItemClassName } from '@/lib/nav-config'
+import { isStorefrontChromeHidden } from '@/lib/dentist/portal'
 import { cn } from '@/lib/utils'
 
 export function SiteNavbar() {
   const pathname = usePathname()
   const { itemCount, isHydrated } = useCart()
 
-  if (pathname.startsWith('/admin')) {
+  if (isStorefrontChromeHidden(pathname)) {
     return null
   }
   const [megaOpen, setMegaOpen] = useState(false)

@@ -20,6 +20,7 @@ import {
 } from '@/lib/variant-display'
 import { useProducts } from '@/components/products-provider'
 import type { Product } from '@/lib/types/product'
+import { trackAddToCart } from '@/lib/meta-pixel'
 
 const CART_STORAGE_KEY = 'gelos-cart'
 
@@ -162,6 +163,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       })
 
       const displayName = getCartDisplayName(product.name, variantLabel)
+
+      trackAddToCart({
+        id: product.id,
+        name: displayName,
+        price: product.price,
+        quantity,
+      })
 
       toast.success('Added to cart', {
         description: displayName,

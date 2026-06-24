@@ -183,3 +183,34 @@ model InboxMessage {
 
   @@map("inbox_messages")
 }
+
+/** Anonymous storefront presence for live analytics (heartbeat updates lastSeenAt). */
+model VisitorSession {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  visitorId   String   @unique
+  path        String   @default("/")
+  referrer    String   @default("")
+  lastSeenAt  DateTime @default(now())
+  firstSeenAt DateTime @default(now())
+
+  @@map("visitor_sessions")
+}
+
+/** Gelos AI dentist booking requests from the storefront. */
+model DentistAppointment {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  appointmentId String   @unique
+  dentistId     String
+  patientName   String
+  patientEmail  String
+  patientPhone  String
+  preferredDate String
+  preferredTime String
+  reason        String   @default("")
+  status        String   @default("pending") // pending | confirmed | completed | cancelled
+  dentistNotes  String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("dentist_appointments")
+}

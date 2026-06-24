@@ -4,9 +4,14 @@ export type AnalyticsSnapshot = {
   totalSales: number
   orders: number
   customers: number
+  sessions: number
   averageOrderValue: number
   salesChange: number
   customersChange: number
+  ordersChange: number
+  sessionsChange: number
+  conversionRate: number
+  conversionRateChange: number
 }
 
 export type AnalyticsSeriesPoint = {

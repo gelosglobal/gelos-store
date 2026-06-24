@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react'
 import { useCart } from '@/components/cart-provider'
 import { useLocation } from '@/components/location-provider'
+import { trackPurchase } from '@/lib/meta-pixel'
 
 type VerifyState =
   | { status: 'loading' }
@@ -15,9 +16,10 @@ type VerifyState =
 function CheckoutCallbackContent() {
   const searchParams = useSearchParams()
   const reference = searchParams.get('reference') ?? searchParams.get('trxref')
-  const { clearCart, isHydrated } = useCart()
+  const { clearCart, isHydrated, items } = useCart()
   const { formatPrice } = useLocation()
   const [state, setState] = useState<VerifyState>({ status: 'loading' })
+  const purchaseTracked = useRef(false)
 
   useEffect(() => {
     if (!reference) {
@@ -50,6 +52,19 @@ function CheckoutCallbackContent() {
         }
 
         if (!cancelled) {
+          if (!purchaseTracked.current) {
+            purchaseTracked.current = true
+            trackPurchase({
+              value: data.order.total,
+              currency: data.order.currency,
+              orderId: data.order.orderNumber,
+              items: items.map((item) => ({
+                id: item.id,
+                quantity: item.quantity,
+              })),
+            })
+          }
+
           clearCart()
           setState({
             status: 'success',
@@ -78,7 +93,7 @@ function CheckoutCallbackContent() {
     return () => {
       cancelled = true
     }
-  }, [reference, clearCart, isHydrated])
+  }, [reference, clearCart, isHydrated, items])
 
   return (
     <div className="w-full max-w-md rounded-3xl border border-neutral-200 bg-white px-8 py-12 text-center shadow-sm">

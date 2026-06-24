@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { GelosAiMessage } from '@/lib/gelos-ai/types'
 import { CHAT_WELCOME_MESSAGE } from '@/lib/gelos-ai/welcome-message'
+import { isStorefrontChromeHidden } from '@/lib/dentist/portal'
 
 const STARTER_PROMPTS = [
   'Which toothpaste flavor should I try first?',
@@ -35,7 +36,7 @@ export function GelosAiWidget() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  const isAdmin = pathname.startsWith('/admin')
+  const hideChrome = isStorefrontChromeHidden(pathname)
   const isAiPage = pathname.startsWith('/ai')
   const showStarters =
     messages.length === 1 && messages[0] === WELCOME_MESSAGE && !isLoading
@@ -52,7 +53,7 @@ export function GelosAiWidget() {
     el.scrollTop = el.scrollHeight
   }, [messages, isLoading, open])
 
-  if (isAdmin || isAiPage) return null
+  if (hideChrome || isAiPage) return null
 
   const sendMessage = async (text: string) => {
     const trimmed = text.trim()

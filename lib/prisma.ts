@@ -35,6 +35,8 @@ const REQUIRED_DELEGATES = [
   'affiliate',
   'inboxThread',
   'inboxMessage',
+  'visitorSession',
+  'dentistAppointment',
 ] as const
 
 /** Hot reload can keep an old PrismaClient missing newly generated models/fields. */

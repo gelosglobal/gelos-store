@@ -14,6 +14,7 @@ import type {
 import { isDatabaseConfigured } from '@/lib/env'
 import { prisma } from '@/lib/prisma'
 import { getAllProducts } from '@/lib/db/products'
+import { countSessionsInRange } from '@/lib/db/visitor-sessions'
 
 const DEFAULT_RATES: Record<string, number> = {
   GHS: 1,
@@ -79,9 +80,14 @@ function emptyPayload(period: AnalyticsPeriod): AnalyticsPayload {
       totalSales: 0,
       orders: 0,
       customers: 0,
+      sessions: 0,
       averageOrderValue: 0,
       salesChange: 0,
       customersChange: 0,
+      ordersChange: 0,
+      sessionsChange: 0,
+      conversionRate: 0,
+      conversionRateChange: 0,
     },
     series: buildEmptySeries(period),
     salesChannels: [],
@@ -138,20 +144,36 @@ function sumSales(orders: PrismaOrder[]): number {
 function buildSnapshot(
   current: PrismaOrder[],
   previous: PrismaOrder[],
+  currentSessions: number,
+  previousSessions: number,
 ): AnalyticsSnapshot {
   const totalSales = sumSales(current)
   const orders = current.length
+  const previousOrders = previous.length
   const customers = uniqueCustomers(current)
   const previousSales = sumSales(previous)
   const previousCustomers = uniqueCustomers(previous)
+  const conversionRate =
+    currentSessions > 0
+      ? Math.round((orders / currentSessions) * 10000) / 100
+      : 0
+  const previousConversion =
+    previousSessions > 0
+      ? Math.round((previousOrders / previousSessions) * 10000) / 100
+      : 0
 
   return {
     totalSales,
     orders,
     customers,
+    sessions: currentSessions,
     averageOrderValue: orders > 0 ? Math.round((totalSales / orders) * 100) / 100 : 0,
     salesChange: percentChange(totalSales, previousSales),
     customersChange: percentChange(customers, previousCustomers),
+    ordersChange: percentChange(orders, previousOrders),
+    sessionsChange: percentChange(currentSessions, previousSessions),
+    conversionRate,
+    conversionRateChange: percentChange(conversionRate, previousConversion),
   }
 }
 
@@ -396,9 +418,11 @@ export async function getAdminAnalytics(
   const now = new Date()
   const { start, end, previousStart, previousEnd } = periodRange(period, now)
 
-  const [orders, products] = await Promise.all([
+  const [orders, products, currentSessions, previousSessions] = await Promise.all([
     prisma.order.findMany({ orderBy: { createdAt: 'desc' } }),
     getAllProducts(),
+    countSessionsInRange(start, end),
+    countSessionsInRange(previousStart, previousEnd),
   ])
 
   const categoryByProductId = new Map(products.map((product) => [product.id, product.category]))
@@ -408,7 +432,12 @@ export async function getAdminAnalytics(
     inRange(order.createdAt, previousStart, previousEnd),
   )
 
-  const snapshot = buildSnapshot(current, previous)
+  const snapshot = buildSnapshot(
+    current,
+    previous,
+    currentSessions,
+    previousSessions,
+  )
   const salesChannels = buildSalesChannels(current)
   const topCategories = buildTopCategories(current, categoryByProductId)
   const topProducts = buildTopProducts(current)

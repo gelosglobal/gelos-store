@@ -1,7 +1,9 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useProducts } from '@/components/products-provider'
 import { ProductCatalogPage } from '@/components/product-catalog-page'
+import { trackViewContent } from '@/lib/meta-pixel'
 import type { Product } from '@/lib/types/product'
 
 type ProductPageClientProps = {
@@ -17,6 +19,15 @@ export function ProductPageClient({
 }: ProductPageClientProps) {
   const { getProductById } = useProducts()
   const product = getProductById(serverProduct.id) ?? serverProduct
+
+  useEffect(() => {
+    trackViewContent({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      category: product.category,
+    })
+  }, [product.id, product.name, product.price, product.category])
 
   return (
     <ProductCatalogPage

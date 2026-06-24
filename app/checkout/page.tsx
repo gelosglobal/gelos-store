@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Banknote, Loader2, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCart } from '@/components/cart-provider'
@@ -12,6 +12,7 @@ import { useAffiliate } from '@/components/affiliate-provider'
 import { calculateCheckoutTotals } from '@/lib/checkout'
 import { hasSmileRewardFreeShipping } from '@/lib/gelos-ai/smile-reward-storage'
 import { findActivePromo } from '@/lib/store-promotions'
+import { trackInitiateCheckout, trackPurchase } from '@/lib/meta-pixel'
 import { cn } from '@/lib/utils'
 
 type PaymentMethod = 'paystack' | 'cod'
@@ -30,6 +31,7 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('paystack')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [smileRewardFreeShipping, setSmileRewardFreeShipping] = useState(false)
+  const checkoutTracked = useRef(false)
 
   useEffect(() => {
     setSmileRewardFreeShipping(hasSmileRewardFreeShipping())
@@ -45,6 +47,16 @@ export default function CheckoutPage() {
       }),
     [items, locationId, appliedPromoCode, promotions, smileRewardFreeShipping],
   )
+
+  useEffect(() => {
+    if (!isHydrated || items.length === 0 || checkoutTracked.current) return
+    checkoutTracked.current = true
+    trackInitiateCheckout(
+      items.map((item) => ({ id: item.id, quantity: item.quantity })),
+      totals.total,
+      location.currencyCode,
+    )
+  }, [isHydrated, items, totals.total, location.currencyCode])
 
   const checkoutPayload = {
     name: name.trim(),
@@ -106,6 +118,16 @@ export default function CheckoutPage() {
         if (!response.ok || !data.ok || !data.order) {
           throw new Error(data.error ?? 'Could not place order')
         }
+
+        trackPurchase({
+          value: data.order.total,
+          currency: data.order.currency,
+          orderId: data.order.orderNumber,
+          items: items.map((item) => ({
+            id: item.id,
+            quantity: item.quantity,
+          })),
+        })
 
         clearCart()
         router.push(

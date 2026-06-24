@@ -37,7 +37,7 @@ const features = [
   {
     id: 'dentist' as const,
     label: 'Book a dentist',
-    description: 'Partner clinics across Accra',
+    description: "Mark's Dental Clinic, Ridge",
     icon: Stethoscope,
     accent: 'bg-neutral-950',
   },
@@ -169,7 +169,7 @@ function GelosAiPageContent() {
               <div className="mb-4">
                 <h2 className="text-2xl font-semibold">Book a dentist</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Request an appointment with a Gelos partner clinic in Accra.
+                  Request an appointment with Mark&apos;s Dental Clinic in Ridge, Accra.
                 </p>
               </div>
               <BookDentistPanel />
