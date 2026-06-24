@@ -3,9 +3,10 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight, ShoppingBag, Tag } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useCart } from '@/components/cart-provider'
 import { useLocation } from '@/components/location-provider'
+import { trackViewCart } from '@/lib/meta-pixel'
 import { useStorePromotions } from '@/components/store-promotions-provider'
 import { CartLineItem } from '@/components/cart-line-item'
 import { getProductHref } from '@/lib/product-utils'
@@ -23,7 +24,7 @@ import { cn } from '@/lib/utils'
 
 export default function CartPage() {
   const { items, isHydrated, removeItem, setQuantity } = useCart()
-  const { formatPrice, locationId } = useLocation()
+  const { formatPrice, locationId, location } = useLocation()
   const { products } = useProducts()
   const {
     promotions,
@@ -34,6 +35,7 @@ export default function CartPage() {
   const [promoCode, setPromoCode] = useState(appliedPromoCode)
   const [promoError, setPromoError] = useState('')
   const [smileRewardFreeShipping, setSmileRewardFreeShipping] = useState(false)
+  const cartTracked = useRef(false)
 
   useEffect(() => {
     setPromoCode(appliedPromoCode)
@@ -65,6 +67,16 @@ export default function CartPage() {
     promotions.freeShippingEnabled && freeShippingThreshold > 0
       ? Math.min(100, (afterDiscount / freeShippingThreshold) * 100)
       : 0
+
+  useEffect(() => {
+    if (!isHydrated || items.length === 0 || cartTracked.current) return
+    cartTracked.current = true
+    trackViewCart(
+      items.map((item) => ({ id: item.id, quantity: item.quantity })),
+      total,
+      location.currencyCode,
+    )
+  }, [isHydrated, items, total, location.currencyCode])
 
   const applyPromo = () => {
     const code = normalizePromoCode(promoCode)

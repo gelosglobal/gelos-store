@@ -12,7 +12,7 @@ import { useAffiliate } from '@/components/affiliate-provider'
 import { calculateCheckoutTotals } from '@/lib/checkout'
 import { hasSmileRewardFreeShipping } from '@/lib/gelos-ai/smile-reward-storage'
 import { findActivePromo } from '@/lib/store-promotions'
-import { trackInitiateCheckout, trackPurchase } from '@/lib/meta-pixel'
+import { trackInitiateCheckout, trackPurchase, trackAddPaymentInfo } from '@/lib/meta-pixel'
 import { cn } from '@/lib/utils'
 
 type PaymentMethod = 'paystack' | 'cod'
@@ -96,6 +96,18 @@ export default function CheckoutPage() {
     }
 
     setIsSubmitting(true)
+
+    const pixelItems = items.map((item) => ({
+      id: item.id,
+      quantity: item.quantity,
+    }))
+
+    trackAddPaymentInfo(
+      pixelItems,
+      totals.total,
+      location.currencyCode,
+      paymentMethod,
+    )
 
     try {
       if (paymentMethod === 'cod') {

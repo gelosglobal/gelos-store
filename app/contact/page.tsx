@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Loader2, Mail, MessageSquare, Phone, Send, User } from 'lucide-react'
 import { toast } from 'sonner'
+import { trackContact, trackLead } from '@/lib/meta-pixel'
 import { SiteFooter } from '@/components/site-footer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,6 +38,9 @@ export default function ContactPage() {
       })
       const data = (await res.json()) as { ok?: boolean; threadId?: string; error?: string }
       if (!res.ok) throw new Error(data.error ?? 'Failed to send message')
+
+      trackContact()
+      trackLead('Contact form')
 
       toast.success('Message sent', {
         description: data.threadId ? `Reference: ${data.threadId}` : undefined,

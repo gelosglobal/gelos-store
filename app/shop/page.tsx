@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import { ChevronDown } from 'lucide-react'
-import { Suspense, useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { trackViewCategory } from '@/lib/meta-pixel'
 import { ShopCollectionCard } from '@/components/shop-collection-card'
 import {
   Select,
@@ -45,6 +46,7 @@ function ShopPageContent() {
   const searchParams = useSearchParams()
   const [collectionFilter, setCollectionFilter] = useState<CollectionFilter>('all')
   const [sortBy, setSortBy] = useState<SortOption>('recommended')
+  const lastCategoryTracked = useRef('')
 
   const bundlesMode = searchParams.get('bundles') === 'true'
   const newArrivalsMode = searchParams.get('new-arrivals') === 'true'
@@ -193,6 +195,28 @@ function ShopPageContent() {
     collectionFilter,
     sortBy,
     getTagCollectionOrder,
+  ])
+
+  useEffect(() => {
+    const categoryKey = bundlesMode
+      ? 'bundles'
+      : newArrivalsMode
+        ? 'new-arrivals'
+        : collectionFilter
+
+    if (lastCategoryTracked.current === categoryKey) return
+    lastCategoryTracked.current = categoryKey
+
+    trackViewCategory({
+      category: pageMeta.title,
+      contentIds: filteredProducts.map((product) => product.id),
+    })
+  }, [
+    bundlesMode,
+    newArrivalsMode,
+    collectionFilter,
+    pageMeta.title,
+    filteredProducts,
   ])
 
   const showCollectionFilter = !bundlesMode && !newArrivalsMode

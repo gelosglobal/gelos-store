@@ -1,11 +1,24 @@
+'use client'
+
 import Link from 'next/link'
+import { type FormEvent, useState } from 'react'
 import { FooterWhatSetsUsApart } from '@/components/footer-trust-sections'
+import { trackSubscribe } from '@/lib/meta-pixel'
 
 type SiteFooterProps = {
   showWhatSetsUsApart?: boolean
 }
 
 export function SiteFooter({ showWhatSetsUsApart = true }: SiteFooterProps) {
+  const [newsletterEmail, setNewsletterEmail] = useState('')
+
+  const onNewsletterSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!newsletterEmail.trim()) return
+    trackSubscribe()
+    setNewsletterEmail('')
+  }
+
   return (
     <footer>
       {showWhatSetsUsApart ? <FooterWhatSetsUsApart /> : null}
@@ -22,12 +35,14 @@ export function SiteFooter({ showWhatSetsUsApart = true }: SiteFooterProps) {
               </p>
               <form
                 className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center"
-                onSubmit={(e) => e.preventDefault()}
+                onSubmit={onNewsletterSubmit}
               >
                 <input
                   type="email"
                   placeholder="Enter your email"
                   aria-label="Email address"
+                  value={newsletterEmail}
+                  onChange={(event) => setNewsletterEmail(event.target.value)}
                   className="min-w-0 flex-1 rounded-full border border-neutral-700 bg-neutral-900 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-white focus:outline-none focus:ring-1 focus:ring-white sm:max-w-xs"
                 />
                 <button

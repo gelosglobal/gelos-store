@@ -45,6 +45,7 @@ import {
   suggestAffiliateCodeFromName,
 } from '@/lib/affiliate-registration'
 import { normalizeAffiliateCode } from '@/lib/affiliates'
+import { trackCompleteRegistration } from '@/lib/meta-pixel'
 import { cn } from '@/lib/utils'
 
 const STEPS = [
@@ -220,6 +221,8 @@ export default function AffiliateRegisterPage() {
         error?: string
       }
       if (!res.ok) throw new Error(data.error ?? 'Failed to submit application')
+
+      trackCompleteRegistration('Affiliate application')
 
       setSubmittedCode(data.code ?? normalizedCode)
       window.scrollTo({ top: 0, behavior: 'smooth' })

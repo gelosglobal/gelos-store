@@ -6,47 +6,34 @@ import { useEffect, useRef } from 'react'
 import { isStorefrontChromeHidden } from '@/lib/dentist/portal'
 import { isMetaPixelEnabled, META_PIXEL_ID, trackMetaPageView } from '@/lib/meta-pixel'
 
-function trackPageViewForPath(pathname: string) {
-  const path = `${pathname}${window.location.search}`
-  trackMetaPageView()
-  return path
-}
-
 export function MetaPixel() {
   const pathname = usePathname()
-  const scriptReady = useRef(false)
   const lastTrackedPath = useRef('')
+  const isFirstNavigation = useRef(true)
 
   useEffect(() => {
-    if (
-      !isMetaPixelEnabled() ||
-      !pathname ||
-      isStorefrontChromeHidden(pathname) ||
-      !scriptReady.current
-    ) {
+    if (!isMetaPixelEnabled() || !pathname || isStorefrontChromeHidden(pathname)) {
       return
     }
 
     const path = `${pathname}${window.location.search}`
+
+    if (isFirstNavigation.current) {
+      isFirstNavigation.current = false
+      lastTrackedPath.current = path
+      return
+    }
+
     if (lastTrackedPath.current === path) return
-    lastTrackedPath.current = trackPageViewForPath(pathname)
+    lastTrackedPath.current = path
+    trackMetaPageView()
   }, [pathname])
 
   if (!isMetaPixelEnabled() || !META_PIXEL_ID) return null
 
   return (
     <>
-      <Script
-        id="meta-pixel"
-        strategy="afterInteractive"
-        onReady={() => {
-          scriptReady.current = true
-          if (!pathname || isStorefrontChromeHidden(pathname)) return
-          const path = `${pathname}${window.location.search}`
-          if (lastTrackedPath.current === path) return
-          lastTrackedPath.current = trackPageViewForPath(pathname)
-        }}
-      >
+      <Script id="meta-pixel" strategy="afterInteractive">
         {`
           !function(f,b,e,v,n,t,s)
           {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -57,6 +44,7 @@ export function MetaPixel() {
           s.parentNode.insertBefore(t,s)}(window, document,'script',
           'https://connect.facebook.net/en_US/fbevents.js');
           fbq('init', '${META_PIXEL_ID}');
+          fbq('track', 'PageView');
         `}
       </Script>
       <noscript>

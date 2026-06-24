@@ -24,6 +24,7 @@ import {
   validateAppointmentSlot,
 } from '@/lib/gelos-ai/dentist-schedule'
 import { dentistPartners } from '@/lib/gelos-ai/dentists'
+import { trackSchedule } from '@/lib/meta-pixel'
 
 const partnerDentist = dentistPartners[0]
 
@@ -122,6 +123,8 @@ export function BookDentistPanel() {
       if (!res.ok) {
         throw new Error(data.error ?? 'Booking failed.')
       }
+
+      trackSchedule(partnerDentist.clinic)
 
       setConfirmation(data)
     } catch (err) {
