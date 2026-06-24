@@ -31,7 +31,7 @@ export const stockists: Stockist[] = [
   {
     id: 'palace-mall',
     name: 'Palace mall',
-    logo: '/gelos/palace-gelos.PNG',
+    logo: '/gelos/IMG_6827.PNG',
   },
   {
     id: 'top-up-pharmacy',

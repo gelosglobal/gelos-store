@@ -7,29 +7,27 @@ import { useLocation } from '@/components/location-provider'
 import { ProductAccordionSection } from '@/components/product-accordion-section'
 import { ProductAdminVariantPicker } from '@/components/product-admin-variant-picker'
 import { ProductFeatureGallery } from '@/components/product-feature-gallery'
-import { ProductFlavorPicker } from '@/components/product-flavor-picker'
 import { ProductGallery } from '@/components/product-gallery'
 import { ProductShareMenu } from '@/components/product-share-menu'
-import { getAdminGalleryImages } from '@/lib/product-gallery-images'
+import { getAdminGalleryMedia, getAdminCarouselImages, getProductCarouselImages } from '@/lib/product-gallery-images'
 import {
   getAdminVariantImages,
+  getDefaultVariantDisplayImage,
   getProductPickerImages,
   getProductVariantPickerOptions,
-  getVariantLabelForImage,
   getVariantPickerLabel,
 } from '@/lib/product-variant-images'
-import { normalizeImageUrl } from '@/lib/image-url'
 import { getProductHref } from '@/lib/product-utils'
 import { ShopCollectionCard } from '@/components/shop-collection-card'
 import { getProductDisplayBadge } from '@/lib/product-tags'
 import {
-  getProductLineVariantLabel,
-  getVariantDisplayName,
-} from '@/lib/variant-display'
-import {
   getUsageStepsSectionMeta,
   type ProductPdpContent,
 } from '@/lib/product-pdp-content'
+import {
+  getVariantDisplayName,
+  getVariantSelectionForCart,
+} from '@/lib/variant-display'
 import type { Product } from '@/lib/types/product'
 
 type ProductEnhancedPdpProps = {
@@ -63,75 +61,70 @@ export function ProductEnhancedPdp({
   const adminVariantImages = getAdminVariantImages(product)
   const hasAdminVariants = adminVariantImages.length > 0
   const pickerImages = getProductPickerImages(product)
-  const variantPickerOptions = useMemo(() => {
-    const tiles = getProductVariantPickerOptions(product)
-    if (tiles.length > 0) {
-      const main = normalizeImageUrl(product.image)
-      const hasMain = tiles.some(
-        (option) => normalizeImageUrl(option.url) === main,
-      )
-      if (hasMain) return tiles
-      return [
-        {
-          url: main,
-          label:
-            getVariantLabelForImage(product, main) ||
-            product.name.split(' ')[0] ||
-            'Default',
-        },
-        ...tiles,
-      ]
-    }
-
-    return pickerImages.map((url) => ({
-      url,
-      label: getVariantLabelForImage(product, url) || 'Variant',
-    }))
-  }, [pickerImages, product])
+  const variantPickerOptions = useMemo(
+    () => getProductVariantPickerOptions(product),
+    [product],
+  )
   const pickerLabel = getVariantPickerLabel(product.category)
 
-  const [activeImage, setActiveImage] = useState(
-    () => normalizeImageUrl(product.image),
+  const [activeImage, setActiveImage] = useState(() =>
+    getDefaultVariantDisplayImage(product),
   )
 
   useEffect(() => {
-    setActiveImage(normalizeImageUrl(product.image))
-  }, [product.id, product.image])
+    const custom = getAdminCarouselImages(product)
+    if (custom.length > 0) {
+      setActiveImage(custom[0])
+      return
+    }
+    setActiveImage(getDefaultVariantDisplayImage(product))
+  }, [
+    product.id,
+    product.image,
+    product.carouselImages,
+    product.variantImageOptions,
+    product.variantImages,
+  ])
 
-  const featureImages = useMemo(
-    () => getAdminGalleryImages(product),
+  const featureMedia = useMemo(
+    () => getAdminGalleryMedia(product),
     [product],
   )
 
-  const galleryImages = useMemo(() => {
-    const featureSet = new Set(featureImages.map((src) => normalizeImageUrl(src)))
-    const codeFallback = content.galleryImages
-      .map((s) => normalizeImageUrl(s))
-      .filter((url) => !featureSet.has(url))
+  const featureImages = useMemo(
+    () => featureMedia.filter((item) => item.type === 'image').map((item) => item.url),
+    [featureMedia],
+  )
 
-    // Carousel: main + variant images + legacy code defaults (admin gallery is feature-only)
-    const extraGallery = hasAdminVariants ? [] : codeFallback
+  const customCarousel = useMemo(
+    () => getAdminCarouselImages(product),
+    [product],
+  )
 
-    const seen = new Set<string>()
-    const merged: string[] = []
-    const sources = hasAdminVariants
-      ? [...pickerImages, ...extraGallery]
-      : [activeImage, ...pickerImages, ...extraGallery]
+  const carouselThumbnails = useMemo(
+    () =>
+      getProductCarouselImages({
+        product,
+        pickerImages,
+        contentGalleryFallback: content.galleryImages,
+        featureImages,
+        hasAdminVariants,
+        activeImage,
+      }),
+    [
+      activeImage,
+      content.galleryImages,
+      featureImages,
+      hasAdminVariants,
+      pickerImages,
+      product,
+    ],
+  )
 
-    for (const src of sources) {
-      const url = normalizeImageUrl(src)
-      if (seen.has(url) || featureSet.has(url)) continue
-      seen.add(url)
-      merged.push(url)
-    }
-    return merged.length > 0 ? merged : ['/placeholder.svg']
-  }, [
-    activeImage,
-    content.galleryImages,
-    featureImages,
-    hasAdminVariants,
-    pickerImages,
-  ])
+  const galleryControlled =
+    carouselThumbnails.length > 1 ||
+    customCarousel.length > 0 ||
+    hasAdminVariants
 
   const displayName = getVariantDisplayName(product, activeImage)
   const usageSection = getUsageStepsSectionMeta(product.category, content)
@@ -144,9 +137,7 @@ export function ProductEnhancedPdp({
       label={pickerLabel}
     />
   ) : (
-    flavorPicker ?? (
-      <ProductFlavorPicker products={variants} currentProduct={product} />
-    )
+    flavorPicker
   )
 
   return (
@@ -177,11 +168,11 @@ export function ProductEnhancedPdp({
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-14">
           <ProductGallery
-            images={galleryImages}
+            images={carouselThumbnails}
             alt={displayName}
             badge={content.imageBadge}
-            activeSrc={hasAdminVariants ? activeImage : undefined}
-            onActiveSrcChange={hasAdminVariants ? setActiveImage : undefined}
+            activeSrc={galleryControlled ? activeImage : undefined}
+            onActiveSrcChange={galleryControlled ? setActiveImage : undefined}
           />
 
           <div className="space-y-6">
@@ -229,12 +220,11 @@ export function ProductEnhancedPdp({
               <button
                 type="button"
                 onClick={() => {
-                  const variantLabel = hasAdminVariants
-                    ? getVariantDisplayName(product, activeImage)
-                    : getProductLineVariantLabel(product)
+                  const { variantImage, variantLabel } =
+                    getVariantSelectionForCart(product, activeImage)
 
                   addItem(product.id, quantity, {
-                    variantImage: hasAdminVariants ? activeImage : undefined,
+                    variantImage,
                     variantLabel,
                   })
                 }}
@@ -283,7 +273,7 @@ export function ProductEnhancedPdp({
           </div>
         </div>
 
-        <ProductFeatureGallery images={featureImages} alt={displayName} />
+        <ProductFeatureGallery items={featureMedia} alt={displayName} />
 
         {usageSection && content.usageSteps && content.usageSteps.length > 0 && (
           <section className="mt-14 lg:mt-16">

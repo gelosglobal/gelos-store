@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { AddToCartButton } from '@/components/add-to-cart-button'
 import { ProductVariantThumbnails } from '@/components/product-variant-thumbnails'
 import { useLocation } from '@/components/location-provider'
-import { getEffectiveVariantImages } from '@/lib/product-variant-images'
+import { getDefaultVariantDisplayImage, getEffectiveVariantImages } from '@/lib/product-variant-images'
 import { isExternalImageUrl } from '@/lib/image-url'
 import { getProductImageDisplayClass } from '@/lib/product-image-display'
 import { getProductHref } from '@/lib/product-utils'
@@ -35,11 +35,13 @@ export function ShopCollectionCard({
   const { formatPrice } = useLocation()
   const productHref = getProductHref(product)
   const variantImages = getEffectiveVariantImages(product)
-  const [activeImage, setActiveImage] = useState(product.image)
+  const [activeImage, setActiveImage] = useState(() =>
+    getDefaultVariantDisplayImage(product),
+  )
 
   useEffect(() => {
-    setActiveImage(product.image)
-  }, [product.image])
+    setActiveImage(getDefaultVariantDisplayImage(product))
+  }, [product.image, product.variantImageOptions, product.variantImages])
 
   const variantSelection = getVariantSelectionForCart(product, activeImage)
   const displayName = getVariantDisplayName(product, activeImage)

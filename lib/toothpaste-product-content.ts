@@ -53,7 +53,7 @@ const standardIngredients =
 
 function toothpasteAccordion(
   flavorName: string,
-  tubeSize = '130g',
+  tubeSize = '60g',
 ): ProductPdpContent['detailsAccordion'] {
   return [
     {
@@ -148,7 +148,7 @@ function watermelonRangeAccordion(flavorName: string): ProductPdpContent['detail
     {
       id: 'included',
       title: "*What's included?",
-      content: `One 130g tube of ${flavorName} Toothpaste. Sealed for freshness.`,
+      content: `One 60g tube of ${flavorName} Toothpaste. Sealed for freshness.`,
     },
     {
       id: 'ingredients',

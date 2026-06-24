@@ -112,10 +112,26 @@ export function renderHeroBlock(input: {
 }
 
 export function renderStatusPills(paymentStatus: string, channel: string) {
-  const isPaid = paymentStatus.toLowerCase() === 'paid'
-  const statusBg = isPaid ? EMAIL_BRAND.successBg : EMAIL_BRAND.warningBg
-  const statusColor = isPaid ? EMAIL_BRAND.success : EMAIL_BRAND.warning
-  const statusLabel = isPaid ? 'Paid' : 'Payment pending'
+  const normalized = paymentStatus.toLowerCase()
+  const isPaid = normalized === 'paid'
+  const isRefunded = normalized === 'refunded'
+  const isVoided = normalized === 'voided'
+  const isPartial = normalized === 'partially paid'
+
+  let statusBg = EMAIL_BRAND.warningBg
+  let statusColor = EMAIL_BRAND.warning
+  if (isPaid) {
+    statusBg = EMAIL_BRAND.successBg
+    statusColor = EMAIL_BRAND.success
+  } else if (isRefunded || isVoided) {
+    statusBg = '#fff1f2'
+    statusColor = '#be123c'
+  } else if (isPartial) {
+    statusBg = '#eff6ff'
+    statusColor = '#1d4ed8'
+  }
+
+  const statusLabel = paymentStatus.trim() || 'Payment pending'
 
   return `
     <table cellpadding="0" cellspacing="0" style="margin:24px 0 0;">

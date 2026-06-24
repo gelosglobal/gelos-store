@@ -1,5 +1,9 @@
 import { normalizeImageUrl } from '@/lib/image-url'
-import { getVariantLabelForImage } from '@/lib/product-variant-images'
+import {
+  getAdminVariantOptionForUrl,
+  getVariantLabelForImage,
+  hasAdminVariantPicker,
+} from '@/lib/product-variant-images'
 import { getToothpasteFlavorLabel } from '@/lib/toothpaste-flavor-covers'
 import { getWellnessFlavorLabel } from '@/lib/wellness-flavor-covers'
 import type { ProductVariantOption } from '@/lib/types/product-variant'
@@ -94,6 +98,22 @@ export function getVariantSelectionForCart(
   const imageLabel = getVariantLabelForImage(product, selectedImage)
   const nameLabel = getProductLineVariantLabel(product as Product)
   const displayName = getVariantDisplayName(product, activeImage)
+
+  if (hasAdminVariantPicker(product)) {
+    const storedOption = getAdminVariantOptionForUrl(product, selectedImage)
+    const hasExplicitEmptyLabel = Boolean(
+      storedOption && !storedOption.label.trim(),
+    )
+
+    return {
+      variantImage: selectedImage,
+      variantLabel: hasExplicitEmptyLabel
+        ? undefined
+        : imageLabel?.trim() ||
+          (displayName !== product.name ? displayName : undefined) ||
+          (storedOption ? undefined : nameLabel),
+    }
+  }
 
   if (selectedImage !== mainImage) {
     return {

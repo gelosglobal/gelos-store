@@ -43,22 +43,22 @@ export function MegaMenu({ onNavigate }: MegaMenuProps) {
   const hasMoreProducts = filteredProducts.length > previewLimit
 
   return (
-    <div className="font-nav flex h-[min(640px,90vh)] flex-col overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-2xl lg:flex-row">
+    <div className="font-nav flex flex-col overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-2xl lg:h-[min(640px,90vh)] lg:flex-row">
       {/* Sidebar */}
-      <aside className="flex w-full shrink-0 flex-col border-b border-neutral-100 lg:w-[260px] lg:border-b-0 lg:border-r xl:w-[280px]">
-        <nav className="flex flex-1 flex-col gap-1 p-3 lg:min-h-[280px] lg:p-4 lg:pb-2">
+      <aside className="flex w-full min-h-0 shrink-0 flex-col border-b border-neutral-100 lg:h-full lg:w-[260px] lg:border-b-0 lg:border-r xl:w-[280px]">
+        <nav className="flex max-h-[min(52vh,420px)] flex-col gap-0.5 overflow-y-auto overscroll-contain p-3 [scrollbar-width:thin] lg:max-h-none lg:min-h-0 lg:flex-1 lg:p-4 lg:pr-2">
           {navCategories.map((category) => {
             const Icon = category.icon
             const isActive = activeCategory === category.id
             return (
-              <button
+              <Link
                 key={category.id}
-                type="button"
+                href={category.href}
+                onClick={onNavigate}
                 onMouseEnter={() => setActiveCategory(category.id)}
                 onFocus={() => setActiveCategory(category.id)}
-                onClick={() => setActiveCategory(category.id)}
                 className={cn(
-                  'flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-left text-sm font-semibold tracking-wide transition-colors',
+                  'flex w-full shrink-0 items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left text-sm font-semibold tracking-wide transition-colors lg:gap-3 lg:px-3 lg:py-3',
                   isActive
                     ? 'bg-neutral-100 text-foreground'
                     : 'text-foreground/80 hover:bg-neutral-50',
@@ -66,7 +66,7 @@ export function MegaMenu({ onNavigate }: MegaMenuProps) {
               >
                 <span
                   className={cn(
-                    'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors lg:h-9 lg:w-9',
                     isActive
                       ? 'bg-neutral-950 text-white'
                       : 'bg-neutral-100 text-foreground',
@@ -74,20 +74,20 @@ export function MegaMenu({ onNavigate }: MegaMenuProps) {
                 >
                   <Icon className="h-4 w-4" strokeWidth={2} />
                 </span>
-                <span className="flex-1">{category.label}</span>
+                <span className="min-w-0 flex-1 leading-snug">{category.label}</span>
                 <ChevronRight className="h-4 w-4 shrink-0 text-neutral-400" />
-              </button>
+              </Link>
             )
           })}
         </nav>
 
-        <div className="mt-auto hidden p-4 lg:block">
+        <div className="shrink-0 border-t border-neutral-100 bg-white p-3 lg:p-4">
           <Link
             href="/shop?bundles=true"
             onClick={onNavigate}
-            className="group relative block overflow-hidden rounded-2xl"
+            className="group relative mb-3 hidden overflow-hidden rounded-xl lg:block"
           >
-            <div className="relative aspect-[4/3] w-full">
+            <div className="relative h-[5.5rem] w-full">
               <Image
                 src="/gelos/GELOS1530.jpg"
                 alt="Friends smiling with Gelos toothpaste bundles"
@@ -95,23 +95,25 @@ export function MegaMenu({ onNavigate }: MegaMenuProps) {
                 className="object-cover object-center"
                 sizes="280px"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 p-4">
-                <p className="text-lg font-bold uppercase tracking-wide text-white">
+              <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/20" />
+              <div className="absolute inset-0 flex flex-col justify-center px-3.5">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/90">
                   Bundle builder
                 </p>
-                <span className="mt-2 flex items-center justify-between rounded-full bg-[#E91E8C] px-4 py-2 text-xs font-semibold text-white">
-                  Create your own package
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </span>
+                <p className="mt-0.5 text-sm font-semibold text-white">
+                  Curated sets — coming soon
+                </p>
               </div>
+              <span className="absolute bottom-2.5 right-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-[#E91E8C] text-white transition-transform group-hover:scale-105">
+                <ArrowRight className="h-3.5 w-3.5" />
+              </span>
             </div>
           </Link>
 
           <Link
             href="/shop"
             onClick={onNavigate}
-            className="mt-4 flex items-center gap-1 text-sm font-semibold text-foreground hover:underline"
+            className="flex items-center gap-1 text-sm font-semibold text-foreground hover:underline"
           >
             See all products
             <ChevronRight className="h-4 w-4" />

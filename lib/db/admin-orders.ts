@@ -1,24 +1,57 @@
 import type { Order as PrismaOrder } from '@prisma/client'
+import { buildOrderConversionSummary } from '@/lib/admin/order-conversion'
 import { formatOrderDateLabel } from '@/lib/admin/order-format'
+import { buildOrderTimeline } from '@/lib/admin/order-timeline'
 import { isDatabaseConfigured } from '@/lib/env'
+import { normalizeImageUrl } from '@/lib/image-url'
 import { prisma } from '@/lib/prisma'
 import type { CheckoutLineItem } from '@/lib/checkout'
 import type {
+  AdminOrderDetail,
   FulfillmentStatus,
   PaymentStatus,
   StoreOrder,
+  StoreOrderLineItem,
 } from '@/lib/types/order'
 
+function parseLineItems(items: unknown): StoreOrderLineItem[] {
+  if (!Array.isArray(items)) return []
+
+  return items
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object') return null
+      const item = entry as CheckoutLineItem
+      if (typeof item.id !== 'string' || typeof item.name !== 'string') return null
+
+      return {
+        id: item.id,
+        name: item.name,
+        price: Number(item.price) || 0,
+        quantity: Number(item.quantity) || 0,
+        variantLabel: item.variantLabel,
+        variantImage: item.variantImage,
+        productName: item.productName,
+        lineTotal: (Number(item.price) || 0) * (Number(item.quantity) || 0),
+      }
+    })
+    .filter((item): item is StoreOrderLineItem => item !== null)
+}
+
 function countLineItems(items: unknown): number {
-  if (!Array.isArray(items)) return 0
-  return items.reduce((sum, entry) => {
-    const item = entry as CheckoutLineItem
-    return sum + (Number(item.quantity) || 0)
-  }, 0)
+  return parseLineItems(items).reduce((sum, item) => sum + item.quantity, 0)
 }
 
 function asPaymentStatus(value: string): PaymentStatus {
-  return value === 'Paid' ? 'Paid' : 'Payment pending'
+  const valid: PaymentStatus[] = [
+    'Paid',
+    'Payment pending',
+    'Partially paid',
+    'Refunded',
+    'Voided',
+  ]
+  return valid.includes(value as PaymentStatus)
+    ? (value as PaymentStatus)
+    : 'Payment pending'
 }
 
 function asFulfillmentStatus(value: string): FulfillmentStatus {
@@ -68,6 +101,92 @@ export function prismaOrderToStoreOrder(order: PrismaOrder): StoreOrder {
   }
 }
 
+export function prismaOrderToAdminDetail(
+  order: PrismaOrder,
+  conversionSummary?: ReturnType<typeof buildOrderConversionSummary>,
+): AdminOrderDetail {
+  const lineItems = parseLineItems(order.items)
+  const paymentStatus = asPaymentStatus(order.paymentStatus)
+  const fulfillmentStatus = asFulfillmentStatus(order.fulfillmentStatus)
+
+  return {
+    ...prismaOrderToStoreOrder(order),
+    customerEmail: order.customerEmail,
+    customerPhone: order.customerPhone ?? undefined,
+    shippingAddress: order.shippingAddress ?? undefined,
+    lineItems,
+    subtotal: order.subtotal,
+    shipping: order.shipping,
+    discount: order.discount,
+    paystackReference: order.paystackReference,
+    affiliateCode: order.affiliateCode ?? undefined,
+    affiliateId: order.affiliateId ?? undefined,
+    commissionAmount: order.commissionAmount,
+    commissionStatus: order.commissionStatus,
+    createdAt: order.createdAt.toISOString(),
+    updatedAt: order.updatedAt.toISOString(),
+    timeline: buildOrderTimeline({
+      orderNumber: order.orderNumber,
+      channel: order.channel,
+      paymentStatus,
+      fulfillmentStatus,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      affiliateCode: order.affiliateCode ?? undefined,
+      commissionAmount: order.commissionAmount,
+      currency: order.currency,
+      customerName: order.customerName,
+      customerEmail: order.customerEmail,
+      total: order.total,
+    }),
+    conversionSummary:
+      conversionSummary ??
+      buildOrderConversionSummary(order, [
+        {
+          id: order.id,
+          createdAt: order.createdAt,
+          affiliateCode: order.affiliateCode,
+          channel: order.channel,
+        },
+      ]),
+  }
+}
+
+async function enrichLineItemsWithProducts(
+  lineItems: StoreOrderLineItem[],
+): Promise<StoreOrderLineItem[]> {
+  if (lineItems.length === 0) return lineItems
+
+  const productIds = [...new Set(lineItems.map((item) => item.id))]
+  const products = await prisma.product.findMany({
+    where: { productId: { in: productIds } },
+    select: {
+      productId: true,
+      name: true,
+      category: true,
+      image: true,
+      slug: true,
+    },
+  })
+
+  const productMap = new Map(products.map((product) => [product.productId, product]))
+
+  return lineItems.map((item) => {
+    const product = productMap.get(item.id)
+    const image = normalizeImageUrl(
+      item.variantImage?.trim() || product?.image || '',
+    )
+
+    return {
+      ...item,
+      productName: item.productName ?? product?.name ?? item.name,
+      image: image || undefined,
+      category: product?.category,
+      productHref: product ? `/product/${product.slug}` : undefined,
+    }
+  })
+}
+
 export async function listAdminOrders(): Promise<StoreOrder[]> {
   if (!isDatabaseConfigured()) return []
 
@@ -76,6 +195,70 @@ export async function listAdminOrders(): Promise<StoreOrder[]> {
   })
 
   return orders.map(prismaOrderToStoreOrder)
+}
+
+export async function getAdminOrderById(
+  id: string,
+): Promise<AdminOrderDetail | null> {
+  if (!isDatabaseConfigured()) return null
+
+  const order = await prisma.order.findUnique({ where: { id } })
+  if (!order) return null
+
+  const email = order.customerEmail.trim()
+  const customerOrders = email
+    ? await prisma.order.findMany({
+        where: { customerEmail: email },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true,
+          createdAt: true,
+          affiliateCode: true,
+          channel: true,
+        },
+      })
+    : [
+        {
+          id: order.id,
+          createdAt: order.createdAt,
+          affiliateCode: order.affiliateCode,
+          channel: order.channel,
+        },
+      ]
+
+  const conversionSummary = buildOrderConversionSummary(order, customerOrders)
+  const detail = prismaOrderToAdminDetail(order, conversionSummary)
+  detail.lineItems = await enrichLineItemsWithProducts(detail.lineItems)
+  return detail
+}
+
+type UpdateAdminOrderInput = {
+  paymentStatus?: PaymentStatus
+  fulfillmentStatus?: FulfillmentStatus
+}
+
+export async function updateAdminOrder(
+  id: string,
+  input: UpdateAdminOrderInput,
+): Promise<AdminOrderDetail | null> {
+  if (!isDatabaseConfigured()) return null
+
+  const existing = await prisma.order.findUnique({ where: { id } })
+  if (!existing) return null
+
+  await prisma.order.update({
+    where: { id },
+    data: {
+      ...(input.paymentStatus
+        ? { paymentStatus: input.paymentStatus }
+        : {}),
+      ...(input.fulfillmentStatus
+        ? { fulfillmentStatus: input.fulfillmentStatus }
+        : {}),
+    },
+  })
+
+  return getAdminOrderById(id)
 }
 
 export async function countAdminOrders(): Promise<number> {

@@ -1,8 +1,9 @@
 import type { LucideIcon } from 'lucide-react'
 import {
-  Bot,
+  Brush,
   Droplets,
   Flame,
+  Heart,
   Waves,
   LayoutGrid,
   Package,
@@ -56,8 +57,11 @@ export const navItemClassName =
 
 export type NavCategoryId =
   | 'toothpaste'
+  | 'toothbrushes'
+  | 'tongue-scraper'
   | 'mouthwash'
   | 'whitening'
+  | 'wellness'
   | 'water-flossers'
   | 'packages'
   | 'bestsellers'
@@ -77,17 +81,24 @@ export type NavCategory = {
 export const navCategories: NavCategory[] = [
   {
     id: 'toothpaste',
-    label: 'Toothpaste',
+    label: 'Flavored toothpastes',
     icon: Droplets,
     href: '/shop?category=Toothpaste',
     productCategory: 'Toothpaste',
   },
   {
-    id: 'mouthwash',
-    label: 'Mouthwash',
-    icon: Waves,
-    href: '/collections/mouth-washes',
-    productCategory: 'Mouthwash',
+    id: 'toothbrushes',
+    label: 'Toothbrushes',
+    icon: Brush,
+    href: '/shop?category=Toothbrushes',
+    productCategory: 'Toothbrushes',
+  },
+  {
+    id: 'tongue-scraper',
+    label: 'Tongue scrapers',
+    icon: ScanFace,
+    href: '/shop?category=Tongue%20Scraper',
+    productCategory: 'Tongue Scraper',
   },
   {
     id: 'whitening',
@@ -95,6 +106,20 @@ export const navCategories: NavCategory[] = [
     icon: Sparkles,
     href: '/shop?category=Whitening',
     productCategory: 'Whitening',
+  },
+  {
+    id: 'wellness',
+    label: 'Wellness and care',
+    icon: Heart,
+    href: '/shop?category=Wellness',
+    productCategory: 'Wellness',
+  },
+  {
+    id: 'mouthwash',
+    label: 'Mouth washes / sprays',
+    icon: Waves,
+    href: '/collections/mouth-washes',
+    productCategory: 'Mouthwash',
   },
   {
     id: 'water-flossers',
@@ -107,7 +132,7 @@ export const navCategories: NavCategory[] = [
     id: 'packages',
     label: 'Discounted packages',
     icon: Percent,
-    href: '/shop',
+    href: '/shop?bundles=true',
   },
   {
     id: 'bestsellers',

@@ -10,6 +10,7 @@ import { normalizeGalleryImages } from '@/lib/product-gallery-images'
 import {
   normalizeVariantImageOptions,
   normalizeVariantImages,
+  syncMainImageWithVariantOptions,
 } from '@/lib/product-variant-images'
 import type { Product } from '@/lib/types/product'
 import { products as mockProducts } from '@/lib/mock-data'
@@ -34,6 +35,7 @@ function prismaToProduct(doc: PrismaProduct): Product {
     variantImageOptions,
     variantImages: variantImageOptions.map((option) => option.url),
     galleryImages: normalizeGalleryImages(doc.galleryImages),
+    carouselImages: normalizeGalleryImages(doc.carouselImages),
     active: doc.active !== false,
   }
 }
@@ -60,6 +62,7 @@ export async function listAdminProducts(): Promise<Product[]> {
       variantImages: [],
       variantImageOptions: [],
       galleryImages: [],
+      carouselImages: [],
       active: true,
     }))
   }
@@ -78,6 +81,7 @@ export async function listAdminProducts(): Promise<Product[]> {
         variantImages: [],
         variantImageOptions: [],
         galleryImages: [],
+        carouselImages: [],
         active: true,
       }))
     }
@@ -107,6 +111,10 @@ export async function createAdminProduct(
     input.variantImageOptions,
     input.variantImages,
   )
+  const image = syncMainImageWithVariantOptions(
+    normalizeImageUrl(input.image.trim()),
+    variantImageOptions,
+  )
 
   const doc = await prisma.product.create({
     data: {
@@ -117,13 +125,14 @@ export async function createAdminProduct(
       price: input.price,
       stock: input.stock,
       description: input.description.trim(),
-      image: normalizeImageUrl(input.image.trim()),
+      image,
       rating: input.rating ?? 4.8,
       reviews: input.reviews ?? 0,
       tags: normalizeProductTags(input.tags),
       variantImageOptions,
       variantImages: variantImageOptions.map((option) => option.url),
       galleryImages: normalizeGalleryImages(input.galleryImages),
+      carouselImages: normalizeGalleryImages(input.carouselImages),
       active: input.active !== false,
     },
   })
@@ -146,6 +155,10 @@ export async function updateAdminProduct(
     input.variantImageOptions,
     input.variantImages,
   )
+  const image = syncMainImageWithVariantOptions(
+    normalizeImageUrl(input.image.trim()),
+    variantImageOptions,
+  )
   const data = {
     slug,
     name: input.name.trim(),
@@ -153,13 +166,14 @@ export async function updateAdminProduct(
     price: input.price,
     stock: input.stock,
     description: input.description.trim(),
-    image: normalizeImageUrl(input.image.trim()),
+    image,
     rating: input.rating ?? 4.8,
     reviews: input.reviews ?? 0,
     tags: normalizeProductTags(input.tags),
     variantImageOptions,
     variantImages: variantImageOptions.map((option) => option.url),
     galleryImages: normalizeGalleryImages(input.galleryImages),
+    carouselImages: normalizeGalleryImages(input.carouselImages),
     active: input.active !== false,
   }
 

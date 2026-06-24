@@ -28,7 +28,7 @@ export function ProductAdminVariantPicker({
       <div className="flex flex-wrap gap-3">
         {options.map((option, index) => {
           const isActive = option.url === activeImage
-          const tileLabel = option.label.trim() || `Option ${index + 1}`
+          const tileLabel = option.label.trim()
 
           return (
             <button
@@ -36,7 +36,9 @@ export function ProductAdminVariantPicker({
               type="button"
               onClick={() => onSelect(option.url)}
               className="flex w-[4.5rem] flex-col items-center gap-1.5 sm:w-20"
-              aria-label={`${tileLabel} variant`}
+              aria-label={
+                tileLabel ? `${tileLabel} variant` : `Variant option ${index + 1}`
+              }
               aria-pressed={isActive}
             >
               <span
@@ -56,14 +58,16 @@ export function ProductAdminVariantPicker({
                   unoptimized={isExternalImageUrl(option.url)}
                 />
               </span>
-              <span
-                className={cn(
-                  'max-w-full text-center text-[10px] font-medium leading-tight sm:text-xs',
-                  isActive ? 'text-neutral-950' : 'text-neutral-500',
-                )}
-              >
-                {tileLabel}
-              </span>
+              {tileLabel ? (
+                <span
+                  className={cn(
+                    'max-w-full text-center text-[10px] font-medium leading-tight sm:text-xs',
+                    isActive ? 'text-neutral-950' : 'text-neutral-500',
+                  )}
+                >
+                  {tileLabel}
+                </span>
+              ) : null}
             </button>
           )
         })}

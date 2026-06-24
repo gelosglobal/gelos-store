@@ -39,6 +39,7 @@ function toProduct(p: (typeof mockProducts)[number]): Product {
     variantImages: [],
     variantImageOptions: [],
     galleryImages: [],
+    carouselImages: [],
   }
 }
 

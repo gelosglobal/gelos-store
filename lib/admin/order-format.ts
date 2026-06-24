@@ -32,6 +32,30 @@ export function formatOrderDateLabel(date: Date): string {
   return `${day} at ${time}`
 }
 
+export function formatOrderFullDate(date: Date): string {
+  return date.toLocaleString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  })
+}
+
+export function formatConversionDate(date: Date): string {
+  return date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+export function formatPackingSlipDate(date: Date): string {
+  return formatConversionDate(date)
+}
+
 const CURRENCY_SYMBOLS: Record<string, string> = {
   GHS: 'GH₵',
   NGN: '₦',

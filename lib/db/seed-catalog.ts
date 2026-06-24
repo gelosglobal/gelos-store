@@ -41,6 +41,7 @@ export async function seedCatalog(): Promise<number> {
         variantImages,
         variantImageOptions: [],
         galleryImages: [],
+        carouselImages: [],
       },
       update: {
         slug: getProductSlug(product),

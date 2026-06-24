@@ -24,6 +24,25 @@ export const ourFileRouter = {
       return { url: file.ufsUrl }
     }),
 
+  productVideo: f(
+    {
+      video: {
+        maxFileSize: '64MB',
+        maxFileCount: 1,
+      },
+    },
+    { awaitServerData: false },
+  )
+    .middleware(async () => {
+      if (!process.env.UPLOADTHING_TOKEN) {
+        throw new UploadThingError('UploadThing is not configured')
+      }
+      return { scope: 'admin-product' as const }
+    })
+    .onUploadComplete(async ({ file }) => {
+      return { url: file.ufsUrl }
+    }),
+
   storeLogo: f({
     image: {
       maxFileSize: '2MB',

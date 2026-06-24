@@ -74,68 +74,167 @@ export function getAdminVariantImages(product: {
   return normalizeVariantImages(product.variantImages)
 }
 
-/** Label for a variant image — admin name wins, then filename heuristics. */
-export function getVariantLabelForImage(
+/** True when the product uses admin-uploaded variant tiles on the PDP. */
+export function hasAdminVariantPicker(product: {
+  variantImages?: string[]
+  variantImageOptions?: ProductVariantOption[]
+}): boolean {
+  return (
+    getAdminVariantImageOptions(product).length > 0 ||
+    getAdminVariantImages(product).length > 0
+  )
+}
+
+/** Default hero/card image — first admin variant when configured, else main product image. */
+export function getDefaultVariantDisplayImage(product: {
+  id?: string
+  image: string
+  name?: string
+  category?: string
+  variantImages?: string[]
+  variantImageOptions?: ProductVariantOption[]
+}): string {
+  const variants = getEffectiveVariantImages(
+    product as Parameters<typeof getEffectiveVariantImages>[0],
+  )
+  if (variants.length > 0) return variants[0]
+  return normalizeImageUrl(product.image)
+}
+
+export function getAdminVariantOptionForUrl(
+  product: { variantImageOptions?: ProductVariantOption[] },
+  url: string,
+): ProductVariantOption | undefined {
+  const normalized = normalizeImageUrl(url)
+  return getAdminVariantImageOptions(product).find(
+    (option) => normalizeImageUrl(option.url) === normalized,
+  )
+}
+
+function resolveVariantOptionLabel(
   product: {
+    image: string
+    name: string
     category: string
     variantImageOptions?: ProductVariantOption[]
   },
-  imageUrl: string,
-): string | undefined {
-  const normalized = normalizeImageUrl(imageUrl)
-  const stored = getAdminVariantImageOptions(product).find(
-    (option) => normalizeImageUrl(option.url) === normalized,
-  )?.label
+  url: string,
+): string {
+  const storedOption = getAdminVariantOptionForUrl(product, url)
+  if (storedOption) {
+    // Respect admin input — an intentionally cleared name stays empty.
+    return storedOption.label.trim()
+  }
 
-  if (stored) return stored
-  return getVariantLabelFromImageUrl(imageUrl, product.category)
+  const fromUrl = getVariantLabelFromImageUrl(url, product.category)
+  if (fromUrl) return fromUrl
+
+  return getVariantLabelFromImageUrl(url, product.category) || 'Variant'
 }
 
-/** Main + admin variant images for PDP picker and gallery sync. */
-export function getProductPickerImages(product: {
-  image: string
-  variantImages?: string[]
-  variantImageOptions?: ProductVariantOption[]
-}): string[] {
-  const main = normalizeImageUrl(product.image)
+function dedupeVariantOptions(
+  options: ProductVariantOption[],
+): ProductVariantOption[] {
   const seen = new Set<string>()
-  const result: string[] = []
+  const result: ProductVariantOption[] = []
 
-  for (const url of [main, ...getAdminVariantImages(product)]) {
+  for (const option of options) {
+    const url = normalizeImageUrl(option.url)
     if (seen.has(url)) continue
     seen.add(url)
-    result.push(url)
+    result.push({ url, label: option.label })
   }
 
   return result
 }
 
-/** Picker tiles for admin-configured variants (excludes duplicate main image when unlabeled). */
+/** Label for a variant image — admin name wins, then filename heuristics. */
+export function getVariantLabelForImage(
+  product: {
+    image: string
+    name: string
+    category: string
+    variantImages?: string[]
+    variantImageOptions?: ProductVariantOption[]
+  },
+  imageUrl: string,
+): string | undefined {
+  const storedOption = getAdminVariantOptionForUrl(product, imageUrl)
+
+  if (storedOption) {
+    return storedOption.label.trim() || undefined
+  }
+
+  const fromUrl = getVariantLabelFromImageUrl(imageUrl, product.category)
+  if (fromUrl) return fromUrl
+
+  return undefined
+}
+
+/** Admin variant images for PDP picker and gallery sync (no auto-injected main image). */
+export function getProductPickerImages(product: {
+  image: string
+  variantImages?: string[]
+  variantImageOptions?: ProductVariantOption[]
+}): string[] {
+  const admin = getAdminVariantImages(product)
+  if (admin.length > 0) {
+    const seen = new Set<string>()
+    return admin.filter((url) => {
+      const normalized = normalizeImageUrl(url)
+      if (seen.has(normalized)) return false
+      seen.add(normalized)
+      return true
+    })
+  }
+
+  return [normalizeImageUrl(product.image)]
+}
+
+/** Picker tiles — only images saved in admin (removing one in admin removes it from the storefront). */
 export function getProductVariantPickerOptions(product: {
   image: string
+  name: string
   category: string
   variantImages?: string[]
   variantImageOptions?: ProductVariantOption[]
 }): ProductVariantOption[] {
-  const main = normalizeImageUrl(product.image)
   const options = getAdminVariantImageOptions(product)
 
   if (options.length > 0) {
-    return options.map((option) => ({
-      url: option.url,
-      label:
-        option.label ||
-        getVariantLabelFromImageUrl(option.url, product.category) ||
-        'Variant',
-    }))
+    return dedupeVariantOptions(
+      options.map((option) => ({
+        url: normalizeImageUrl(option.url),
+        label: resolveVariantOptionLabel(product, option.url),
+      })),
+    )
   }
 
-  return getAdminVariantImages(product)
-    .filter((url) => url !== main)
-    .map((url) => ({
-      url,
-      label: getVariantLabelFromImageUrl(url, product.category) || 'Variant',
-    }))
+  return dedupeVariantOptions(
+    getAdminVariantImages(product).map((url) => ({
+      url: normalizeImageUrl(url),
+      label: resolveVariantOptionLabel(product, url),
+    })),
+  )
+}
+
+/**
+ * When variant images are managed in admin, keep the main product image aligned:
+ * if the current main image is no longer in the variant list, promote the first variant.
+ */
+export function syncMainImageWithVariantOptions(
+  mainImage: string,
+  variantOptions: ProductVariantOption[],
+): string {
+  const main = normalizeImageUrl(mainImage.trim() || '/placeholder.svg')
+  const variantUrls = normalizeVariantImageOptions(variantOptions).map((option) =>
+    normalizeImageUrl(option.url),
+  )
+
+  if (variantUrls.length === 0) return main
+  if (variantUrls.includes(main)) return main
+
+  return variantUrls[0]
 }
 
 export function getVariantPickerLabel(category: string): string {
@@ -151,29 +250,30 @@ export function getVariantPickerLabel(category: string): string {
 /** DB variant images, with legacy best-seller meta fallback when empty. */
 export function getEffectiveVariantImages(product: {
   id: string
+  image: string
+  name: string
+  category: string
   variantImages?: string[]
   variantImageOptions?: ProductVariantOption[]
 }): string[] {
-  const stored = getAdminVariantImages(product)
-  if (stored.length > 0) return stored
-  return normalizeVariantImages(bestSellerMeta[product.id]?.variantImages)
+  if (hasAdminVariantPicker(product)) {
+    return getProductVariantPickerOptions(product).map((option) => option.url)
+  }
+
+  const legacy = normalizeVariantImages(bestSellerMeta[product.id]?.variantImages)
+  return legacy
 }
 
 export function getEffectiveVariantImageOptions(product: {
   id: string
+  image: string
+  name: string
   category: string
   variantImages?: string[]
   variantImageOptions?: ProductVariantOption[]
 }): ProductVariantOption[] {
-  const stored = getAdminVariantImageOptions(product)
-  if (stored.length > 0) {
-    return stored.map((option) => ({
-      url: option.url,
-      label:
-        option.label ||
-        getVariantLabelFromImageUrl(option.url, product.category) ||
-        '',
-    }))
+  if (hasAdminVariantPicker(product)) {
+    return getProductVariantPickerOptions(product)
   }
 
   const legacy = normalizeVariantImages(bestSellerMeta[product.id]?.variantImages)

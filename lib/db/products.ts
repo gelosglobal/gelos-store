@@ -32,6 +32,7 @@ function prismaToProduct(doc: PrismaProduct): Product {
     variantImageOptions,
     variantImages: variantImageOptions.map((option) => option.url),
     galleryImages: normalizeGalleryImages(doc.galleryImages),
+    carouselImages: normalizeGalleryImages(doc.carouselImages),
     active: doc.active !== false,
   }
 }
@@ -44,6 +45,7 @@ function mockFallback(): Product[] {
     variantImages: [],
     variantImageOptions: [],
     galleryImages: [],
+    carouselImages: [],
     active: true,
   }))
 }
@@ -82,6 +84,7 @@ export async function getProductBySlugOrId(
       variantImages: [],
       variantImageOptions: [],
       galleryImages: [],
+      carouselImages: [],
       active: true,
     }
   }
@@ -105,6 +108,7 @@ export async function getProductBySlugOrId(
         variantImages: [],
         variantImageOptions: [],
         galleryImages: [],
+      carouselImages: [],
         active: true,
       }
     }
@@ -167,6 +171,7 @@ export async function getRelatedProducts(
         variantImages: [],
         variantImageOptions: [],
         galleryImages: [],
+      carouselImages: [],
         active: true,
       }))
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   ChevronDown,
   ChevronLeft,
@@ -64,6 +65,7 @@ function MiniSparkline({ active }: { active?: boolean }) {
 }
 
 export default function AdminOrdersPage() {
+  const router = useRouter()
   const [orders, setOrders] = useState<StoreOrder[]>([])
   const [databaseConnected, setDatabaseConnected] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -139,6 +141,10 @@ export default function AdminOrdersPage() {
   }
 
   const allSelected = paged.length > 0 && paged.every((o) => selected.has(o.id))
+
+  const openOrderDetail = (orderId: string) => {
+    router.push(`/admin/orders/${orderId}`)
+  }
 
   return (
     <div className="space-y-4">
@@ -358,6 +364,7 @@ export default function AdminOrdersPage() {
                     order={order}
                     checked={selected.has(order.id)}
                     onCheckedChange={(c) => toggleOne(order.id, c)}
+                    onOpen={() => openOrderDetail(order.id)}
                   />
                 ))
               )}
@@ -405,13 +412,18 @@ function OrderRow({
   order,
   checked,
   onCheckedChange,
+  onOpen,
 }: {
   order: StoreOrder
   checked: boolean
   onCheckedChange: (checked: boolean) => void
+  onOpen: () => void
 }) {
   return (
-    <TableRow className="cursor-pointer hover:bg-neutral-50/80">
+    <TableRow
+      className="cursor-pointer hover:bg-neutral-50/80"
+      onClick={onOpen}
+    >
       <TableCell className="pl-4" onClick={(e) => e.stopPropagation()}>
         <Checkbox
           checked={checked}

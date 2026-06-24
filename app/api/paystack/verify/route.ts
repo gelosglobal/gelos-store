@@ -116,7 +116,7 @@ export async function POST(request: Request) {
         affiliateId && commissionAmount > 0 ? 'pending' : 'none',
     })
 
-    notifyOrderPlaced({
+    await notifyOrderPlaced({
       orderNumber: order.orderNumber,
       customerName,
       customerEmail,

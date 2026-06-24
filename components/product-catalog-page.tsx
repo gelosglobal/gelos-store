@@ -71,6 +71,11 @@ function buildFlavorPicker(
           currentProduct={product}
         />
       )
+    case 'Water Flossers':
+    case 'Accessories':
+    case 'Tools':
+      // Separate SKUs — variant tiles come from admin uploads on each product only.
+      return undefined
     default:
       return (
         <ProductCategoryVariantPicker

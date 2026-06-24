@@ -10,7 +10,7 @@ import {
   bestSellerMeta,
 } from '@/lib/best-seller-meta'
 import { getProductImageDisplayClass } from '@/lib/product-image-display'
-import { getEffectiveVariantImages } from '@/lib/product-variant-images'
+import { getDefaultVariantDisplayImage, getEffectiveVariantImages } from '@/lib/product-variant-images'
 import { getProductDisplayBadge } from '@/lib/product-tags'
 import type { ProductTagId } from '@/lib/product-tags'
 import { isExternalImageUrl } from '@/lib/image-url'
@@ -39,11 +39,13 @@ export function BestSellerCard({ product }: BestSellerCardProps) {
   const { formatPrice } = useLocation()
   const meta = bestSellerMeta[product.id]
   const variantImages = getEffectiveVariantImages(product)
-  const [activeImage, setActiveImage] = useState(product.image)
+  const [activeImage, setActiveImage] = useState(() =>
+    getDefaultVariantDisplayImage(product),
+  )
 
   useEffect(() => {
-    setActiveImage(product.image)
-  }, [product.image])
+    setActiveImage(getDefaultVariantDisplayImage(product))
+  }, [product.image, product.variantImageOptions, product.variantImages])
 
   const badge =
     getProductDisplayBadge({ ...product, tags: product.tags ?? [] }) ??

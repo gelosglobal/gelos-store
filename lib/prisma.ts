@@ -3,7 +3,13 @@ import { getDatabaseUrl } from '@/lib/env'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
+  prismaSchemaSignature?: string
 }
+
+/** Changes when Product scalar fields change — busts cached clients after `prisma generate`. */
+const PRODUCT_SCHEMA_SIGNATURE = Object.keys(Prisma.ProductScalarFieldEnum)
+  .sort()
+  .join(',')
 
 /** Prisma schema uses DATABASE_URL; copy MONGODB_URI when only that is set */
 function ensureDatabaseUrl() {
@@ -33,13 +39,17 @@ const REQUIRED_DELEGATES = [
 
 /** Hot reload can keep an old PrismaClient missing newly generated models/fields. */
 function isPrismaClientStale(client: PrismaClient) {
+  if (globalForPrisma.prismaSchemaSignature !== PRODUCT_SCHEMA_SIGNATURE) {
+    return true
+  }
+
   const productFields = Prisma.ProductScalarFieldEnum
   return (
     REQUIRED_DELEGATES.some(
       (delegate) =>
         !(delegate in client) ||
         !(client as Record<string, unknown>)[delegate],
-    ) || !('galleryImages' in productFields) || !('variantImageOptions' in productFields) || !('active' in productFields)
+    ) || !('galleryImages' in productFields) || !('carouselImages' in productFields) || !('variantImageOptions' in productFields) || !('active' in productFields)
   )
 }
 
@@ -53,6 +63,7 @@ function getPrismaClient() {
   }
   const client = createPrismaClient()
   globalForPrisma.prisma = client
+  globalForPrisma.prismaSchemaSignature = PRODUCT_SCHEMA_SIGNATURE
   return client
 }
 

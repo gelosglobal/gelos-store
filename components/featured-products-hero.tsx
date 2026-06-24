@@ -15,7 +15,6 @@ import {
   featuredHeroSlides,
   featuredHeroVideoSrc,
 } from '@/lib/featured-hero-meta'
-import { getProductHref } from '@/lib/product-utils'
 import type { Product } from '@/lib/types/product'
 import { cn } from '@/lib/utils'
 
@@ -146,7 +145,7 @@ export function FeaturedProductsHero() {
                   {slide?.headline ?? product.name}
                 </h1>
                 <Link
-                  href={getProductHref(product)}
+                  href="/shop"
                   tabIndex={isActive ? 0 : -1}
                   className="pointer-events-auto mt-8 inline-flex items-center gap-2 rounded-full bg-[#D4FF59] px-8 py-4 text-base font-bold text-[#1a2e05] transition-all hover:bg-[#c8f24d] hover:shadow-lg hover:shadow-black/20 sm:mt-10"
                 >

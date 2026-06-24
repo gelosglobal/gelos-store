@@ -23,8 +23,10 @@ model Product {
   variantImages  String[] @default([])
   /** Named variant tiles: [{ url, label }] for flavour/style picker labels. */
   variantImageOptions Json     @default("[]")
-  /** Extra images for the product page gallery carousel (lifestyle, detail shots). */
+  /** Extra images in the product page gallery carousel. */
   galleryImages  String[] @default([])
+  /** Optional thumbnails under the main product image; falls back to variant images when empty. */
+  carouselImages String[] @default([])
   /** When false, product is hidden from the storefront (draft). */
   active         Boolean  @default(true)
   createdAt      DateTime @default(now())

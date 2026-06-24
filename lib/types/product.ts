@@ -16,8 +16,10 @@ export type Product = {
   variantImages: string[]
   /** Named flavour/style options saved in admin (url + label). */
   variantImageOptions: ProductVariantOption[]
-  /** Extra images in the product page gallery carousel. */
+  /** Extra images in the feature gallery below the product description. */
   galleryImages: string[]
+  /** Thumbnail strip under the main product image; uses variant images when empty. */
+  carouselImages: string[]
   /** When false, product is hidden from the storefront (draft). */
   active?: boolean
 }

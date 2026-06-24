@@ -18,6 +18,7 @@ import {
   ProductFormCardHeader,
 } from '@/components/admin/product-form-card'
 import { ProductMediaZone } from '@/components/admin/product-media-zone'
+import { ProductCarouselImagesField } from '@/components/admin/product-carousel-images-field'
 import { ProductGalleryImagesField } from '@/components/admin/product-gallery-images-field'
 import { ProductVariantImagesField } from '@/components/admin/product-variant-images-field'
 import { ProductOptionPills } from '@/components/admin/product-option-pills'
@@ -29,12 +30,13 @@ import {
   normalizeProductTags,
 } from '@/lib/product-tags'
 import {
-  getAdminGalleryImages,
+  getAdminCarouselImages,
   normalizeGalleryImages,
 } from '@/lib/product-gallery-images'
 import {
-  getEffectiveVariantImageOptions,
+  getAdminVariantImageOptions,
   normalizeVariantImageOptions,
+  syncMainImageWithVariantOptions,
 } from '@/lib/product-variant-images'
 import { normalizeImageUrl } from '@/lib/image-url'
 import { notifyProductsUpdated } from '@/lib/products-events'
@@ -66,6 +68,7 @@ const emptyForm: AdminProductInput = {
   tags: [],
   variantImageOptions: [],
   galleryImages: [],
+  carouselImages: [],
   active: true,
 }
 
@@ -125,8 +128,9 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
           rating: product.rating,
           reviews: product.reviews,
           tags: getEffectiveProductTags(product),
-          variantImageOptions: getEffectiveVariantImageOptions(product),
-          galleryImages: getAdminGalleryImages(product),
+          variantImageOptions: getAdminVariantImageOptions(product),
+          galleryImages: normalizeGalleryImages(product.galleryImages),
+          carouselImages: getAdminCarouselImages(product),
           active: product.active !== false,
         })
         setGhStock(product.stock)
@@ -178,16 +182,23 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
       return
     }
 
+    const variantImageOptions = normalizeVariantImageOptions(
+      form.variantImageOptions,
+    )
     const payload: AdminProductInput = {
       ...form,
       name: form.name.trim(),
       description: form.description.trim(),
-      image: normalizeImageUrl(form.image.trim() || '/placeholder.svg'),
+      image: syncMainImageWithVariantOptions(
+        normalizeImageUrl(form.image.trim() || '/placeholder.svg'),
+        variantImageOptions,
+      ),
       stock: inventoryTracked ? ghStock + usaStock : 999,
       price: Number(form.price) || 0,
       tags: normalizeProductTags(form.tags),
-      variantImageOptions: normalizeVariantImageOptions(form.variantImageOptions),
+      variantImageOptions,
       galleryImages: normalizeGalleryImages(form.galleryImages),
+      carouselImages: normalizeGalleryImages(form.carouselImages),
       active: form.active !== false,
     }
 
@@ -341,7 +352,27 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
               <ProductVariantImagesField
                 value={form.variantImageOptions ?? []}
                 onChange={(variantImageOptions) =>
-                  setForm((f) => ({ ...f, variantImageOptions }))
+                  setForm((f) => {
+                    const normalized =
+                      normalizeVariantImageOptions(variantImageOptions)
+                    return {
+                      ...f,
+                      variantImageOptions: normalized,
+                      image: syncMainImageWithVariantOptions(f.image, normalized),
+                    }
+                  })
+                }
+              />
+            </ProductFormCardBody>
+          </ProductFormCard>
+
+          <ProductFormCard>
+            <ProductFormCardHeader title="Carousel images" />
+            <ProductFormCardBody>
+              <ProductCarouselImagesField
+                value={form.carouselImages ?? []}
+                onChange={(carouselImages) =>
+                  setForm((f) => ({ ...f, carouselImages }))
                 }
               />
             </ProductFormCardBody>

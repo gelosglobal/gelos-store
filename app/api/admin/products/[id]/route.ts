@@ -43,6 +43,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       variantImageOptions: body.variantImageOptions,
       variantImages: body.variantImages,
       galleryImages: body.galleryImages,
+      carouselImages: body.carouselImages,
       active: body.active,
     })
 

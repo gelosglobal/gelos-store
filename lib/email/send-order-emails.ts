@@ -1,5 +1,5 @@
 import {
-  getAdminNotificationEmail,
+  getAdminNotificationEmails,
   getResendFromEmail,
   isResendConfigured,
 } from '@/lib/env'
@@ -7,6 +7,7 @@ import type { OrderEmailData } from '@/lib/email/order-email-data'
 import { getResendClient } from '@/lib/email/resend'
 import { buildAdminNewOrderEmail } from '@/lib/email/templates/admin-new-order'
 import { buildOrderConfirmationEmail } from '@/lib/email/templates/order-confirmation'
+import { buildOrderInvoiceEmail } from '@/lib/email/templates/order-invoice'
 
 async function sendEmail(input: {
   to: string | string[]
@@ -50,37 +51,56 @@ export async function sendOrderConfirmationEmail(order: OrderEmailData) {
 }
 
 export async function sendAdminNewOrderEmail(order: OrderEmailData) {
-  const adminEmail = getAdminNotificationEmail()
-  if (!adminEmail) {
+  const adminEmails = getAdminNotificationEmails()
+  if (adminEmails.length === 0) {
     return { sent: false as const, reason: 'missing_admin_email' as const }
   }
 
   const { subject, html } = buildAdminNewOrderEmail(order)
   return sendEmail({
-    to: adminEmail,
+    to: adminEmails,
     subject,
     html,
     replyTo: order.customerEmail.trim() || undefined,
   })
 }
 
-/** Fire-and-forget wrapper — logs failures without throwing. */
-export function notifyOrderPlaced(order: OrderEmailData) {
+export async function sendOrderInvoiceEmail(order: OrderEmailData) {
+  const email = order.customerEmail.trim()
+  if (!email) {
+    return { sent: false as const, reason: 'missing_customer_email' as const }
+  }
+
+  const { subject, html } = buildOrderInvoiceEmail(order)
+  return sendEmail({
+    to: email,
+    subject,
+    html,
+    replyTo: 'hello@gelosglobal.com',
+  })
+}
+
+/** Sends customer confirmation + admin alert. Await before returning API responses. */
+export async function notifyOrderPlaced(order: OrderEmailData) {
   if (!isResendConfigured()) {
     console.warn('[email] RESEND_API_KEY not set — skipping order notifications')
     return
   }
 
-  void Promise.all([
+  const [customer, admin] = await Promise.all([
     sendOrderConfirmationEmail(order),
     sendAdminNewOrderEmail(order),
-  ]).then((results) => {
-    const [customer, admin] = results
-    if (!customer.sent) {
-      console.warn('[email] Customer confirmation not sent:', customer.reason)
-    }
-    if (!admin.sent) {
-      console.warn('[email] Admin notification not sent:', admin.reason)
-    }
-  })
+  ])
+
+  if (!customer.sent) {
+    console.warn('[email] Customer confirmation not sent:', customer.reason)
+  }
+  if (!admin.sent) {
+    console.warn(
+      '[email] Admin notification not sent:',
+      admin.reason,
+      '→',
+      getAdminNotificationEmails().join(', '),
+    )
+  }
 }

@@ -57,6 +57,7 @@ export async function POST(request: Request) {
       variantImageOptions: body.variantImageOptions,
       variantImages: body.variantImages,
       galleryImages: body.galleryImages,
+      carouselImages: body.carouselImages,
       active: body.active,
     })
 

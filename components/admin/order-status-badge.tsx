@@ -4,6 +4,17 @@ import { cn } from '@/lib/utils'
 const paymentStyles: Record<PaymentStatus, string> = {
   Paid: 'bg-neutral-100 text-neutral-700',
   'Payment pending': 'bg-amber-50 text-amber-800 ring-1 ring-amber-200/80',
+  'Partially paid': 'bg-blue-50 text-blue-800 ring-1 ring-blue-200/80',
+  Refunded: 'bg-rose-50 text-rose-800 ring-1 ring-rose-200/80',
+  Voided: 'bg-neutral-100 text-neutral-500 ring-1 ring-neutral-200',
+}
+
+const paymentDotStyles: Record<PaymentStatus, string> = {
+  Paid: 'bg-neutral-500',
+  'Payment pending': 'bg-amber-600',
+  'Partially paid': 'bg-blue-600',
+  Refunded: 'bg-rose-600',
+  Voided: 'bg-neutral-400',
 }
 
 const fulfillmentStyles: Record<string, string> = {
@@ -31,11 +42,7 @@ export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
         paymentStyles[status],
       )}
     >
-      <Dot
-        className={
-          status === 'Paid' ? 'bg-neutral-500' : 'bg-amber-600'
-        }
-      />
+      <Dot className={paymentDotStyles[status]} />
       {status}
     </span>
   )

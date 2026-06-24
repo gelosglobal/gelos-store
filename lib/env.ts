@@ -24,12 +24,22 @@ export function getResendFromEmail(): string {
   )
 }
 
-/** Store team inbox for new-order alerts */
-export function getAdminNotificationEmail(): string | undefined {
-  const email =
+/** Store team inbox(es) for new-order notifications — comma-separated for multiple */
+export function getAdminNotificationEmails(): string[] {
+  const raw =
     process.env.ADMIN_NOTIFICATION_EMAIL?.trim() ||
     process.env.STORE_CONTACT_EMAIL?.trim()
-  return email || undefined
+
+  const emails = raw
+    ? raw.split(',').map((email) => email.trim()).filter(Boolean)
+    : ['hello@gelosglobal.com']
+
+  return [...new Set(emails)]
+}
+
+/** Primary admin notification inbox */
+export function getAdminNotificationEmail(): string | undefined {
+  return getAdminNotificationEmails()[0]
 }
 
 export function getAppUrl(): string {

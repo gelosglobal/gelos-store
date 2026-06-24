@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { ChevronDown } from 'lucide-react'
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
@@ -16,7 +17,6 @@ import { newArrivalProductIds } from '@/lib/new-arrivals'
 import {
   getProductDisplayBadge,
   orderProductsForTagCollection,
-  productHasTag,
 } from '@/lib/product-tags'
 import { useProducts } from '@/components/products-provider'
 import { cn } from '@/lib/utils'
@@ -32,8 +32,6 @@ const categories = [
   'Wellness',
   'Toothbrushes',
 ] as const
-
-const bundleCategories = new Set(['Toothpaste', 'Wellness', 'Whitening'])
 
 type CollectionFilter =
   | 'all'
@@ -65,7 +63,7 @@ function ShopPageContent() {
       return {
         title: 'Bundles',
         description:
-          'Build your perfect routine — curated sets and bundle-friendly picks for every smile.',
+          'Curated Gelos sets and value packs — coming soon.',
       }
     }
     if (newArrivalsMode) {
@@ -149,14 +147,11 @@ function ShopPageContent() {
     let list = [...products]
 
     if (bundlesMode) {
-      const bundleOrder = getTagCollectionOrder('bundle')
-      if (bundleOrder.length > 0) {
-        list = orderProductsForTagCollection(list, 'bundle', bundleOrder)
-      } else {
-        list = list.filter(
-          (p) => productHasTag(p, 'bundle') || bundleCategories.has(p.category),
-        )
-      }
+      list = orderProductsForTagCollection(
+        list,
+        'bundle',
+        getTagCollectionOrder('bundle'),
+      )
     } else if (newArrivalsMode) {
       list = orderProductsForTagCollection(
         list,
@@ -274,9 +269,21 @@ function ShopPageContent() {
       {/* Product grid */}
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
         {filteredProducts.length === 0 ? (
-          <p className="py-16 text-center text-neutral-500">
-            No products match this collection.
-          </p>
+          <div className="py-16 text-center">
+            <p className="text-neutral-700">
+              {bundlesMode
+                ? 'No bundles available yet. Check back soon for curated sets.'
+                : 'No products match this collection.'}
+            </p>
+            {bundlesMode ? (
+              <Link
+                href="/shop"
+                className="mt-4 inline-flex text-sm font-semibold text-neutral-950 underline-offset-2 hover:underline"
+              >
+                Browse all products
+              </Link>
+            ) : null}
+          </div>
         ) : (
           <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 lg:grid-cols-4 lg:gap-x-8 lg:gap-y-12">
             {filteredProducts.map((product) => (
