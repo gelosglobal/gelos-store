@@ -228,6 +228,7 @@
 a, button, input {
   @apply transition-all duration-200;
 }
+
   body {
     @apply bg-background text-foreground;
   }

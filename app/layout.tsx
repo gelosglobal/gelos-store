@@ -7,7 +7,7 @@ import { CartUpsellSettingsProvider } from '@/components/cart-upsell-settings-pr
 import { AffiliateProvider } from '@/components/affiliate-provider'
 import { LocationProvider } from '@/components/location-provider'
 import { ProductsProvider } from '@/components/products-provider'
-import { GelosAiWidget } from '@/components/gelos-ai-widget'
+import { StorefrontChatDock } from '@/components/storefront-chat-dock'
 import { LiveVisitorsTracker } from '@/components/live-visitors-tracker'
 import { MetaPixel } from '@/components/meta-pixel'
 import { SiteNavbar } from '@/components/site-navbar'
@@ -69,7 +69,7 @@ export default function RootLayout({
               <MetaPixel />
               {children}
               <SiteFooterShell />
-              <GelosAiWidget />
+              <StorefrontChatDock />
               <Toaster position="top-center" richColors closeButton />
               {process.env.NODE_ENV === 'production' && <Analytics />}
             </CartProvider>
