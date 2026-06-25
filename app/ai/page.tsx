@@ -11,7 +11,6 @@ import {
 } from 'lucide-react'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { ScanSmilePanel } from '@/components/gelos-ai/scan-smile-panel'
-import { SiteFooter } from '@/components/site-footer'
 import { cn } from '@/lib/utils'
 
 const howItWorks = [
@@ -243,7 +242,6 @@ function GelosAiPageContent() {
         ) : null}
       </section>
 
-      <SiteFooter />
     </div>
   )
 }

@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft, CalendarCheck, Mail, ShieldCheck } from 'lucide-react'
 import { BookDentistPanel } from '@/components/gelos-ai/book-dentist-panel'
-import { SiteFooter } from '@/components/site-footer'
 
 export const metadata: Metadata = {
   title: 'Book a Dentist | Gelos',
@@ -83,7 +82,6 @@ export default function BookDentistPage() {
         <BookDentistPanel />
       </section>
 
-      <SiteFooter />
     </div>
   )
 }

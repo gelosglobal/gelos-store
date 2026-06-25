@@ -6,9 +6,9 @@ import { ArrowRight } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import {
   footerLinkGroups,
-  footerPaymentMethods,
   footerSocialLinks,
 } from '@/lib/footer-links'
+import { paymentProviderLogos } from '@/lib/payment-provider-logos'
 import { trackSubscribe } from '@/lib/meta-pixel'
 import { cn } from '@/lib/utils'
 
@@ -29,31 +29,6 @@ function GelosLogo({
       style={{ width: 'auto', height }}
     />
   )
-}
-
-function SocialIcon({ type }: { type: (typeof footerSocialLinks)[number]['icon'] }) {
-  const className = 'size-4 text-white'
-
-  switch (type) {
-    case 'instagram':
-      return (
-        <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm5 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm6.5-.9a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2z" />
-        </svg>
-      )
-    case 'tiktok':
-      return (
-        <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M16.5 3h-2.2c.2 1.6 1.4 3.1 3 3.6V8c-1.4-.1-2.7-.6-3.8-1.4v7.1a5.4 5.4 0 1 1-4.9-5.4v2.2a3.2 3.2 0 1 0 2.3 3.1V3z" />
-        </svg>
-      )
-    case 'facebook':
-      return (
-        <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M13.5 8.5V6.7c0-.8.6-1 1-1h1.7V3h-2.4C11.8 3 10.5 4.5 10.5 6.4V8.5H8v2.7h2.5V21h2.9v-9.8H17l.5-2.7h-3z" />
-        </svg>
-      )
-  }
 }
 
 function FooterLinkColumn({
@@ -231,35 +206,53 @@ export function SiteFooter() {
                     Follow us
                   </span>
                   <div className="flex gap-1.5">
-                    {footerSocialLinks.map((social) => (
-                      <Link
-                        key={social.label}
-                        href={social.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={social.label}
-                        className={cn(
-                          'flex size-7 items-center justify-center rounded-full transition-transform hover:scale-105',
-                          social.className,
-                        )}
-                      >
-                        <SocialIcon type={social.icon} />
-                      </Link>
-                    ))}
+                    {footerSocialLinks.map((social) => {
+                      const isTikTok = social.label === 'TikTok'
+                      return (
+                        <Link
+                          key={social.label}
+                          href={social.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={social.label}
+                          className={cn(
+                            'block size-7 overflow-hidden rounded-full transition-transform hover:scale-105',
+                            isTikTok && 'bg-white p-0.5',
+                          )}
+                        >
+                          <Image
+                            src={social.src}
+                            alt=""
+                            width={28}
+                            height={28}
+                            className={cn(
+                              'size-full',
+                              isTikTok ? 'object-contain' : 'object-cover',
+                            )}
+                          />
+                        </Link>
+                      )
+                    })}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/60">
                     We accept
                   </span>
-                  <div className="flex flex-wrap gap-1">
-                    {footerPaymentMethods.map((method) => (
-                      <span
-                        key={method}
-                        className="rounded bg-white px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-neutral-800"
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {paymentProviderLogos.map((method) => (
+                      <div
+                        key={method.id}
+                        className="flex h-7 min-w-[2.75rem] items-center justify-center rounded bg-white px-1.5"
                       >
-                        {method}
-                      </span>
+                        <Image
+                          src={method.src}
+                          alt={method.label}
+                          width={72}
+                          height={22}
+                          className={cn('h-auto w-auto object-contain', method.className)}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>

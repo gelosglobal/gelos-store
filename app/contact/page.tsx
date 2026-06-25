@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { Loader2, Mail, MessageSquare, Phone, Send, User } from 'lucide-react'
 import { toast } from 'sonner'
 import { trackContact, trackLead } from '@/lib/meta-pixel'
-import { SiteFooter } from '@/components/site-footer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -191,7 +190,6 @@ export default function ContactPage() {
         </div>
       </div>
 
-      <SiteFooter />
     </div>
   )
 }

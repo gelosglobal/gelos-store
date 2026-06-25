@@ -4,7 +4,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft, ClipboardList, ScanFace, Sparkles, Stethoscope } from 'lucide-react'
 import { AiChatPanel } from '@/components/gelos-ai/ai-chat-panel'
-import { SiteFooter } from '@/components/site-footer'
 import { cn } from '@/lib/utils'
 
 const actionCards = [
@@ -101,7 +100,6 @@ export function WellnessChatPage() {
         </div>
       </div>
 
-      <SiteFooter />
     </div>
   )
 }

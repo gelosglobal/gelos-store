@@ -20,7 +20,6 @@ import {
   Wallet,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { SiteFooter } from '@/components/site-footer'
 import {
   Accordion,
   AccordionContent,
@@ -329,7 +328,6 @@ export default function AffiliateRegisterPage() {
           </Card>
         </div>
 
-        <SiteFooter />
       </div>
     )
   }
@@ -709,7 +707,6 @@ export default function AffiliateRegisterPage() {
         </div>
       </div>
 
-      <SiteFooter />
     </div>
   )
 }

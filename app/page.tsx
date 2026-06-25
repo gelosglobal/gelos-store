@@ -9,7 +9,6 @@ import { LifestyleGallery } from '@/components/lifestyle-gallery'
 import { LifestylePromoBanner } from '@/components/lifestyle-promo-banner'
 import { RadiantSmileSection } from '@/components/radiant-smile-section'
 import { ShopByCollection } from '@/components/shop-by-collection'
-import { SiteFooter } from '@/components/site-footer'
 import { StockistsMarquee } from '@/components/stockists-marquee'
 
 export default function Home() {
@@ -189,7 +188,6 @@ export default function Home() {
       </section>
       */}
 
-      <SiteFooter />
     </div>
   )
 }

@@ -5,7 +5,6 @@ import { Loader2, ScanFace } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ScanYourSmileCta } from '@/components/gelos-ai/scan-your-smile-cta'
 import { SmileReportCard } from '@/components/gelos-ai/smile-report-card'
-import { SiteFooter } from '@/components/site-footer'
 import type { SmileScanReport } from '@/lib/gelos-ai/smile-scan-types'
 
 type SharedScan = {
@@ -140,7 +139,6 @@ export function SharedSmileReportView({ scanId }: { scanId: string }) {
           </>
         )}
       </main>
-      <SiteFooter />
     </div>
   )
 }

@@ -55,26 +55,16 @@ export const footerSocialLinks = [
   {
     label: 'Instagram',
     href: 'https://www.instagram.com/gelosglobal/',
-    className: 'bg-gradient-to-br from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]',
-    icon: 'instagram' as const,
+    src: '/gelos/pay-logo/instagram.png',
   },
   {
     label: 'Facebook',
     href: 'https://facebook.com/p/GELOS-61558412705085/',
-    className: 'bg-[#1877F2]',
-    icon: 'facebook' as const,
+    src: '/gelos/pay-logo/facebook.png',
   },
   {
     label: 'TikTok',
     href: 'https://www.tiktok.com/@gelosglobal',
-    className: 'bg-neutral-950',
-    icon: 'tiktok' as const,
+    src: '/gelos/pay-logo/tik-tok.png',
   },
-]
-
-export const footerPaymentMethods = [
-  'Visa',
-  'Mastercard',
-  'MoMo',
-  'Bank',
 ] as const

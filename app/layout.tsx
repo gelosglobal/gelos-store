@@ -11,6 +11,7 @@ import { GelosAiWidget } from '@/components/gelos-ai-widget'
 import { LiveVisitorsTracker } from '@/components/live-visitors-tracker'
 import { MetaPixel } from '@/components/meta-pixel'
 import { SiteNavbar } from '@/components/site-navbar'
+import { SiteFooterShell } from '@/components/site-footer-shell'
 import { Toaster } from 'sonner'
 import { UploadThingSSRPlugin } from '@/components/uploadthing-ssr-plugin'
 import './globals.css'
@@ -67,6 +68,7 @@ export default function RootLayout({
               <LiveVisitorsTracker />
               <MetaPixel />
               {children}
+              <SiteFooterShell />
               <GelosAiWidget />
               <Toaster position="top-center" richColors closeButton />
               {process.env.NODE_ENV === 'production' && <Analytics />}

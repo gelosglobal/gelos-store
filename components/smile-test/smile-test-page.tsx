@@ -11,7 +11,6 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { SiteFooter } from '@/components/site-footer'
 import { SmileTestBundleBuilder } from '@/components/smile-test/smile-test-bundle-builder'
 import { SmileTestProductMatchSection } from '@/components/smile-test/smile-test-product-match'
 import { useProducts } from '@/components/products-provider'
@@ -412,7 +411,6 @@ export function SmileTestPage() {
         ) : null}
       </div>
 
-      <SiteFooter />
     </div>
   )
 }

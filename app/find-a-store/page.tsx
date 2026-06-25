@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { ElfsightStoreLocator } from '@/components/elfsight-store-locator'
-import { SiteFooter } from '@/components/site-footer'
 
 export const metadata: Metadata = {
   title: 'Find a Store | Gelos',
@@ -26,7 +25,6 @@ export default function FindAStorePage() {
         <ElfsightStoreLocator className="min-h-[28rem]" />
       </section>
 
-      <SiteFooter />
     </div>
   )
 }
