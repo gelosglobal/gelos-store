@@ -1,7 +1,9 @@
 'use client'
 
 import { BestSellers } from '@/components/best-sellers'
+import { CustomerReviewsSection } from '@/components/customer-reviews-section'
 import { NewArrivals } from '@/components/new-arrivals'
+import { TakeSmileQuizSection } from '@/components/take-smile-quiz-section'
 import { FeaturedProductsHero } from '@/components/featured-products-hero'
 import { LifestyleGallery } from '@/components/lifestyle-gallery'
 import { LifestylePromoBanner } from '@/components/lifestyle-promo-banner'
@@ -25,9 +27,11 @@ export default function Home() {
 
       <NewArrivals />
 
-      <LifestyleGallery />
+      <TakeSmileQuizSection />
 
-     
+      <CustomerReviewsSection />
+
+      <LifestyleGallery />
 
       {/* <LifestylePromoBanner /> */}
 

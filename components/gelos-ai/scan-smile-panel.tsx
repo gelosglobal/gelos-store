@@ -22,6 +22,7 @@ import {
   requestCameraStream,
   stopMediaStream,
 } from '@/lib/gelos-ai/camera'
+import { compressImageDataUrl } from '@/lib/gelos-ai/compress-image'
 import {
   MIN_SHARPNESS_FOR_SCAN,
   measureImageSharpness,
@@ -31,31 +32,7 @@ import type { SmileScanReport } from '@/lib/gelos-ai/smile-scan-types'
 import { buildMysteryRewardBoard, type MysteryRewardBoard } from '@/lib/gelos-ai/mystery-reward'
 import { cn } from '@/lib/utils'
 
-const MAX_IMAGE_EDGE = 1024
 const REWARD_REVEAL_DELAY_MS = 3500
-
-async function compressImageDataUrl(dataUrl: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new window.Image()
-    img.onload = () => {
-      const scale = Math.min(1, MAX_IMAGE_EDGE / Math.max(img.width, img.height))
-      const width = Math.round(img.width * scale)
-      const height = Math.round(img.height * scale)
-      const canvas = document.createElement('canvas')
-      canvas.width = width
-      canvas.height = height
-      const ctx = canvas.getContext('2d')
-      if (!ctx) {
-        reject(new Error('Could not process image'))
-        return
-      }
-      ctx.drawImage(img, 0, 0, width, height)
-      resolve(canvas.toDataURL('image/jpeg', 0.82))
-    }
-    img.onerror = () => reject(new Error('Could not load image'))
-    img.src = dataUrl
-  })
-}
 
 export function ScanSmilePanel() {
   const { products } = useProducts()
@@ -263,6 +240,7 @@ export function ScanSmilePanel() {
 
     setIsScanning(true)
     setError(null)
+    setReport(null)
 
     try {
       const image = await compressImageDataUrl(preview)
@@ -340,8 +318,13 @@ export function ScanSmilePanel() {
         scanId={shareable ? scanId : undefined}
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-      <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+      <div className={cn('grid gap-6', !report && 'lg:grid-cols-2')}>
+      <div
+        className={cn(
+          'rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm',
+          report && 'mx-auto w-full max-w-xl',
+        )}
+      >
         <div className="mb-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#84CC16]/20 text-neutral-900">
             <ScanFace className="h-5 w-5" />
@@ -523,6 +506,7 @@ export function ScanSmilePanel() {
         </p>
       </div>
 
+      {!report ? (
       <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5 shadow-sm">
         <h3 className="mb-3 font-semibold text-foreground">Your smile report</h3>
         {rewardRevealPending ? (
@@ -540,7 +524,33 @@ export function ScanSmilePanel() {
             </span>
           </div>
         ) : null}
-        {report && mysteryRewardBoard && !mysteryRewardOpen && !rewardRevealPending ? (
+        {isScanning ? (
+          <div className="flex min-h-[18rem] flex-col items-center justify-center rounded-xl border border-neutral-200 bg-white px-6 text-center">
+            <Loader2 className="mb-3 h-10 w-10 animate-spin text-[#84CC16]" />
+            <p className="text-sm font-medium text-foreground">
+              Creating your report{name.trim() ? `, ${name.trim().split(/\s+/)[0]}` : ''}…
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              This usually takes a few seconds.
+            </p>
+          </div>
+        ) : (
+          <div className="flex min-h-[18rem] flex-col items-center justify-center rounded-xl border border-neutral-200 bg-white px-6 text-center">
+            <ScanFace className="mb-3 h-10 w-10 text-neutral-300" />
+            <p className="text-sm text-muted-foreground">
+              {preview
+                ? 'Add your name, then tap Analyze smile to see your personalized report.'
+                : 'Your personalized smile snapshot, scores, and Gelos product picks will appear here.'}
+            </p>
+          </div>
+        )}
+      </div>
+      ) : null}
+    </div>
+
+    {report && !isScanning ? (
+      <div className="mt-6">
+        {mysteryRewardBoard && !mysteryRewardOpen && !rewardRevealPending ? (
           <button
             type="button"
             onClick={() => setMysteryRewardOpen(true)}
@@ -562,34 +572,13 @@ export function ScanSmilePanel() {
             <span className="text-sm font-semibold text-[#4d7c0f]">Reveal</span>
           </button>
         ) : null}
-        {isScanning ? (
-          <div className="flex min-h-[18rem] flex-col items-center justify-center rounded-xl border border-neutral-200 bg-white px-6 text-center">
-            <Loader2 className="mb-3 h-10 w-10 animate-spin text-[#84CC16]" />
-            <p className="text-sm font-medium text-foreground">
-              Creating your report{name.trim() ? `, ${name.trim().split(/\s+/)[0]}` : ''}…
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              This usually takes a few seconds.
-            </p>
-          </div>
-        ) : report ? (
-          <SmileReportCard
-            report={report}
-            customerName={name.trim()}
-            scanId={shareable ? scanId : undefined}
-          />
-        ) : (
-          <div className="flex min-h-[18rem] flex-col items-center justify-center rounded-xl border border-neutral-200 bg-white px-6 text-center">
-            <ScanFace className="mb-3 h-10 w-10 text-neutral-300" />
-            <p className="text-sm text-muted-foreground">
-              {preview
-                ? 'Add your name, then tap Analyze smile to see your personalized report.'
-                : 'Your personalized smile snapshot, scores, and Gelos product picks will appear here.'}
-            </p>
-          </div>
-        )}
+        <SmileReportCard
+          report={report}
+          customerName={name.trim()}
+          scanId={shareable ? scanId : undefined}
+        />
       </div>
-    </div>
+    ) : null}
     </>
   )
 }

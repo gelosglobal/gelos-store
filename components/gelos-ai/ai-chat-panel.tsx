@@ -26,9 +26,17 @@ const WELCOME_MESSAGE = CHAT_WELCOME_MESSAGE
 type AiChatPanelProps = {
   className?: string
   compact?: boolean
+  fullPage?: boolean
+  variant?: 'default' | 'wellness'
 }
 
-export function AiChatPanel({ className, compact = false }: AiChatPanelProps) {
+export function AiChatPanel({
+  className,
+  compact = false,
+  fullPage = false,
+  variant = 'default',
+}: AiChatPanelProps) {
+  const isWellness = variant === 'wellness'
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState<GelosAiMessage[]>([WELCOME_MESSAGE])
   const [isLoading, setIsLoading] = useState(false)
@@ -37,8 +45,15 @@ export function AiChatPanel({ className, compact = false }: AiChatPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
+  const hasConversation =
+    messages.length > 1 ||
+    (messages.length === 1 && messages[0] !== WELCOME_MESSAGE)
+
   const showStarters =
-    messages.length === 1 && messages[0] === WELCOME_MESSAGE && !isLoading
+    !isWellness &&
+    messages.length === 1 &&
+    messages[0] === WELCOME_MESSAGE &&
+    !isLoading
 
   useEffect(() => {
     const saved = loadChatMessages()
@@ -102,42 +117,68 @@ export function AiChatPanel({ className, compact = false }: AiChatPanelProps) {
   return (
     <div
       className={cn(
-        'flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm',
+        'flex flex-col overflow-hidden',
+        isWellness
+          ? 'min-h-0 rounded-2xl border border-neutral-200 bg-white shadow-lg'
+          : 'rounded-2xl border border-neutral-200 bg-white shadow-sm',
+        fullPage && !isWellness && 'h-[min(72vh,52rem)]',
+        fullPage && isWellness && 'h-[min(34vh,16rem)] sm:h-[min(36vh,17.5rem)]',
         className,
       )}
     >
       <div
         ref={scrollRef}
         className={cn(
-          'flex flex-col gap-3 overflow-y-auto px-4 py-4',
-          compact ? 'max-h-[28rem]' : 'min-h-[22rem] max-h-[32rem]',
+          'flex flex-col overflow-y-auto',
+          isWellness
+            ? 'gap-2.5 px-3 py-3 sm:px-5 sm:py-4'
+            : 'gap-3 px-4 py-4 sm:px-6 sm:py-5',
+          fullPage || isWellness
+            ? 'min-h-0 flex-1'
+            : compact
+              ? 'max-h-[28rem]'
+              : 'min-h-[22rem] max-h-[32rem]',
         )}
       >
+        {isWellness && !hasConversation ? (
+          <p className="text-sm text-neutral-500">
+            Ask about products, flavors, whitening, bundles, or your smile routine…
+          </p>
+        ) : null}
+
         {messages.map((message, index) => {
-          const isUser = message.role === 'user'
-          return (
-            <div
-              key={`${message.role}-${index}`}
-              className={cn('flex', isUser ? 'justify-end' : 'justify-start')}
-            >
+            const isUser = message.role === 'user'
+            if (isWellness && message === WELCOME_MESSAGE) return null
+            if (isWellness && !hasConversation) return null
+
+            return (
               <div
-                className={cn(
-                  'max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
-                  isUser
-                    ? 'bg-neutral-900 text-white'
-                    : 'bg-neutral-50 text-foreground',
-                )}
+                key={`${message.role}-${index}`}
+                className={cn('flex', isUser ? 'justify-end' : 'justify-start')}
               >
-                <GelosAiMessageContent content={message.content} />
-                {!isUser && <GelosAiProductLinks content={message.content} />}
+                <div
+                  className={cn(
+                    'max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
+                    isUser
+                      ? 'bg-neutral-900 text-white'
+                      : 'bg-neutral-50 text-foreground',
+                  )}
+                >
+                  <GelosAiMessageContent content={message.content} />
+                  {!isUser && <GelosAiProductLinks content={message.content} />}
+                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
 
         {isLoading && (
           <div className="flex justify-start">
-            <div className="inline-flex items-center gap-2 rounded-2xl bg-neutral-50 px-3.5 py-2.5 text-sm text-muted-foreground">
+            <div
+              className={cn(
+                'inline-flex items-center gap-2 rounded-2xl px-3.5 py-2.5 text-sm',
+                'bg-neutral-50 text-muted-foreground',
+              )}
+            >
               <Loader2 className="h-4 w-4 animate-spin" />
               Thinking…
             </div>
@@ -160,40 +201,79 @@ export function AiChatPanel({ className, compact = false }: AiChatPanelProps) {
         </div>
       )}
 
-      {error && (
-        <p className="border-t border-neutral-100 px-4 py-2 text-xs text-red-600">
+      {error ? (
+        <p
+          className={cn(
+            'px-4 py-2 text-xs',
+            isWellness ? 'text-red-600' : 'border-t border-neutral-100 text-red-600',
+          )}
+        >
           {error}
         </p>
-      )}
+      ) : null}
 
       <form
         onSubmit={onSubmit}
-        className="flex items-end gap-2 border-t border-neutral-100 p-3"
+        className={cn(
+          'flex items-end gap-3 p-3 sm:px-5',
+          isWellness ? '' : 'border-t border-neutral-100 p-3',
+        )}
       >
-        <textarea
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              void sendMessage(input)
-            }
-          }}
-          rows={1}
-          placeholder="Ask about products, flavors, whitening…"
-          className="max-h-24 min-h-10 flex-1 resize-none rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-300 focus:bg-white"
-          disabled={isLoading}
-        />
-        <Button
-          type="submit"
-          size="icon"
-          disabled={!input.trim() || isLoading}
-          className="h-10 w-10 shrink-0 rounded-xl bg-[#84CC16] text-neutral-950 hover:bg-[#73b512]"
-          aria-label="Send message"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
+        {isWellness ? (
+          <div className="flex min-w-0 flex-1 items-end gap-2">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  void sendMessage(input)
+                }
+              }}
+              rows={1}
+              placeholder="Tell us what you need help with…"
+              className="max-h-24 min-h-10 flex-1 resize-none rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-300 focus:bg-white"
+              disabled={isLoading}
+            />
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!input.trim() || isLoading}
+              className="size-10 shrink-0 rounded-xl bg-[#84CC16] text-neutral-950 hover:bg-[#73b512]"
+              aria-label="Send message"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <>
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  void sendMessage(input)
+                }
+              }}
+              rows={1}
+              placeholder="Ask about products, flavors, whitening…"
+              className="max-h-24 min-h-10 flex-1 resize-none rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-300 focus:bg-white"
+              disabled={isLoading}
+            />
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!input.trim() || isLoading}
+              className="h-10 w-10 shrink-0 rounded-xl bg-[#84CC16] text-neutral-950 hover:bg-[#73b512]"
+              aria-label="Send message"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </>
+        )}
       </form>
     </div>
   )

@@ -1,11 +1,12 @@
 'use client'
 
-import Link from 'next/link'
+import Image from 'next/image'
 import { ChevronDown } from 'lucide-react'
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { trackViewCategory } from '@/lib/meta-pixel'
 import { ShopCollectionCard } from '@/components/shop-collection-card'
+import { BundleUpsellsSection } from '@/components/bundle-upsells-section'
 import {
   Select,
   SelectContent,
@@ -21,6 +22,8 @@ import {
 } from '@/lib/product-tags'
 import { useProducts } from '@/components/products-provider'
 import { cn } from '@/lib/utils'
+
+const BUNDLE_BANNER_IMAGE = '/gelos/bundle.PNG'
 
 const categories = [
   'Toothpaste',
@@ -65,7 +68,7 @@ function ShopPageContent() {
       return {
         title: 'Bundles',
         description:
-          'Curated Gelos sets and value packs — coming soon.',
+          '',
       }
     }
     if (newArrivalsMode) {
@@ -224,16 +227,49 @@ function ShopPageContent() {
   return (
     <div className="min-h-screen bg-white text-foreground">
       {/* Banner */}
-      <section className="bg-neutral-950">
-        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
-          <h1 className="max-w-2xl text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
-            {pageMeta.title}
-          </h1>
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-white/90 sm:text-lg">
-            {pageMeta.description}
-          </p>
-        </div>
-      </section>
+      {bundlesMode ? (
+        <section className="px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-12 xl:px-12 xl:py-14">
+          <div
+            className={cn(
+              'relative mx-auto min-h-[14rem] w-full max-w-7xl overflow-hidden rounded-[2rem] bg-neutral-950 shadow-xl',
+              'sm:min-h-[16rem] lg:max-w-[90rem] lg:min-h-[18rem] lg:rounded-[2.5rem] xl:max-w-[100rem]',
+            )}
+          >
+            <Image
+              src={BUNDLE_BANNER_IMAGE}
+              alt=""
+              fill
+              priority
+              className="object-cover object-[left_center] lg:object-[28%_center]"
+              sizes="(max-width: 1024px) 100vw, 90rem"
+              aria-hidden
+            />
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-neutral-950/75 via-neutral-950/35 to-transparent lg:from-neutral-950/60 lg:via-neutral-950/20"
+              aria-hidden
+            />
+            <div className="relative z-10 flex h-full min-h-[inherit] flex-col justify-end px-5 py-10 sm:px-8 sm:py-12 lg:justify-center lg:px-10 lg:py-14 xl:px-12">
+              <h1 className="max-w-2xl text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
+                {pageMeta.title}
+              </h1>
+              <p className="mt-3 max-w-xl text-base leading-relaxed text-white/90 sm:mt-4 sm:text-lg">
+                {pageMeta.description}
+              </p>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <section className="bg-neutral-950">
+          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
+            <h1 className="max-w-2xl text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
+              {pageMeta.title}
+            </h1>
+            <p className="mt-4 max-w-xl text-base leading-relaxed text-white/90 sm:text-lg">
+              {pageMeta.description}
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* Filter bar */}
       <section className="border-b border-neutral-200 bg-white">
@@ -292,21 +328,35 @@ function ShopPageContent() {
 
       {/* Product grid */}
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
-        {filteredProducts.length === 0 ? (
+        {bundlesMode ? (
+          <BundleUpsellsSection limit={12} layout="grid" className="mb-12" />
+        ) : null}
+
+        {bundlesMode ? (
+          filteredProducts.length > 0 ? (
+            <>
+              <div className="border-t border-neutral-200 pt-10">
+                <h2 className="text-lg font-bold text-neutral-950">
+                  All bundle products
+                </h2>
+                <p className="mt-1 text-sm text-neutral-600">
+                  Individual items tagged as bundles in your catalog.
+                </p>
+              </div>
+              <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 lg:grid-cols-4 lg:gap-x-8 lg:gap-y-12">
+                {filteredProducts.map((product) => (
+                  <ShopCollectionCard
+                    key={product.id}
+                    product={product}
+                    badge={getProductDisplayBadge(product)}
+                  />
+                ))}
+              </div>
+            </>
+          ) : null
+        ) : filteredProducts.length === 0 ? (
           <div className="py-16 text-center">
-            <p className="text-neutral-700">
-              {bundlesMode
-                ? 'No bundles available yet. Check back soon for curated sets.'
-                : 'No products match this collection.'}
-            </p>
-            {bundlesMode ? (
-              <Link
-                href="/shop"
-                className="mt-4 inline-flex text-sm font-semibold text-neutral-950 underline-offset-2 hover:underline"
-              >
-                Browse all products
-              </Link>
-            ) : null}
+            <p className="text-neutral-700">No products match this collection.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 lg:grid-cols-4 lg:gap-x-8 lg:gap-y-12">

@@ -1,16 +1,17 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowRight, ShoppingBag, Tag } from 'lucide-react'
+import { ArrowRight, ShoppingBag } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { useCart } from '@/components/cart-provider'
+import { CartItemsCard } from '@/components/cart-items-card'
+import { CartSummaryPanel } from '@/components/cart-summary-panel'
+import { CartUpsellBanner } from '@/components/cart-upsell-banner'
+import { useCartUpsellSettings } from '@/components/cart-upsell-settings-provider'
 import { useLocation } from '@/components/location-provider'
 import { trackViewCart } from '@/lib/meta-pixel'
 import { useStorePromotions } from '@/components/store-promotions-provider'
-import { CartLineItem } from '@/components/cart-line-item'
-import { getProductHref } from '@/lib/product-utils'
-import { getProductImageDisplayClass } from '@/lib/product-image-display'
 import { useProducts } from '@/components/products-provider'
 import { calculateCheckoutTotals } from '@/lib/checkout'
 import { hasSmileRewardFreeShipping } from '@/lib/gelos-ai/smile-reward-storage'
@@ -20,10 +21,13 @@ import {
   interpolatePromoLabel,
   normalizePromoCode,
 } from '@/lib/store-promotions'
-import { cn } from '@/lib/utils'
+import {
+  getActiveCartUpsell,
+  readDismissedCartUpsells,
+} from '@/lib/cart-upsells'
 
 export default function CartPage() {
-  const { items, isHydrated, removeItem, setQuantity } = useCart()
+  const { items, isHydrated, removeItem, setQuantity, addItem } = useCart()
   const { formatPrice, locationId, location } = useLocation()
   const { products } = useProducts()
   const {
@@ -32,10 +36,19 @@ export default function CartPage() {
     setAppliedPromoCode,
     loading: promotionsLoading,
   } = useStorePromotions()
+  const { settings: cartUpsellSettings, loading: cartUpsellsLoading } =
+    useCartUpsellSettings()
   const [promoCode, setPromoCode] = useState(appliedPromoCode)
   const [promoError, setPromoError] = useState('')
   const [smileRewardFreeShipping, setSmileRewardFreeShipping] = useState(false)
+  const [dismissedUpsells, setDismissedUpsells] = useState<Set<string>>(
+    () => new Set(),
+  )
   const cartTracked = useRef(false)
+
+  useEffect(() => {
+    setDismissedUpsells(readDismissedCartUpsells())
+  }, [])
 
   useEffect(() => {
     setPromoCode(appliedPromoCode)
@@ -68,6 +81,8 @@ export default function CartPage() {
       ? Math.min(100, (afterDiscount / freeShippingThreshold) * 100)
       : 0
 
+  const itemCount = items.reduce((count, item) => count + item.quantity, 0)
+
   useEffect(() => {
     if (!isHydrated || items.length === 0 || cartTracked.current) return
     cartTracked.current = true
@@ -99,21 +114,38 @@ export default function CartPage() {
     setPromoError('')
   }
 
-  const cartProductIds = useMemo(
-    () => new Set(items.map((item) => item.id)),
-    [items],
+  const activeUpsell = useMemo(
+    () =>
+      getActiveCartUpsell(
+        items,
+        products,
+        dismissedUpsells,
+        cartUpsellSettings,
+      ),
+    [items, products, dismissedUpsells, cartUpsellSettings],
   )
 
-  const suggestedProducts = products
-    .filter((p) => !cartProductIds.has(p.id))
-    .slice(0, 4)
+  const handleAcceptUpsell = () => {
+    if (!activeUpsell) return
+
+    if (activeUpsell.kind === 'quantity') {
+      setQuantity(activeUpsell.lineKey, activeUpsell.targetQuantity)
+      toast.success(
+        `Updated to ${activeUpsell.targetQuantity} — you're saving more!`,
+      )
+      return
+    }
+
+    addItem(activeUpsell.productId, 1)
+    toast.success(`${activeUpsell.productName} added to your cart`)
+  }
 
   const enabledPromoHints = promotions.promos
     .filter((promo) => promo.enabled)
     .slice(0, 3)
     .map((promo) => promo.code)
 
-  if (!isHydrated || promotionsLoading) {
+  if (!isHydrated || promotionsLoading || cartUpsellsLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center bg-neutral-50 text-neutral-500">
         Loading cart…
@@ -122,24 +154,11 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 text-foreground">
-      <section className="bg-neutral-950">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
-          <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Your cart
-          </h1>
-          <p className="mt-2 text-sm text-white/75 sm:text-base">
-            {items.length > 0
-              ? `${items.reduce((n, i) => n + i.quantity, 0)} item${items.reduce((n, i) => n + i.quantity, 0) === 1 ? '' : 's'} ready for checkout`
-              : 'Review your picks before checkout'}
-          </p>
-        </div>
-      </section>
-
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+    <div className="min-h-screen bg-neutral-100 text-foreground">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:py-12">
         {items.length > 0 ? (
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
-            <div className="space-y-4 lg:col-span-7 xl:col-span-8">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_28rem] lg:items-start lg:gap-8">
+            <div className="space-y-4">
               {promotions.freeShippingEnabled ? (
                 shipping === 0 ? (
                   <p className="rounded-xl bg-[#D4FF59]/30 px-4 py-3 text-sm font-medium text-[#1a2e05]">
@@ -170,148 +189,49 @@ export default function CartPage() {
                 )
               ) : null}
 
-              {items.map((item) => (
-                <CartLineItem
-                  key={item.lineKey}
-                  item={item}
-                  onQuantityChange={setQuantity}
-                  onRemove={removeItem}
-                />
-              ))}
+              <CartItemsCard
+                items={items}
+                onQuantityChange={setQuantity}
+                onRemove={removeItem}
+              />
 
               <Link
                 href="/shop"
-                className="inline-flex items-center gap-2 pt-2 text-sm font-semibold text-neutral-950 hover:underline"
+                className="inline-flex items-center gap-2 pt-1 text-sm font-semibold text-neutral-950 hover:underline"
               >
                 Continue shopping
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
 
-            <div className="lg:col-span-5 xl:col-span-4">
-              <div className="sticky top-[6.5rem] space-y-4">
-                <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
-                  <h2 className="text-lg font-bold text-neutral-950">
-                    Order summary
-                  </h2>
+            <div className="space-y-4 lg:sticky lg:top-[6.5rem]">
+              <CartSummaryPanel
+                itemCount={itemCount}
+                total={total}
+                subtotal={subtotal}
+                discount={discount}
+                shipping={shipping}
+                formatPrice={formatPrice}
+                promoCode={promoCode}
+                promoError={promoError}
+                appliedPromo={appliedPromo}
+                enabledPromoHints={enabledPromoHints}
+                onPromoCodeChange={(value) => {
+                  setPromoCode(value)
+                  setPromoError('')
+                }}
+                onApplyPromo={applyPromo}
+                onClearPromo={clearPromo}
+              />
 
-                  <div className="mt-5 space-y-3 border-b border-neutral-100 pb-5 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Subtotal</span>
-                      <span className="font-medium tabular-nums">
-                        {formatPrice(subtotal)}
-                      </span>
-                    </div>
-                    {appliedPromo && discount > 0 && (
-                      <div className="flex justify-between text-[#E91E8C]">
-                        <span>
-                          Promo ({appliedPromo.label || `${appliedPromo.discountPercent}% off`})
-                        </span>
-                        <span className="font-medium tabular-nums">
-                          −{formatPrice(discount)}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Shipping</span>
-                      <span
-                        className={cn(
-                          'font-medium tabular-nums',
-                          shipping === 0 && 'text-[#1a2e05]',
-                        )}
-                      >
-                        {shipping === 0 ? 'Free' : formatPrice(shipping)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between py-5">
-                    <span className="text-base font-semibold">Total</span>
-                    <span className="text-2xl font-bold tabular-nums text-neutral-950">
-                      {formatPrice(total)}
-                    </span>
-                  </div>
-
-                  <div className="mb-5 flex gap-2">
-                    <div className="relative flex-1">
-                      <Tag className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-                      <input
-                        type="text"
-                        value={promoCode}
-                        onChange={(e) => {
-                          setPromoCode(e.target.value)
-                          setPromoError('')
-                        }}
-                        placeholder="Promo code"
-                        disabled={Boolean(appliedPromo)}
-                        className="w-full rounded-full border border-neutral-200 bg-neutral-50 py-2.5 pr-4 pl-10 text-sm outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950 disabled:opacity-60"
-                      />
-                    </div>
-                    {appliedPromo ? (
-                      <button
-                        type="button"
-                        onClick={clearPromo}
-                        className="shrink-0 rounded-full border border-neutral-200 px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-neutral-50"
-                      >
-                        Remove
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={applyPromo}
-                        disabled={!promoCode.trim()}
-                        className="shrink-0 rounded-full border border-neutral-200 px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        Apply
-                      </button>
-                    )}
-                  </div>
-                  {appliedPromo ? (
-                    <p className="-mt-3 mb-4 text-xs text-[#E91E8C]">
-                      Code {appliedPromo.code} applied successfully.
-                    </p>
-                  ) : promoError ? (
-                    <p className="-mt-3 mb-4 text-xs text-red-600">{promoError}</p>
-                  ) : enabledPromoHints.length > 0 ? (
-                    <p className="-mt-3 mb-4 text-xs text-neutral-500">
-                      Try{' '}
-                      {enabledPromoHints.map((code, index) => (
-                        <span key={code}>
-                          <button
-                            type="button"
-                            onClick={() => setPromoCode(code)}
-                            className="font-medium text-neutral-700 underline-offset-2 hover:underline"
-                          >
-                            {code}
-                          </button>
-                          {index < enabledPromoHints.length - 1 ? ' or ' : ''}
-                        </span>
-                      ))}{' '}
-                      for a discount.
-                    </p>
-                  ) : null}
-
-                  <Link
-                    href="/checkout"
-                    className="flex w-full items-center justify-center rounded-full bg-neutral-950 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800"
-                  >
-                    Proceed to checkout
-                  </Link>
-                  <Link
-                    href="/shop"
-                    className="mt-3 flex w-full items-center justify-center rounded-full border border-neutral-200 py-3.5 text-sm font-semibold text-neutral-950 transition-colors hover:bg-neutral-50"
-                  >
-                    Continue shopping
-                  </Link>
-
-                  {promotions.freeShippingEnabled ? (
-                    <p className="mt-5 text-center text-xs text-neutral-500">
-                      Free {promotions.freeShippingRewardLabel} on orders over{' '}
-                      {formatPrice(promotions.freeShippingThreshold)}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
+              {activeUpsell ? (
+                <CartUpsellBanner
+                  offer={activeUpsell}
+                  formatPrice={formatPrice}
+                  onAccept={handleAcceptUpsell}
+                  compact
+                />
+              ) : null}
             </div>
           </div>
         ) : (
@@ -338,45 +258,6 @@ export default function CartPage() {
               View new arrivals
             </Link>
           </div>
-        )}
-
-        {items.length > 0 && suggestedProducts.length > 0 && (
-          <section className="mt-14 border-t border-neutral-200 pt-12">
-            <h2 className="text-xl font-bold text-neutral-950">
-              You might also like
-            </h2>
-            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
-              {suggestedProducts.map((product) => (
-                <Link
-                  key={product.id}
-                  href={getProductHref(product)}
-                  className="group flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white transition-shadow hover:shadow-md"
-                >
-                  <div className="relative aspect-square bg-white">
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      fill
-                      className={getProductImageDisplayClass(
-                        product.id,
-                        product.image,
-                        'transition-transform duration-300 group-hover:scale-[1.03]',
-                      )}
-                      sizes="(max-width: 640px) 50vw, 25vw"
-                    />
-                  </div>
-                  <div className="p-3 text-center">
-                    <p className="line-clamp-2 text-xs font-medium text-neutral-950 sm:text-sm">
-                      {product.name}
-                    </p>
-                    <p className="mt-1 text-sm font-bold text-[#E91E8C]">
-                      {formatPrice(product.price)}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
         )}
       </div>
     </div>

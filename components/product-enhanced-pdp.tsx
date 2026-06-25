@@ -8,6 +8,7 @@ import { ProductAccordionSection } from '@/components/product-accordion-section'
 import { ProductAdminVariantPicker } from '@/components/product-admin-variant-picker'
 import { ProductFeatureGallery } from '@/components/product-feature-gallery'
 import { ProductGallery } from '@/components/product-gallery'
+import { ProductRating } from '@/components/product-rating'
 import { ProductShareMenu } from '@/components/product-share-menu'
 import { getAdminGalleryMedia, getAdminCarouselImages, getProductCarouselImages } from '@/lib/product-gallery-images'
 import {
@@ -186,6 +187,11 @@ export function ProductEnhancedPdp({
                   productHref={getProductHref(product)}
                 />
               </div>
+              <ProductRating
+                rating={product.rating}
+                reviews={product.reviews}
+                className="mt-3"
+              />
               {variantPicker}
             </div>
 

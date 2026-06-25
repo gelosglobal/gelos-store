@@ -26,6 +26,13 @@ export const featuredHeroProductIds = [
 /** Temporary hero background while custom slide banners are in design. */
 export const featuredHeroVideoSrc = '/gelos/GELOS%20VIDEO.mp4'
 
+/** Static homepage hero copy (no carousel). */
+export const featuredHeroCopy = {
+  headline: 'Premium smile care for every day',
+  subtext:
+    '',
+}
+
 export const featuredHeroSlides: Record<string, FeaturedHeroSlide> = {
   '1': {
     productId: '1',

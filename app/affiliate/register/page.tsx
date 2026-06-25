@@ -329,7 +329,7 @@ export default function AffiliateRegisterPage() {
           </Card>
         </div>
 
-        <SiteFooter showWhatSetsUsApart={false} />
+        <SiteFooter />
       </div>
     )
   }
@@ -709,7 +709,7 @@ export default function AffiliateRegisterPage() {
         </div>
       </div>
 
-      <SiteFooter showWhatSetsUsApart={false} />
+      <SiteFooter />
     </div>
   )
 }

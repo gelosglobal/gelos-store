@@ -136,6 +136,6 @@ export async function buildGelosAiCatalogContext(): Promise<string> {
     `Collections: ${collectionLines}`,
     `Promos: ${promoSummary}. ${shippingLine}`,
     `Retail stockists: ${stockistNames}`,
-    'Pages: /shop, /shop?category=Toothpaste, /shop?category=Whitening, /collections/mouth-washes, /shop?bundles=true, /shop?new-arrivals=true, /ai?tab=scan, /ai?tab=dentist, /cart, /checkout',
+    'Pages: /shop, /shop?category=Toothpaste, /shop?category=Whitening, /collections/mouth-washes, /shop?bundles=true, /shop?new-arrivals=true, /smile-test, /ai/chat, /ai?tab=scan, /book-dentist, /cart, /checkout',
   ].join('\n')
 }

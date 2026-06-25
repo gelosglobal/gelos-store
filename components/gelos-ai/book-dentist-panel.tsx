@@ -1,9 +1,12 @@
 'use client'
 
+import Image from 'next/image'
 import {
   Calendar,
+  CalendarDays,
   CheckCircle2,
   Clock,
+  ExternalLink,
   Globe,
   Loader2,
   Mail,
@@ -21,12 +24,23 @@ import {
   getAvailableTimeSlotsForDate,
   getNextClinicDate,
   isClinicOpenDay,
+  parseClinicDate,
   validateAppointmentSlot,
 } from '@/lib/gelos-ai/dentist-schedule'
 import { dentistPartners } from '@/lib/gelos-ai/dentists'
 import { trackSchedule } from '@/lib/meta-pixel'
+import { cn } from '@/lib/utils'
 
 const partnerDentist = dentistPartners[0]
+const CLINIC_IMAGE = '/gelos/dentist.png'
+
+const REASON_SUGGESTIONS = [
+  'Routine check-up',
+  'Whitening consult',
+  'Tooth sensitivity',
+  'Gum care',
+  'Kids dental visit',
+] as const
 
 type BookingConfirmation = {
   reference: string
@@ -38,6 +52,22 @@ type BookingConfirmation = {
     phone: string
     email: string
   }
+}
+
+function formatAppointmentDate(dateValue: string): string {
+  const date = parseClinicDate(dateValue)
+  if (!date) return dateValue
+
+  return date.toLocaleDateString('en-GH', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
+function getMapsUrl(address: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${address}, Accra, Ghana`)}`
 }
 
 export function BookDentistPanel() {
@@ -58,8 +88,7 @@ export function BookDentistPanel() {
   )
 
   useEffect(() => {
-    const nextDate = getNextClinicDate()
-    setPreferredDate(nextDate)
+    setPreferredDate(getNextClinicDate())
   }, [])
 
   useEffect(() => {
@@ -125,7 +154,6 @@ export function BookDentistPanel() {
       }
 
       trackSchedule(partnerDentist.clinic)
-
       setConfirmation(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Booking failed.')
@@ -136,41 +164,82 @@ export function BookDentistPanel() {
 
   if (!partnerDentist) {
     return (
-      <p className="text-sm text-muted-foreground">
-        No partner dentist is available right now. Please check back soon.
-      </p>
+      <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-8 text-center">
+        <p className="text-sm text-neutral-600">
+          No partner dentist is available right now. Please check back soon.
+        </p>
+      </div>
     )
   }
 
   if (confirmation) {
     return (
-      <div className="mx-auto max-w-xl rounded-2xl border border-[#84CC16]/30 bg-[#84CC16]/10 p-8 text-center">
-        <CheckCircle2 className="mx-auto mb-4 h-12 w-12 text-[#5fa30d]" />
-        <h3 className="text-xl font-semibold text-foreground">Booking request sent</h3>
-        <p className="mt-2 text-sm text-muted-foreground">{confirmation.message}</p>
-        <div className="mt-6 rounded-xl bg-white p-4 text-left text-sm">
-          <p>
-            <span className="font-medium">Reference:</span> {confirmation.reference}
-          </p>
-          <p className="mt-1">
-            <span className="font-medium">Dentist:</span> {confirmation.dentist.name}
-          </p>
-          <p className="mt-1">
-            <span className="font-medium">Clinic:</span> {confirmation.dentist.clinic}
-          </p>
-          <p className="mt-1">
-            <span className="font-medium">Location:</span> {confirmation.dentist.address}
-          </p>
-          <p className="mt-1">
-            <span className="font-medium">Phone:</span> {confirmation.dentist.phone}
-          </p>
-          <p className="mt-1">
-            <span className="font-medium">Email:</span> {confirmation.dentist.email}
-          </p>
+      <div className="mx-auto max-w-2xl">
+        <div className="overflow-hidden rounded-[1.75rem] border border-[#BBF7D0] bg-[#F0FDF4] shadow-sm">
+          <div className="border-b border-[#BBF7D0]/80 bg-white px-6 py-8 text-center sm:px-8">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-[#DCFCE7]">
+              <CheckCircle2 className="size-7 text-[#15803D]" />
+            </div>
+            <h2 className="mt-4 text-2xl font-bold text-neutral-950">Request sent</h2>
+            <p className="mt-2 text-sm leading-relaxed text-neutral-600">
+              {confirmation.message}
+            </p>
+          </div>
+
+          <div className="space-y-4 p-6 sm:p-8">
+            <div className="rounded-2xl border border-white/80 bg-white p-4 shadow-sm">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-500">
+                Your appointment
+              </p>
+              <p className="mt-2 text-lg font-bold text-neutral-950">
+                {formatAppointmentDate(preferredDate)}
+              </p>
+              <p className="mt-1 text-sm font-medium text-[#15803D]">{preferredTime}</p>
+            </div>
+
+            <dl className="grid gap-3 text-sm text-neutral-700">
+              <div className="flex justify-between gap-4 border-b border-[#BBF7D0]/60 pb-3">
+                <dt className="text-neutral-500">Reference</dt>
+                <dd className="font-semibold text-neutral-950">{confirmation.reference}</dd>
+              </div>
+              <div className="flex justify-between gap-4 border-b border-[#BBF7D0]/60 pb-3">
+                <dt className="text-neutral-500">Dentist</dt>
+                <dd className="text-right font-medium">{confirmation.dentist.name}</dd>
+              </div>
+              <div className="flex justify-between gap-4 border-b border-[#BBF7D0]/60 pb-3">
+                <dt className="text-neutral-500">Clinic</dt>
+                <dd className="text-right font-medium">{confirmation.dentist.clinic}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-neutral-500">Location</dt>
+                <dd className="text-right">{confirmation.dentist.address}</dd>
+              </div>
+            </dl>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <a
+                href={`tel:${confirmation.dentist.phone.replace(/\s/g, '').split('/')[0]?.trim()}`}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-neutral-200 bg-white px-4 py-3 text-sm font-semibold text-neutral-800 transition-colors hover:bg-neutral-50"
+              >
+                <Phone className="size-4" />
+                Call clinic
+              </a>
+              <a
+                href={getMapsUrl(confirmation.dentist.address)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-[#84CC16] px-4 py-3 text-sm font-semibold text-neutral-950 transition-colors hover:bg-[#73b512]"
+              >
+                <MapPin className="size-4" />
+                Get directions
+              </a>
+            </div>
+          </div>
         </div>
+
         <Button
           type="button"
-          className="mt-6 rounded-full"
+          className="mt-6 w-full rounded-full"
           variant="outline"
           onClick={() => setConfirmation(null)}
         >
@@ -181,177 +250,279 @@ export function BookDentistPanel() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-      <div>
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#4F6CF7]/15 text-[#4F6CF7]">
-            <Stethoscope className="h-5 w-5" />
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-10">
+      <aside className="space-y-4">
+        <div className="overflow-hidden rounded-[1.75rem] border border-neutral-200 bg-white shadow-sm">
+          <div className="relative h-36 bg-gradient-to-br from-[#F0FDF4] via-white to-[#F7FBFE] sm:h-40">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(132,204,22,0.12),transparent_55%)]" />
+            <div className="absolute bottom-0 right-4 h-32 w-32 sm:right-6 sm:h-36 sm:w-36">
+              <Image
+                src={CLINIC_IMAGE}
+                alt=""
+                fill
+                className="object-contain object-bottom"
+                sizes="144px"
+              />
+            </div>
+            <div className="relative flex h-full flex-col justify-end p-5 sm:p-6">
+              <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#15803D] shadow-sm backdrop-blur-sm">
+                <Stethoscope className="size-3" />
+                Gelos partner
+              </span>
+              <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#65A30D]">
+                {partnerDentist.clinic}
+              </p>
+              <h2 className="mt-1 text-2xl font-bold text-neutral-950">{partnerDentist.name}</h2>
+              <p className="text-sm text-neutral-600">{partnerDentist.title}</p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-semibold text-foreground">Gelos partner clinic</h3>
-            <p className="text-sm text-muted-foreground">
-              Book a consultation with our trusted dental partner in Accra.
-            </p>
-          </div>
-        </div>
 
-        <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
-          <div className="p-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#4F6CF7]">
-              {partnerDentist.clinic}
-            </p>
-            <p className="mt-1 text-xl font-semibold text-foreground">{partnerDentist.name}</p>
-            <p className="text-sm text-muted-foreground">{partnerDentist.title}</p>
+          <div className="space-y-4 border-t border-neutral-100 p-5 sm:p-6">
+            <div className="flex items-start gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#F0FDF4] text-[#65A30D]">
+                <Clock className="size-4" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-neutral-950">Opening hours</p>
+                <p className="mt-0.5 text-sm text-neutral-600">{CLINIC_HOURS_LABEL}</p>
+              </div>
+            </div>
 
-            <ul className="mt-5 space-y-3 text-sm text-foreground">
-              <li className="flex items-start gap-2.5">
-                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <span>
-                  <span className="font-medium text-foreground">Opening hours</span>
-                  <br />
-                  <span className="text-muted-foreground">{CLINIC_HOURS_LABEL}</span>
-                </span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <span>
-                  {partnerDentist.address}
-                  <br />
-                  <span className="text-muted-foreground">{partnerDentist.postalBox}</span>
-                </span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <span>
-                  <span className="text-muted-foreground">T:</span> {partnerDentist.phone}
-                  <br />
-                  <span className="text-muted-foreground">M:</span> {partnerDentist.mobile}
-                </span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <span>
-                  {partnerDentist.emails.map((address) => (
-                    <span key={address} className="block">
-                      {address}
-                    </span>
-                  ))}
-                </span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <Globe className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="flex items-start gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#F0FDF4] text-[#65A30D]">
+                <MapPin className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-neutral-950">Location</p>
+                <p className="mt-0.5 text-sm text-neutral-600">{partnerDentist.address}</p>
+                <p className="text-sm text-neutral-500">{partnerDentist.postalBox}</p>
                 <a
-                  href={`https://${partnerDentist.website.replace(/^https?:\/\//, '')}`}
+                  href={getMapsUrl(partnerDentist.address)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#4F6CF7] hover:underline"
+                  className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-[#15803D] hover:underline"
                 >
-                  {partnerDentist.website}
+                  Open in Maps
+                  <ExternalLink className="size-3.5" />
                 </a>
-              </li>
-            </ul>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#F0FDF4] text-[#65A30D]">
+                <Phone className="size-4" />
+              </span>
+              <div className="space-y-1 text-sm">
+                <p>
+                  <span className="text-neutral-500">Tel:</span>{' '}
+                  <a
+                    href={`tel:${partnerDentist.phone.replace(/\s/g, '').split('/')[0]?.trim()}`}
+                    className="font-medium text-neutral-900 hover:underline"
+                  >
+                    {partnerDentist.phone}
+                  </a>
+                </p>
+                <p>
+                  <span className="text-neutral-500">Mobile:</span>{' '}
+                  <a
+                    href={`tel:${partnerDentist.mobile}`}
+                    className="font-medium text-neutral-900 hover:underline"
+                  >
+                    {partnerDentist.mobile}
+                  </a>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#F0FDF4] text-[#65A30D]">
+                <Mail className="size-4" />
+              </span>
+              <div className="space-y-1 text-sm">
+                {partnerDentist.emails.map((address) => (
+                  <a
+                    key={address}
+                    href={`mailto:${address}`}
+                    className="block font-medium text-neutral-900 hover:underline"
+                  >
+                    {address}
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#F0FDF4] text-[#65A30D]">
+                <Globe className="size-4" />
+              </span>
+              <a
+                href={`https://${partnerDentist.website.replace(/^https?:\/\//, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-semibold text-[#15803D] hover:underline"
+              >
+                {partnerDentist.website}
+              </a>
+            </div>
           </div>
         </div>
-      </div>
+      </aside>
 
       <form
         onSubmit={(e) => void onSubmit(e)}
-        className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm"
+        className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-sm sm:p-7"
       >
-        <h3 className="mb-1 font-semibold text-foreground">Your appointment details</h3>
-        <p className="mb-4 text-sm text-muted-foreground">{CLINIC_HOURS_LABEL}</p>
+        <div className="mb-6">
+          <h3 className="text-xl font-bold text-neutral-950">Request your appointment</h3>
+          <p className="mt-1 text-sm text-neutral-600">
+            Pick a date and time — we&apos;ll send your request to the clinic for confirmation.
+          </p>
+        </div>
 
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="booking-name">Full name</Label>
-            <Input
-              id="booking-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="mt-1.5 rounded-xl"
-            />
-          </div>
-          <div>
-            <Label htmlFor="booking-email">Email</Label>
-            <Input
-              id="booking-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="mt-1.5 rounded-xl"
-            />
-          </div>
-          <div>
-            <Label htmlFor="booking-phone">Phone</Label>
-            <Input
-              id="booking-phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-              className="mt-1.5 rounded-xl"
-            />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-6">
+          <fieldset className="space-y-4">
+            <legend className="text-sm font-semibold text-neutral-950">When would you like to visit?</legend>
+
             <div>
-              <Label htmlFor="booking-date">Preferred date</Label>
-              <Input
-                id="booking-date"
-                type="date"
-                value={preferredDate}
-                onChange={(e) => onDateChange(e.target.value)}
-                required
-                min={new Date().toISOString().slice(0, 10)}
-                className="mt-1.5 rounded-xl"
-              />
+              <Label htmlFor="booking-date" className="text-neutral-700">
+                Preferred date
+              </Label>
+              <div className="relative mt-1.5">
+                <CalendarDays className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-neutral-400" />
+                <Input
+                  id="booking-date"
+                  type="date"
+                  value={preferredDate}
+                  onChange={(e) => onDateChange(e.target.value)}
+                  required
+                  min={new Date().toISOString().slice(0, 10)}
+                  className="rounded-xl pl-10"
+                />
+              </div>
               {dateError ? (
-                <p className="mt-1.5 text-xs text-red-600">{dateError}</p>
+                <p className="mt-1.5 text-xs font-medium text-red-600">{dateError}</p>
               ) : (
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  Open Monday – Saturday only
-                </p>
+                <p className="mt-1.5 text-xs text-neutral-500">Open Monday – Saturday only</p>
               )}
             </div>
+
             <div>
-              <Label htmlFor="booking-time">Preferred time</Label>
-              <select
-                id="booking-time"
-                value={preferredTime}
-                onChange={(e) => setPreferredTime(e.target.value)}
-                required
-                disabled={availableTimeSlots.length === 0}
-                className="mt-1.5 flex h-9 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {availableTimeSlots.length === 0 ? (
-                  <option value="">No slots available</option>
-                ) : (
-                  availableTimeSlots.map((slot) => (
-                    <option key={slot} value={slot}>
-                      {slot}
-                    </option>
-                  ))
-                )}
-              </select>
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                30-minute slots, 8:00 AM – 7:00 PM
-              </p>
+              <Label className="text-neutral-700">Preferred time</Label>
+              {availableTimeSlots.length === 0 ? (
+                <p className="mt-2 rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-6 text-center text-sm text-neutral-500">
+                  No slots left for this date. Try another day.
+                </p>
+              ) : (
+                <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {availableTimeSlots.map((slot) => {
+                    const selected = preferredTime === slot
+                    return (
+                      <button
+                        key={slot}
+                        type="button"
+                        onClick={() => setPreferredTime(slot)}
+                        className={cn(
+                          'rounded-xl border px-2 py-2.5 text-xs font-semibold transition-colors sm:text-sm',
+                          selected
+                            ? 'border-[#84CC16] bg-[#F0FDF4] text-[#15803D] shadow-sm'
+                            : 'border-neutral-200 bg-white text-neutral-700 hover:border-[#BBF7D0] hover:bg-[#FAFFF5]',
+                        )}
+                      >
+                        {slot}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+              <p className="mt-2 text-xs text-neutral-500">30-minute slots, 8:00 AM – 7:00 PM</p>
             </div>
-          </div>
-          <div>
-            <Label htmlFor="booking-reason">Reason for visit (optional)</Label>
+          </fieldset>
+
+          <fieldset className="space-y-4 border-t border-neutral-100 pt-6">
+            <legend className="text-sm font-semibold text-neutral-950">Your contact details</legend>
+
+            <div>
+              <Label htmlFor="booking-name">Full name</Label>
+              <Input
+                id="booking-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                autoComplete="name"
+                placeholder="Your full name"
+                className="mt-1.5 rounded-xl"
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="booking-email">Email</Label>
+                <Input
+                  id="booking-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  placeholder="you@email.com"
+                  className="mt-1.5 rounded-xl"
+                />
+              </div>
+              <div>
+                <Label htmlFor="booking-phone">Phone</Label>
+                <Input
+                  id="booking-phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  autoComplete="tel"
+                  placeholder="e.g. 024 000 0000"
+                  className="mt-1.5 rounded-xl"
+                />
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset className="space-y-3 border-t border-neutral-100 pt-6">
+            <legend className="text-sm font-semibold text-neutral-950">
+              Reason for visit <span className="font-normal text-neutral-500">(optional)</span>
+            </legend>
+
+            <div className="flex flex-wrap gap-2">
+              {REASON_SUGGESTIONS.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onClick={() => setReason(suggestion)}
+                  className={cn(
+                    'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                    reason === suggestion
+                      ? 'border-[#84CC16] bg-[#F0FDF4] text-[#15803D]'
+                      : 'border-neutral-200 bg-neutral-50 text-neutral-600 hover:border-[#BBF7D0]',
+                  )}
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+
             <Textarea
               id="booking-reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={3}
-              placeholder="Whitening consult, routine check-up, sensitivity…"
-              className="mt-1.5 rounded-xl"
+              placeholder="Anything else the clinic should know?"
+              className="rounded-xl"
             />
-          </div>
+          </fieldset>
         </div>
 
-        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        {error ? (
+          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </p>
+        ) : null}
 
         <Button
           type="submit"
@@ -361,15 +532,24 @@ export function BookDentistPanel() {
             !preferredTime ||
             availableTimeSlots.length === 0
           }
-          className="mt-5 w-full rounded-full bg-neutral-950 text-white hover:bg-neutral-800"
+          className="mt-6 h-12 w-full rounded-full bg-[#84CC16] text-base font-semibold text-neutral-950 hover:bg-[#73b512]"
         >
           {isSubmitting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Sending request…
+            </>
           ) : (
-            <Calendar className="h-4 w-4" />
+            <>
+              <Calendar className="size-4" />
+              Request appointment
+            </>
           )}
-          Request appointment
         </Button>
+
+        <p className="mt-3 text-center text-xs leading-relaxed text-neutral-500">
+          This sends a booking request — the clinic will confirm by email or phone.
+        </p>
       </form>
     </div>
   )

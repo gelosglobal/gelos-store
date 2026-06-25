@@ -2,6 +2,7 @@
 
 import { AdminPageHeader } from '@/components/admin/admin-page-header'
 import { PromotionsSettingsForm } from '@/components/admin/promotions-settings-form'
+import { CartUpsellSettingsForm } from '@/components/admin/cart-upsell-settings-form'
 
 export default function AdminCheckoutsPage() {
   return (
@@ -12,6 +13,7 @@ export default function AdminCheckoutsPage() {
       />
 
       <PromotionsSettingsForm />
+      <CartUpsellSettingsForm />
     </div>
   )
 }

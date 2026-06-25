@@ -44,7 +44,7 @@ export function ScanYourSmileCta({
   return (
     <div
       className={cn(
-        'rounded-2xl border border-[#84CC16]/30 bg-gradient-to-br from-[#84CC16]/15 via-white to-[#4F6CF7]/10 p-6 text-center',
+        'rounded-2xl border border-[#84CC16]/30 bg-gradient-to-br from-[#84CC16]/15 via-white to-[#F0FDF4] p-6 text-center',
         className,
       )}
     >

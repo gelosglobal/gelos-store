@@ -7,6 +7,11 @@ import {
   type PromoCode,
   type StorePromotions,
 } from '@/lib/store-promotions'
+import {
+  DEFAULT_CART_UPSELL_SETTINGS,
+  sanitizeCartUpsellSettings,
+  type CartUpsellSettings,
+} from '@/lib/cart-upsell-settings'
 
 const SETTINGS_KEY = 'default'
 
@@ -76,4 +81,44 @@ export async function updateStorePromotions(
   })
 
   return docToStorePromotions(doc)
+}
+
+function parseCartUpsells(value: unknown): CartUpsellSettings {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return DEFAULT_CART_UPSELL_SETTINGS
+  }
+  return sanitizeCartUpsellSettings(value as Partial<CartUpsellSettings>)
+}
+
+export async function getCartUpsellSettings(): Promise<CartUpsellSettings> {
+  if (!isDatabaseConfigured()) return DEFAULT_CART_UPSELL_SETTINGS
+
+  const doc = await prisma.storeSettings.findUnique({
+    where: { key: SETTINGS_KEY },
+    select: { cartUpsells: true },
+  })
+
+  if (!doc) return DEFAULT_CART_UPSELL_SETTINGS
+  return parseCartUpsells(doc.cartUpsells)
+}
+
+export async function updateCartUpsellSettings(
+  input: Partial<CartUpsellSettings>,
+): Promise<CartUpsellSettings> {
+  const data = sanitizeCartUpsellSettings(input)
+  if (!isDatabaseConfigured()) return data
+
+  const doc = await prisma.storeSettings.upsert({
+    where: { key: SETTINGS_KEY },
+    create: {
+      key: SETTINGS_KEY,
+      cartUpsells: data as Prisma.InputJsonValue,
+    },
+    update: {
+      cartUpsells: data as Prisma.InputJsonValue,
+    },
+    select: { cartUpsells: true },
+  })
+
+  return parseCartUpsells(doc.cartUpsells)
 }

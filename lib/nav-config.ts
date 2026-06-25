@@ -11,6 +11,7 @@ import {
   ShowerHead,
   Sparkles,
   ScanFace,
+  Stethoscope,
 } from 'lucide-react'
 import { bestSellerIds } from '@/lib/best-seller-meta'
 
@@ -19,7 +20,7 @@ export type MainNavLink = {
   label: string
   href: string
   icon: LucideIcon
-  /** Opens the all-products mega menu instead of navigating */
+  /** Hover opens the all-products mega menu; click still uses href */
   opensMegaMenu?: boolean
 }
 
@@ -48,6 +49,12 @@ export const mainNavLinks: MainNavLink[] = [
     label: 'Gelos AI',
     href: '/ai',
     icon: ScanFace,
+  },
+  {
+    id: 'book-dentist',
+    label: 'Book a dentist',
+    href: '/book-dentist',
+    icon: Stethoscope,
   },
 ]
 

@@ -4,7 +4,6 @@ import type { ReactNode } from 'react'
 import { ProductEnhancedPdp } from '@/components/product-enhanced-pdp'
 import { ProductCategoryVariantPicker } from '@/components/product-category-variant-picker'
 import { ProductMouthwashFlavorPicker } from '@/components/product-mouthwash-flavor-picker'
-import { ProductToothbrushStylePicker } from '@/components/product-toothbrush-style-picker'
 import { ProductToothpasteFlavorPicker } from '@/components/product-toothpaste-flavor-picker'
 import { ProductTongueScraperStylePicker } from '@/components/product-tongue-scraper-style-picker'
 import { ProductWellnessFlavorPicker } from '@/components/product-wellness-flavor-picker'
@@ -65,12 +64,6 @@ function buildFlavorPicker(
         />
       )
     case 'Toothbrushes':
-      return (
-        <ProductToothbrushStylePicker
-          products={variants}
-          currentProduct={product}
-        />
-      )
     case 'Water Flossers':
     case 'Accessories':
     case 'Tools':

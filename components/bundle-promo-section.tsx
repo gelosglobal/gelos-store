@@ -1,79 +1,70 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-const BUNDLE_PRODUCTS = [
-  {
-    src: '/gelos/watermelon.png',
-    alt: 'Gelos Watermelon Toothpaste',
-    width: 320,
-    height: 380,
-    className:
-      'absolute bottom-2 left-[2%] z-20 w-[56%] -rotate-6 drop-shadow-[0_22px_34px_rgba(15,23,42,0.2)] sm:left-[4%] sm:w-[52%]',
-  },
-  {
-    src: '/gelos/toothbrush.png',
-    alt: 'Gelos Toothbrush',
-    width: 180,
-    height: 420,
-    className:
-      'absolute bottom-0 right-[2%] z-10 w-[40%] rotate-3 drop-shadow-[0_18px_28px_rgba(15,23,42,0.18)] sm:right-[4%] sm:w-[36%]',
-  },
-] as const
+const BUNDLE_IMAGE = '/gelos/bundle.PNG'
+
+const bannerHeights =
+  'lg:min-h-[min(82vh,860px)] xl:min-h-[min(86vh,940px)]'
 
 export function BundlePromoSection() {
   return (
     <section
       aria-labelledby="bundles-heading"
-      className="border-b border-border bg-[radial-gradient(ellipse_at_top,#cfe8f6_0%,#e8f4fb_42%,#f7fbfe_100%)] py-12 md:py-16 lg:py-20"
+      className="px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-12 xl:px-12 xl:py-14"
     >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 items-center gap-10 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] md:gap-12 lg:gap-16">
-          <div className="max-w-xl md:py-4">
-            <h2
-              id="bundles-heading"
-              className="text-3xl font-bold leading-[1.1] tracking-tight text-neutral-950 sm:text-4xl lg:text-[2.75rem]"
-            >
-              Your everyday smile bundle, sorted.
-            </h2>
-            <p className="mt-4 text-base leading-relaxed text-neutral-800 sm:mt-5 sm:text-lg">
-              An easy way to stay consistent with whitening at home.
-            </p>
-            <Link
-              href="/shop?bundles=true"
-              className="mt-8 inline-flex rounded-full bg-neutral-950 px-8 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 sm:mt-10 sm:px-10 sm:text-base"
-            >
-              Shop now
-            </Link>
-          </div>
-
-          <div className="relative mx-auto aspect-[4/3] w-full max-w-3xl md:max-w-none">
-            <div className="absolute inset-0">
-              {BUNDLE_PRODUCTS.map((product) => (
-                <Image
-                  key={product.src}
-                  src={product.src}
-                  alt={product.alt}
-                  width={product.width}
-                  height={product.height}
-                  className={product.className}
-                  sizes="(max-width: 768px) 45vw, 320px"
-                />
-              ))}
-
-              <div
-                aria-hidden
-                className="absolute bottom-[38%] left-1/2 z-30 flex h-10 w-10 -translate-x-1/2 items-center justify-center bg-neutral-950 text-2xl font-bold text-[#ffe500] shadow-lg"
-              >
-                +
-              </div>
-            </div>
-          </div>
+      <div
+        className={cn(
+          'relative mx-auto w-full max-w-7xl overflow-hidden rounded-[2rem] bg-white shadow-xl',
+          'lg:max-w-[90rem] lg:rounded-[2.5rem] xl:max-w-[100rem]',
+          bannerHeights,
+        )}
+      >
+        <div className="relative h-[min(58vw,17.5rem)] w-full sm:h-[min(54vw,20rem)] lg:absolute lg:inset-0 lg:h-full">
+          <Image
+            src={BUNDLE_IMAGE}
+            alt=""
+            fill
+            priority={false}
+            className="object-cover object-[center_35%] lg:object-[28%_center]"
+            sizes="(max-width: 1024px) 100vw, 90rem"
+            aria-hidden
+          />
         </div>
 
-        {/* <p className="mx-auto mt-8 max-w-4xl text-center text-[11px] leading-relaxed text-neutral-500 sm:mt-10 sm:text-xs">
-          *Watermelon Foaming Mouthwash included free with select Gelos whitening bundles.
-          Value based on purchasing items individually at standard prices. T&amp;C&apos;s apply.
-        </p> */}
+        <div
+          className={cn(
+            'relative z-10 bg-white px-4 py-7 sm:px-6 sm:py-8',
+            'lg:absolute lg:left-10 lg:top-12 lg:max-w-lg lg:bg-transparent lg:px-0 lg:py-0',
+            'xl:left-14 xl:top-14',
+          )}
+        >
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-600 sm:text-xs lg:text-neutral-800">
+            Bundle &amp; save
+          </p>
+
+          <h2
+            id="bundles-heading"
+            className="mt-2.5 text-[1.75rem] font-bold leading-[1.08] tracking-tight text-neutral-950 sm:mt-3 sm:text-4xl lg:mt-3 lg:text-[2.85rem]"
+          >
+            Your everyday smile bundle,{' '}
+            <span className="text-[#65A30D] lg:text-white">sorted.</span>
+          </h2>
+
+          {/* <p className="mt-3 max-w-md text-sm leading-relaxed text-neutral-600 sm:mt-4 sm:text-base lg:mt-4 lg:text-lg lg:text-neutral-800">
+            Toothpaste, brushes, and whitening essentials — curated for a simple
+            at-home routine.
+          </p> */}
+
+          <Link
+            href="/shop?bundles=true"
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-neutral-950 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 sm:mt-7 sm:w-auto sm:justify-start lg:mt-8 lg:inline-flex lg:px-8 lg:text-base"
+          >
+            Shop bundles
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
+        </div>
       </div>
     </section>
   )

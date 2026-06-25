@@ -192,6 +192,38 @@
   animation-play-state: paused;
 }
 
+/* Extend stockist logos to the viewport right edge from the right grid column */
+.stockists-marquee-bleed {
+  width: calc(100% + 2rem + max(0px, (100vw - 80rem) / 2));
+  margin-right: calc(-1 * max(0px, (100vw - 80rem) / 2));
+  margin-left: -1rem;
+}
+
+@media (min-width: 640px) {
+  .stockists-marquee-bleed {
+    width: calc(100% + 3rem + max(0px, (100vw - 80rem) / 2));
+    margin-left: -1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .stockists-marquee-bleed {
+    margin-left: 0;
+    width: calc(100% + max(0px, (100vw - 80rem) / 2));
+    margin-right: calc(-1 * max(0px, (100vw - 80rem) / 2));
+  }
+}
+
+.reviews-marquee {
+  display: flex;
+  width: max-content;
+  animation: announcement-marquee 45s linear infinite;
+}
+
+.reviews-marquee:hover {
+  animation-play-state: paused;
+}
+
 /* Smooth transitions for all interactive elements */
 a, button, input {
   @apply transition-all duration-200;

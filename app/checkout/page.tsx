@@ -6,12 +6,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Banknote, Loader2, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCart } from '@/components/cart-provider'
+import { CheckoutOrderSummary } from '@/components/checkout-order-summary'
+import { CheckoutUpsells } from '@/components/checkout-upsells'
 import { useLocation } from '@/components/location-provider'
 import { useStorePromotions } from '@/components/store-promotions-provider'
 import { useAffiliate } from '@/components/affiliate-provider'
 import { calculateCheckoutTotals } from '@/lib/checkout'
 import { hasSmileRewardFreeShipping } from '@/lib/gelos-ai/smile-reward-storage'
-import { findActivePromo } from '@/lib/store-promotions'
 import { trackInitiateCheckout, trackPurchase, trackAddPaymentInfo } from '@/lib/meta-pixel'
 import { cn } from '@/lib/utils'
 
@@ -19,11 +20,10 @@ type PaymentMethod = 'paystack' | 'cod'
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { items, isHydrated, clearCart } = useCart()
-  const { formatPrice, location, locationId } = useLocation()
+  const { items, isHydrated, clearCart, setQuantity } = useCart()
+  const { location, locationId } = useLocation()
   const { promotions, appliedPromoCode } = useStorePromotions()
   const { affiliateCode, affiliate } = useAffiliate()
-  const appliedPromo = findActivePromo(appliedPromoCode, promotions.promos)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -197,7 +197,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50 text-foreground">
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
         <div className="mb-8">
           <p className="text-sm text-neutral-500">Secure checkout</p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-neutral-950">
@@ -211,10 +211,10 @@ export default function CheckoutPage() {
           )}
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12">
+        <div className="grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-12">
           <form
             onSubmit={handleSubmit}
-            className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
+            className="min-w-0 rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
           >
             <h2 className="text-lg font-semibold text-neutral-950">
               Contact & delivery
@@ -370,74 +370,17 @@ export default function CheckoutPage() {
             </p>
           </form>
 
-          <aside className="h-fit rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
-            <h2 className="text-lg font-semibold text-neutral-950">Order summary</h2>
+          <div className="w-full min-w-0 lg:min-w-[24rem]">
+            <CheckoutOrderSummary
+              items={items}
+              totals={totals}
+              onQuantityChange={setQuantity}
+            />
+          </div>
+        </div>
 
-            <ul className="mt-6 space-y-4 border-b border-neutral-100 pb-6">
-              {items.map((item) => (
-                <li
-                  key={item.lineKey}
-                  className="flex items-start justify-between gap-4"
-                >
-                  <div>
-                    <p className="font-medium text-neutral-950">{item.name}</p>
-                    {item.variantLabel &&
-                    item.productName &&
-                    item.variantLabel !== item.productName ? (
-                      <p className="text-xs text-neutral-500">{item.productName}</p>
-                    ) : null}
-                    <p className="text-sm text-neutral-500">Qty {item.quantity}</p>
-                  </div>
-                  <p className="shrink-0 text-sm font-medium">
-                    {formatPrice(item.price * item.quantity)}
-                  </p>
-                </li>
-              ))}
-            </ul>
-
-            <dl className="mt-6 space-y-3 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-neutral-500">Subtotal</dt>
-                <dd>{formatPrice(totals.subtotal)}</dd>
-              </div>
-              {totals.discount > 0 ? (
-                <div className="flex justify-between text-[#E91E8C]">
-                  <dt>
-                    {appliedPromo
-                      ? `Promo (${appliedPromo.label || appliedPromo.code})`
-                      : 'Discount'}
-                  </dt>
-                  <dd>-{formatPrice(totals.discount)}</dd>
-                </div>
-              ) : null}
-              <div className="flex justify-between">
-                <dt className="text-neutral-500">Shipping</dt>
-                <dd>
-                  {totals.shipping === 0
-                    ? 'Free'
-                    : formatPrice(totals.shipping)}
-                </dd>
-              </div>
-              <div className="flex justify-between border-t border-neutral-100 pt-3 text-base font-semibold">
-                <dt>Total</dt>
-                <dd>{formatPrice(totals.total)}</dd>
-              </div>
-            </dl>
-
-            {promotions.freeShippingEnabled ? (
-              <p className="mt-5 text-xs text-neutral-500">
-                Free {promotions.freeShippingRewardLabel} on orders over{' '}
-                {formatPrice(promotions.freeShippingThreshold)}.
-              </p>
-            ) : null}
-
-            <Link
-              href="/cart"
-              className="mt-6 inline-flex text-sm font-medium text-neutral-600 underline-offset-2 hover:text-neutral-950 hover:underline"
-            >
-              Back to cart
-            </Link>
-          </aside>
+        <div className="mt-8 lg:mt-10">
+          <CheckoutUpsells cartItems={items} />
         </div>
       </div>
     </div>

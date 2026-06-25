@@ -34,8 +34,7 @@ export function ShopByCollection({
               {title}
             </h2>
             <p className="mt-3 text-base text-muted-foreground">
-              Browse by category — from flavored toothpastes to whitening kits,
-              wellness picks, and everyday essentials.
+           
             </p>
           </div>
           <Link

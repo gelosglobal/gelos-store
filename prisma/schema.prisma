@@ -54,6 +54,7 @@ model StoreSettings {
   freeShippingProgressLabel String   @default("{{amount}} away from free shipping")
   freeShippingUnlockedLabel String   @default("You've unlocked free shipping on this order.")
   promos                    Json     @default("[]")
+  cartUpsells               Json     @default("{}")
   updatedAt                 DateTime @updatedAt
 
   @@map("store_settings")

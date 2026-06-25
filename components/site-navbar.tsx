@@ -76,6 +76,7 @@ export function SiteNavbar() {
               width={140}
               height={36}
               className="h-7 w-auto sm:h-8"
+              style={{ width: 'auto' }}
               priority
             />
           </Link>
@@ -91,9 +92,9 @@ export function SiteNavbar() {
                     onMouseEnter={openMega}
                     onMouseLeave={scheduleCloseMega}
                   >
-                    <button
-                      type="button"
-                      onClick={() => setMegaOpen((v) => !v)}
+                    <Link
+                      href={item.href}
+                      onClick={closeMega}
                       className={cn(
                         navItemClassName,
                         megaOpen
@@ -105,7 +106,7 @@ export function SiteNavbar() {
                     >
                       <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
                       {item.label}
-                    </button>
+                    </Link>
                   </div>
                 )
               }
@@ -151,6 +152,7 @@ export function SiteNavbar() {
                       width={140}
                       height={36}
                       className="h-7 w-auto max-w-[140px] object-contain object-left sm:h-8"
+                      style={{ width: 'auto' }}
                     />
                   </Link>
                 </SheetHeader>
@@ -162,9 +164,7 @@ export function SiteNavbar() {
                     <LocationSelector showFullLabel className="w-full" />
                   </div>
                   <div className="mb-4 flex flex-col gap-1 border-b border-neutral-100 pb-4">
-                    {mainNavLinks
-                      .filter((item) => !item.opensMegaMenu)
-                      .map((item) => {
+                    {mainNavLinks.map((item) => {
                         const Icon = item.icon
                         return (
                           <Link
