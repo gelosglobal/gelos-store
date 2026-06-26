@@ -5,6 +5,7 @@ import { normalizeImageUrl } from '@/lib/image-url'
  * (UploadThing / ufs.sh) instead of descriptive filenames.
  */
 const VARIANT_LABEL_BY_IMAGE_URL: Record<string, string> = {
+  '/gelos/bb.brushbl.png': 'Bamboo',
   'https://pba9mjnbca.ufs.sh/f/23U54rrg34KJY2sILlBed7qIHvBlmTYk9MZyfScgW3jhuO5P':
     'Watermelon Mint',
   'https://pba9mjnbca.ufs.sh/f/23U54rrg34KJiwMYP6C69TFUd43lzgsGHCQMkXIVbaJcoERW':

@@ -23,6 +23,7 @@ import { wellnessCommunityFavoriteIds } from '@/lib/wellness-product-content'
 import { whiteningCommunityFavoriteIds } from '@/lib/whitening-product-content'
 import type { Product } from '@/lib/types/product'
 import { getWhiteningLineVariants } from '@/lib/whitening-treatment-covers'
+import { getWellnessLineVariants } from '@/lib/wellness-flavor-covers'
 
 const DEFAULT_COMMUNITY_FAVORITE_IDS = [
   '1',
@@ -93,6 +94,9 @@ export function getProductLineVariants(
 ): Product[] {
   if (product.category === 'Whitening') {
     return getWhiteningLineVariants(product, categoryVariants)
+  }
+  if (product.category === 'Wellness') {
+    return getWellnessLineVariants(product, categoryVariants)
   }
   return categoryVariants
 }

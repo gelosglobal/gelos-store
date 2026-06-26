@@ -28,14 +28,14 @@ export function getVariantLabelFromImageUrl(
     .replace(/-fruit-energy$/i, '')
     .replace(/-toothpaste$/i, '')
     .replace(/-with-fruity-design$/i, '')
-    .replace(/-/g, ' ')
+    .replace(/[._-]+/g, ' ')
     .trim()
 
   if (category === 'Whitening' && label) {
     return titleCase(label)
   }
 
-  if (label === 'bb brushbl') return 'Brush style'
+  if (label === 'bb brushbl' || file === 'bb.brushbl') return 'Bamboo'
   if (label === 'bananaa') return 'Banana'
   if (label === 'mango inhaler' || file === 'mango-inhaler') return 'Mango'
   if (label === 'grape mint fruit energy' || file === 'grape-mint-fruit-energy') {

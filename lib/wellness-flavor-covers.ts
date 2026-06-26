@@ -6,6 +6,29 @@ export const wellnessFlavorCoverByProductId: Record<string, string> = {
 
 export const wellnessFlavorOrder = ['9', '5'] as const
 
+/** Wellness SKUs with no cross-product flavour picker (serums, oils, etc.). */
+export const wellnessStandaloneProductIds = ['28', '29', '31'] as const
+
+export function isWellnessStandaloneProduct(productId: string): boolean {
+  return (wellnessStandaloneProductIds as readonly string[]).includes(productId)
+}
+
+export function getWellnessLineVariants<T extends { id: string }>(
+  product: T,
+  categoryVariants: T[],
+): T[] {
+  if (isWellnessStandaloneProduct(product.id)) {
+    return [product]
+  }
+
+  const orderSet = new Set<string>(wellnessFlavorOrder)
+  const standalone = new Set<string>(wellnessStandaloneProductIds)
+
+  return categoryVariants.filter(
+    (item) => orderSet.has(item.id) && !standalone.has(item.id),
+  )
+}
+
 export function getWellnessFlavorCover(
   productId: string,
   fallbackImage: string,

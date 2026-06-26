@@ -1,8 +1,9 @@
 import type { ProductPdpContent } from '@/lib/product-pdp-content'
 import type { Product } from '@/lib/types/product'
-import { normalizeImageUrl } from '@/lib/image-url'
-import { getProductSlug } from '@/lib/product-utils'
 import { getCodeDefaultGalleryImages } from '@/lib/product-gallery-images'
+import { getProductSlug } from '@/lib/product-utils'
+import { getWhiteningProductContent } from '@/lib/whitening-product-content'
+import { isWellnessStandaloneProduct } from '@/lib/wellness-flavor-covers'
 
 const wellnessHighlights: ProductPdpContent['highlights'] = [
   { label: 'On-the-go energy', emoji: '⚡' },
@@ -249,6 +250,10 @@ function mergeGallery(base: ProductPdpContent): ProductPdpContent {
 }
 
 export function getWellnessProductContent(product: Product): ProductPdpContent {
+  if (isWellnessStandaloneProduct(product.id)) {
+    return getWhiteningProductContent(product)
+  }
+
   const slug = getProductSlug(product)
   const base = contentBySlug[slug] ?? defaultWellnessContent(product)
   return mergeGallery(base)

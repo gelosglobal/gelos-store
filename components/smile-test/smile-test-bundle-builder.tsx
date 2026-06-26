@@ -36,7 +36,7 @@ import { toast } from 'sonner'
 
 const trustBadges = [
   { icon: ShieldCheck, label: 'Best price guarantee' },
-  { icon: Truck, label: 'Free delivery over GH₵150' },
+  { icon: Truck, label: 'Free delivery over GH₵1000' },
   { icon: BadgePercent, label: '20% cheaper than buying individually' },
   { icon: RotateCcw, label: 'Easy returns' },
 ] as const

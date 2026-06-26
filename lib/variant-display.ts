@@ -4,6 +4,7 @@ import {
   getVariantLabelForImage,
   hasAdminVariantPicker,
 } from '@/lib/product-variant-images'
+import { getToothbrushStyleLabel } from '@/lib/toothbrush-style-covers'
 import { getToothpasteFlavorLabel } from '@/lib/toothpaste-flavor-covers'
 import { getWellnessFlavorLabel } from '@/lib/wellness-flavor-covers'
 import type { ProductVariantOption } from '@/lib/types/product-variant'
@@ -41,7 +42,7 @@ export function getProductLineVariantLabel(product: Product): string | undefined
       return label || undefined
     }
     case 'Toothbrushes':
-      return product.name.replace(/ Toothbrush.*$/i, '').trim() || undefined
+      return getToothbrushStyleLabel(product.name) || undefined
     case 'Water Flossers':
       return (
         product.name.replace(/ Water Flosser.*$/i, '').trim() ||
@@ -68,6 +69,11 @@ export function getVariantDisplayName(
 ): string {
   const mainImage = normalizeImageUrl(product.image)
   const selectedImage = normalizeImageUrl(activeImage)
+
+  if (selectedImage === mainImage && !hasAdminVariantPicker(product)) {
+    return product.name
+  }
+
   const imageLabel = getVariantLabelForImage(product, selectedImage)
   const nameLabel = getProductLineVariantLabel(product as Product)
 
