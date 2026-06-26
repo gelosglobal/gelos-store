@@ -86,6 +86,11 @@ export function getVariantDisplayName(
   if (selectedImage === mainImage && labelsMatch) return product.name
   if (!imageLabel?.trim() || !nameLabel) return product.name
 
+  // Only swap an embedded variant token (e.g. flavour in the title). When the line
+  // label is the whole product name — common for toothbrush SKUs with colour tiles —
+  // keep the catalogue name instead of replacing it with "Pink" / "Black".
+  if (nameLabel.length >= product.name.length) return product.name
+
   const pattern = new RegExp(escapeRegExp(nameLabel), 'i')
   if (pattern.test(product.name)) {
     return product.name.replace(pattern, imageLabel)
