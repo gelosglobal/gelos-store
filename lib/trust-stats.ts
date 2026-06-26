@@ -19,7 +19,7 @@ export const trustStats: TrustStat[] = [
   },
   {
     id: 'free-delivery',
-    label: 'orders over GHS 1000',
+    label: 'Free delivery for orders over GHS 1000',
     icon: 'truck',
   },
   {
