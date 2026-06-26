@@ -20,7 +20,7 @@ const sharedFaq: ProductPdpContent['faq'] = [
     id: 'faq-sensitive',
     title: 'Is this suitable for sensitive teeth?',
     content:
-      'If you have sensitivity, start with shorter sessions and space treatments apart. Stop use if discomfort persists and speak with your dentist.',
+      'if you have sensitivity, start with shorter sessions and space treatments apart. Stop use if discomfort persists and speak with your dentist. The device also features red light therapy, which helps soothe teeth and gums and can support comfort during treatment, making it especially beneficial for users with sensitivity.',
   },
   {
     id: 'faq-results',

@@ -63,5 +63,10 @@ export const stockists: Stockist[] = [
     name: 'Whole Health',
     logo: '/gelos/whole-gelos.png',
   },
+  {
+    id: 'Unicom',
+    name: 'Unicom Chemist',
+    logo: '/gelos/unicom.png',
+  },
 ]
 

@@ -52,15 +52,16 @@ function ShopPageContent() {
 
   const bundlesMode = searchParams.get('bundles') === 'true'
   const newArrivalsMode = searchParams.get('new-arrivals') === 'true'
+  const bestSellersMode = searchParams.get('best-sellers') === 'true'
   const categoryParam = searchParams.get('category')
 
   useEffect(() => {
     if (categoryParam && categories.includes(categoryParam as (typeof categories)[number])) {
       setCollectionFilter(categoryParam as CollectionFilter)
-    } else if (!bundlesMode && !newArrivalsMode) {
+    } else if (!bundlesMode && !newArrivalsMode && !bestSellersMode) {
       setCollectionFilter('all')
     }
-  }, [categoryParam, bundlesMode, newArrivalsMode])
+  }, [categoryParam, bundlesMode, newArrivalsMode, bestSellersMode])
 
   const pageMeta = useMemo(() => {
     if (bundlesMode) {
@@ -74,6 +75,13 @@ function ShopPageContent() {
         title: 'New arrivals',
         description:
           'Explore the latest additions to Gelos — fresh flavors, new formulas, and just-dropped favorites.',
+      }
+    }
+    if (bestSellersMode) {
+      return {
+        title: 'Best sellers',
+        description:
+          'Explore our fan-favourites — the Gelos products customers reach for again and again.',
       }
     }
     if (categoryParam === 'Toothpaste') {
@@ -144,7 +152,7 @@ function ShopPageContent() {
       description:
         'Explore our complete collection of premium dental care — find something for every smile care routine.',
     }
-  }, [bundlesMode, newArrivalsMode, categoryParam])
+  }, [bundlesMode, newArrivalsMode, bestSellersMode, categoryParam])
 
   const filteredProducts = useMemo(() => {
     let list = [...products]
@@ -162,7 +170,7 @@ function ShopPageContent() {
         getTagCollectionOrder('new-arrival'),
         newArrivalProductIds,
       )
-    } else if (collectionFilter === 'best-sellers') {
+    } else if (bestSellersMode || collectionFilter === 'best-sellers') {
       list = orderProductsForTagCollection(
         list,
         'best-seller',
@@ -173,7 +181,7 @@ function ShopPageContent() {
       list = list.filter((p) => p.category === collectionFilter)
     }
 
-    if (!newArrivalsMode) {
+    if (!newArrivalsMode && !bestSellersMode) {
       list.sort((a, b) => {
         switch (sortBy) {
           case 'price-low':
@@ -193,6 +201,7 @@ function ShopPageContent() {
     products,
     bundlesMode,
     newArrivalsMode,
+    bestSellersMode,
     collectionFilter,
     sortBy,
     getTagCollectionOrder,
@@ -203,7 +212,9 @@ function ShopPageContent() {
       ? 'bundles'
       : newArrivalsMode
         ? 'new-arrivals'
-        : collectionFilter
+        : bestSellersMode
+          ? 'best-sellers'
+          : collectionFilter
 
     if (lastCategoryTracked.current === categoryKey) return
     lastCategoryTracked.current = categoryKey
@@ -215,12 +226,13 @@ function ShopPageContent() {
   }, [
     bundlesMode,
     newArrivalsMode,
+    bestSellersMode,
     collectionFilter,
     pageMeta.title,
     filteredProducts,
   ])
 
-  const showCollectionFilter = !bundlesMode && !newArrivalsMode
+  const showCollectionFilter = !bundlesMode && !newArrivalsMode && !bestSellersMode
 
   return (
     <div className="min-h-screen bg-white text-foreground">

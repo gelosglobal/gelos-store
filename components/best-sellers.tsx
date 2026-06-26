@@ -39,7 +39,7 @@ export function BestSellers() {
               Explore our range of fan-favourites
             </p>
             <Link
-              href="/shop"
+              href="/shop?best-sellers=true"
               className="mt-6 inline-flex items-center gap-1.5 rounded-full border border-neutral-300 px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:border-neutral-900 hover:bg-neutral-50"
             >
               Shop all
