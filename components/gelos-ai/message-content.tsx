@@ -2,7 +2,11 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
-function renderInline(text: string, keyPrefix: string) {
+function renderInline(
+  text: string,
+  keyPrefix: string,
+  options?: { hideProductLinks?: boolean },
+) {
   const parts = text.split(/(\[[^\]]+\]\([^)]+\)|https?:\/\/[^\s]+)/g)
 
   return parts.map((part, index) => {
@@ -10,6 +14,9 @@ function renderInline(text: string, keyPrefix: string) {
     if (markdownLink) {
       const [, label, href] = markdownLink
       const isInternal = href.startsWith('/')
+      if (options?.hideProductLinks && href.startsWith('/product/')) {
+        return null
+      }
       if (isInternal) {
         return (
           <Link
@@ -67,12 +74,16 @@ function renderInline(text: string, keyPrefix: string) {
   })
 }
 
-function renderBlock(text: string, key: string) {
+function renderBlock(
+  text: string,
+  key: string,
+  options?: { hideProductLinks?: boolean },
+) {
   const bulletMatch = text.match(/^[-•]\s+(.+)$/)
   if (bulletMatch) {
     return (
       <li key={key} className="ml-4 list-disc pl-1">
-        {renderInline(bulletMatch[1], key)}
+        {renderInline(bulletMatch[1], key, options)}
       </li>
     )
   }
@@ -81,19 +92,25 @@ function renderBlock(text: string, key: string) {
   if (numberedMatch) {
     return (
       <li key={key} className="ml-4 list-decimal pl-1">
-        {renderInline(numberedMatch[1], key)}
+        {renderInline(numberedMatch[1], key, options)}
       </li>
     )
   }
 
   return (
     <p key={key} className={text ? undefined : 'min-h-[1em]'}>
-      {renderInline(text, key)}
+      {renderInline(text, key, options)}
     </p>
   )
 }
 
-export function GelosAiMessageContent({ content }: { content: string }) {
+export function GelosAiMessageContent({
+  content,
+  hideProductLinks = false,
+}: {
+  content: string
+  hideProductLinks?: boolean
+}) {
   const blocks = content.split('\n')
   const elements: ReactNode[] = []
   let listItems: ReactNode[] = []
@@ -125,12 +142,12 @@ export function GelosAiMessageContent({ content }: { content: string }) {
       const nextType = isNumbered ? 'ol' : 'ul'
       if (listType && listType !== nextType) flushList()
       listType = nextType
-      listItems.push(renderBlock(trimmed, `block-${index}`))
+      listItems.push(renderBlock(trimmed, `block-${index}`, { hideProductLinks }))
       return
     }
 
     flushList()
-    elements.push(renderBlock(trimmed, `block-${index}`))
+    elements.push(renderBlock(trimmed, `block-${index}`, { hideProductLinks }))
   })
 
   flushList()

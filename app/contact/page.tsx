@@ -176,6 +176,23 @@ export default function ContactPage() {
             <p className="mt-2 text-sm text-neutral-600">
               For fastest support, include your order number (if you have one) and your delivery city.
             </p>
+            <ul className="mt-4 space-y-2 text-sm">
+              {[
+                { label: 'FAQs', href: '/faqs' },
+                { label: 'Shipping & delivery', href: '/shipping' },
+                { label: 'Returns', href: '/returns' },
+                { label: 'Payments', href: '/payments' },
+              ].map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="font-medium text-neutral-800 underline-offset-4 hover:underline"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
             <div className="mt-6 space-y-3 text-sm text-neutral-700">
               <div className="rounded-2xl bg-neutral-50 p-4 ring-1 ring-neutral-200">
                 <p className="font-semibold text-neutral-950">Email</p>

@@ -6,7 +6,9 @@ import {
   GelosAiMessageContent,
   GelosAiProductLinks,
 } from '@/components/gelos-ai/message-content'
+import { GelosAiProductRecommendationCards } from '@/components/gelos-ai/product-recommendation-cards'
 import { Button } from '@/components/ui/button'
+import { extractProductLinks } from '@/lib/gelos-ai/chat-reply'
 import { cn } from '@/lib/utils'
 import { loadChatMessages, saveChatMessages } from '@/lib/gelos-ai/session-storage'
 import type { GelosAiMessage } from '@/lib/gelos-ai/types'
@@ -151,10 +153,17 @@ export function AiChatPanel({
             if (isWellness && message === WELCOME_MESSAGE) return null
             if (isWellness && !hasConversation) return null
 
+            const productLinks =
+              !isUser && isWellness ? extractProductLinks(message.content) : []
+            const showProductCards = productLinks.length > 0
+
             return (
               <div
                 key={`${message.role}-${index}`}
-                className={cn('flex', isUser ? 'justify-end' : 'justify-start')}
+                className={cn(
+                  'flex w-full max-w-full flex-col',
+                  isUser ? 'items-end' : 'items-start',
+                )}
               >
                 <div
                   className={cn(
@@ -164,9 +173,20 @@ export function AiChatPanel({
                       : 'bg-neutral-50 text-foreground',
                   )}
                 >
-                  <GelosAiMessageContent content={message.content} />
-                  {!isUser && <GelosAiProductLinks content={message.content} />}
+                  <GelosAiMessageContent
+                    content={message.content}
+                    hideProductLinks={showProductCards}
+                  />
+                  {!isUser && !isWellness ? (
+                    <GelosAiProductLinks content={message.content} />
+                  ) : null}
                 </div>
+                {!isUser && isWellness ? (
+                  <GelosAiProductRecommendationCards
+                    content={message.content}
+                    className="mt-2 max-w-full px-0.5"
+                  />
+                ) : null}
               </div>
             )
           })}

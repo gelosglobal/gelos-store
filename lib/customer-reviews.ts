@@ -4,6 +4,7 @@ export type CustomerReview = {
   role: string
   handle: string
   quote: string
+  /** When omitted, the review card shows initials instead of a photo. */
   avatar?: string
   rating: number
 }
@@ -16,37 +17,35 @@ export const customerReviews: CustomerReview[] = [
     handle: 'Accra',
     quote:
       'The whitening toothpaste actually made a difference in two weeks. Fresh breath that lasts through my workday.',
-    avatar: '/gelos/amak.webp',
+    avatar: '/gelos/reviews/ama-k.jpg',
     rating: 5,
   },
   {
     id: 'kwesi-m',
     name: 'Kwesi M.',
-    role: 'customer',
-    handle: 'dansoman',
-    quote:
-      'i really enjoyed their flavoured toothpastes',
+    role: 'Customer',
+    handle: 'Dansoman',
+    quote: 'I really enjoyed their flavoured toothpastes.',
     avatar: '/gelos/kwesi.jpeg',
     rating: 5,
   },
   {
     id: 'efua-a',
     name: 'Efua A.',
-    role: 'customer',
+    role: 'Customer',
     handle: 'Kumasi',
     quote:
       'My kids finally enjoy brushing. The electric toothbrush is gentle, and the flavors are a hit at home.',
-    avatar: undefined,
     rating: 5,
   },
   {
-    id: 'nana-s',
-    name: 'Nana S.',
+    id: 'Isabella',
+    name: 'Isabella M.',
     role: 'Customer',
-    handle: 'Instagram',
+    handle: 'Trassaco',
     quote:
       'I recommend Gelos in every oral-care routine post. The products look premium and deliver visible results.',
-    avatar: '/gelos/nanas.jpeg',
+    avatar: '/gelos/reviews/nana-s.jpg',
     rating: 5,
   },
   {
@@ -56,17 +55,15 @@ export const customerReviews: CustomerReview[] = [
     handle: 'Tema',
     quote:
       'The bundle kits are great value. One order covered toothpaste, floss, and mouthwash for the whole family.',
-    avatar: '/gelos/reviews/david-o.jpg',
+    avatar: '/gelos/nanas.jpeg',
     rating: 4,
   },
   {
     id: 'yaa-b',
     name: 'Yaa B.',
-    role: 'customer',
-    handle: 'adenta',
-    quote:
-      'Their collection is easy to recommend for daily care and whitening.',
-    avatar: '/gelos/yaa.webp',
+    role: 'Customer',
+    handle: 'Adenta',
+    quote: 'Their collection is easy to recommend for daily care and whitening.',
     rating: 5,
   },
 ]

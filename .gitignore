@@ -21,6 +21,8 @@ public/gelos/*
 !public/gelos/*.PNG
 !public/gelos/pay-logo/
 !public/gelos/pay-logo/**
+!public/gelos/reviews/
+!public/gelos/reviews/**
 !public/gelos/gelos-video2.mp4
 !public/gelos/GELOS VIDEO.mp4
 !public/gelos/GELOS1042.jpg

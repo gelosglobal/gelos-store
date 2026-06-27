@@ -43,12 +43,12 @@ function FooterLinkColumn({
       <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-white sm:text-xs">
         {title}
       </h3>
-      <ul className="mt-2 space-y-1">
+      <ul className="mt-2.5 space-y-1.5">
         {links.map((link) => (
           <li key={link.label}>
             <Link
               href={link.href}
-              className="text-[12px] leading-snug text-white/50 transition-colors hover:text-white"
+              className="inline-block text-[12px] leading-snug text-white/50 transition-colors hover:text-white sm:text-[13px]"
             >
               {link.label}
             </Link>
@@ -63,8 +63,8 @@ function FooterStoreLocatorBanner({ className }: { className?: string }) {
   return (
     <aside
       className={cn(
-        'relative shrink-0 self-center overflow-hidden rounded-2xl bg-white shadow-lg shadow-black/30 ring-1 ring-white/10',
-        'w-full lg:w-[26rem] xl:w-[28rem]',
+        'relative shrink-0 overflow-hidden rounded-2xl bg-white shadow-lg shadow-black/30 ring-1 ring-white/10',
+        'w-full lg:max-w-[26rem] xl:max-w-none xl:w-full',
         className,
       )}
     >
@@ -133,61 +133,68 @@ export function SiteFooter() {
           />
 
           <div className="relative p-6 sm:p-8 lg:p-10">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-3 xl:gap-4">
-              <div className="shrink-0">
-                <Link href="/" className="inline-block">
-                  <GelosLogo height={44} className="h-10 sm:h-11" />
-                </Link>
-                <p className="mt-2 text-sm text-white/75">
-                  Stronger smiles. Better days.
-                </p>
-              </div>
+            <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_28rem] xl:items-start xl:gap-8">
+              <div className="flex min-w-0 flex-col gap-8 lg:flex-row lg:items-start lg:gap-6">
+                <div className="shrink-0">
+                  <Link href="/" className="inline-block">
+                    <GelosLogo height={44} className="h-10 sm:h-11" />
+                  </Link>
+                  <p className="mt-2 text-sm text-white/75">
+                    Stronger smiles. Better days.
+                  </p>
+                </div>
 
-              <div className="w-full shrink-0 lg:max-w-[13rem]">
-                <h2 className="text-sm font-semibold text-white">
-                  Subscribe to our newsletter
-                </h2>
-                <p className="mt-1 text-xs leading-relaxed text-white/45">
-                  Get the latest updates, new flavors and exclusive offers.
-                </p>
-                <form className="relative mt-3" onSubmit={onNewsletterSubmit}>
-                  <label htmlFor="footer-newsletter-email" className="sr-only">
-                    Email address
-                  </label>
-                  <input
-                    id="footer-newsletter-email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={newsletterEmail}
-                    onChange={(event) => setNewsletterEmail(event.target.value)}
-                    className="w-full rounded-full bg-white py-2.5 pl-4 pr-11 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#84CC16]"
-                  />
-                  <button
-                    type="submit"
-                    aria-label="Subscribe"
-                    className="absolute right-1 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-[#84CC16] text-neutral-950 transition-colors hover:bg-[#73b512]"
+                <div className="w-full min-w-0 shrink-0 sm:max-w-[13rem] lg:w-[13rem]">
+                  <h2 className="text-sm font-semibold text-white">
+                    Subscribe to our newsletter
+                  </h2>
+                  <p className="mt-1 text-xs leading-relaxed text-white/45">
+                    Get the latest updates, new flavors and exclusive offers.
+                  </p>
+                  <form
+                    className="relative mt-3 min-w-0 max-w-full"
+                    onSubmit={onNewsletterSubmit}
                   >
-                    <ArrowRight className="size-3.5" />
-                  </button>
-                </form>
+                    <label htmlFor="footer-newsletter-email" className="sr-only">
+                      Email address
+                    </label>
+                    <input
+                      id="footer-newsletter-email"
+                      type="email"
+                      placeholder="Enter your email"
+                      value={newsletterEmail}
+                      onChange={(event) => setNewsletterEmail(event.target.value)}
+                      className="box-border w-full max-w-full rounded-full bg-white py-2.5 pl-4 pr-11 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#84CC16]"
+                    />
+                    <button
+                      type="submit"
+                      aria-label="Subscribe"
+                      className="absolute right-1 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-[#84CC16] text-neutral-950 transition-colors hover:bg-[#73b512]"
+                    >
+                      <ArrowRight className="size-3.5" />
+                    </button>
+                  </form>
+                </div>
+
+                <div
+                  className="hidden shrink-0 bg-white/10 lg:mx-1 lg:block lg:w-px lg:self-stretch"
+                  aria-hidden
+                />
+
+                <div className="grid min-w-0 shrink-0 grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-3 sm:gap-x-6 lg:gap-x-8">
+                  {footerLinkGroups
+                    .filter((group) => !group.hidden)
+                    .map((group) => (
+                      <FooterLinkColumn
+                        key={group.title}
+                        title={group.title}
+                        links={group.links}
+                      />
+                    ))}
+                </div>
               </div>
 
-              <div
-                className="shrink-0 bg-white/10 lg:mx-1 lg:h-auto lg:w-px lg:self-stretch h-px w-full"
-                aria-hidden
-              />
-
-              <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-4 lg:flex lg:gap-3 xl:gap-4">
-                {footerLinkGroups.map((group) => (
-                  <FooterLinkColumn
-                    key={group.title}
-                    title={group.title}
-                    links={group.links}
-                  />
-                ))}
-              </div>
-
-              <FooterStoreLocatorBanner className="lg:ml-auto" />
+              <FooterStoreLocatorBanner className="w-full max-w-full justify-self-stretch xl:justify-self-end" />
             </div>
 
             <div className="mt-6 flex flex-col gap-4 border-t border-white/10 pt-5 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
@@ -195,10 +202,10 @@ export function SiteFooter() {
                 &copy; 2026 GELOS Global. All rights reserved.
               </p>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-3 text-xs text-white/40 lg:justify-end lg:gap-x-5">
-                <Link href="/contact" className="transition-colors hover:text-white">
+                <Link href="/terms" className="transition-colors hover:text-white">
                   Terms &amp; Conditions
                 </Link>
-                <Link href="/contact" className="transition-colors hover:text-white">
+                <Link href="/privacy" className="transition-colors hover:text-white">
                   Privacy Policy
                 </Link>
                 <div className="flex items-center gap-2">

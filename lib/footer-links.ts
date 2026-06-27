@@ -6,6 +6,8 @@ export type FooterLink = {
 export type FooterLinkGroup = {
   title: string
   links: FooterLink[]
+  /** When true, the column is omitted from the storefront footer. */
+  hidden?: boolean
 }
 
 export const footerLinkGroups: FooterLinkGroup[] = [
@@ -32,15 +34,17 @@ export const footerLinkGroups: FooterLinkGroup[] = [
   {
     title: 'Help',
     links: [
-      { label: 'FAQs', href: '/contact' },
-      { label: 'Shipping & Delivery', href: '/contact' },
-      { label: 'Returns', href: '/contact' },
-      { label: 'Payments', href: '/checkout' },
+      { label: 'FAQs', href: '/faqs' },
+      { label: 'Shipping & Delivery', href: '/shipping' },
+      { label: 'Returns', href: '/returns' },
+      { label: 'Payments', href: '/payments' },
       { label: 'Contact Us', href: '/contact' },
+      { label: 'Find a Store', href: '/find-a-store' },
     ],
   },
   {
     title: 'About',
+    hidden: true,
     links: [
       { label: 'Our Story', href: '/contact' },
       { label: 'Ingredients', href: '/shop' },
