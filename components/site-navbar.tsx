@@ -134,7 +134,7 @@ export function SiteNavbar() {
           >
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger
-                className="inline-flex p-2 lg:hidden"
+                className="order-last inline-flex p-2 lg:order-none lg:hidden"
                 aria-label="Open menu"
               >
                 <Menu className="h-5 w-5" />
@@ -215,10 +215,10 @@ export function SiteNavbar() {
                   </Link>
                 )
               })}
-            <StorefrontAdminLink />
+            <StorefrontAdminLink className="order-2 lg:order-none" />
             <Link
               href="/cart"
-              className="relative p-2 text-foreground transition-opacity hover:opacity-70"
+              className="relative order-first p-2 text-foreground transition-opacity hover:opacity-70 lg:order-none"
               aria-label="Cart"
             >
               <ShoppingCart className="h-5 w-5" strokeWidth={1.75} />

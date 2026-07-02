@@ -30,6 +30,7 @@ const REQUIRED_DELEGATES = [
   'order',
   'storeSettings',
   'tagCollection',
+  'productBundle',
   'smileScan',
   'customer',
   'affiliate',

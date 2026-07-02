@@ -44,6 +44,24 @@ model TagCollection {
   @@map("tag_collections")
 }
 
+model ProductBundle {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  bundleId    String   @unique
+  name        String
+  description String   @default("")
+  image       String   @default("")
+  badge       String?
+  productIds  String[] @default([])
+  /** Storefront bundle price. 0 = sum of included product prices. */
+  price       Float    @default(0)
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("product_bundles")
+}
+
 model StoreSettings {
   id                        String   @id @default(auto()) @map("_id") @db.ObjectId
   key                       String   @unique @default("default")

@@ -1,15 +1,20 @@
 import type { CartLineItem } from '@/components/cart-provider'
 import {
   filterProductsByTag,
-  orderProductsForTagCollection,
   productHasTag,
 } from '@/lib/product-tags'
 import type { Product } from '@/lib/types/product'
+import type { ProductBundle } from '@/lib/types/product-bundle'
+import {
+  getBundleCatalogTotal,
+  getResolvableBundleProductIds,
+  resolveBundlePrice,
+  sumProductPrices,
+} from '@/lib/product-bundle-pricing'
 
 /**
  * Curated bundle upsells shown at checkout.
  * Each bundle adds the listed productIds that are not already in the cart.
- * Add real bundle SKUs here, or tag products with "bundle" in admin.
  */
 export type CheckoutBundleOffer = {
   id: string
@@ -18,34 +23,11 @@ export type CheckoutBundleOffer = {
   productIds: string[]
   image: string
   badge?: string
+  /** 0 = sum of included product prices */
+  price?: number
+  /** Saved bundle IDs that no longer exist in the catalog */
+  unavailableProductIds?: string[]
 }
-
-export const checkoutBundleOffers: CheckoutBundleOffer[] = [
-  {
-    id: 'everyday-smile-duo',
-    title: 'Everyday Smile Duo',
-    description: 'Watermelon toothpaste + foaming mouthwash for a full daily routine.',
-    productIds: ['1', '12'],
-    image: '/gelos/watermelon2.jpeg',
-    badge: 'Popular bundle',
-  },
-  {
-    id: 'strawberry-fresh-set',
-    title: 'Strawberry Fresh Set',
-    description: 'Match your toothpaste and mouthwash for all-day strawberry freshness.',
-    productIds: ['15', '20'],
-    image: '/gelos/strawberry.jpeg',
-    badge: 'Bundle & save',
-  },
-  {
-    id: 'whitening-power-kit',
-    title: 'Whitening Power Kit',
-    description: 'LED whitening device with premium whitening strips.',
-    productIds: ['10', '7'],
-    image: '/gelos/led-whitening-device.png',
-    badge: 'Best value',
-  },
-]
 
 const COMPLEMENTARY_CATEGORIES: Record<string, string[]> = {
   Toothpaste: ['Mouthwash', 'Toothbrushes', 'Tongue Scraper', 'Whitening'],
@@ -56,56 +38,80 @@ const COMPLEMENTARY_CATEGORIES: Record<string, string[]> = {
   Wellness: ['Toothpaste', 'Mouthwash'],
 }
 
-function bundleFromProduct(product: Product): CheckoutBundleOffer {
+export function productBundleToOffer(
+  bundle: ProductBundle,
+  products: Product[],
+): CheckoutBundleOffer {
+  const productIds = getResolvableBundleProductIds(bundle.productIds, products)
+  const unavailableProductIds = bundle.productIds.filter(
+    (id) => !productIds.includes(id),
+  )
+  const firstProduct = products.find((product) =>
+    productIds.includes(product.id),
+  )
+
   return {
-    id: `catalog-bundle-${product.id}`,
-    title: product.name,
-    description: product.description,
-    productIds: [product.id],
-    image: product.image,
-    badge: 'Bundle',
+    id: bundle.id,
+    title: bundle.name,
+    description: bundle.description,
+    productIds,
+    unavailableProductIds,
+    image: bundle.image || firstProduct?.image || '/gelos/watermelon2.jpeg',
+    badge: bundle.badge,
+    price: bundle.price,
   }
 }
 
-/** Bundles to upsell — catalog bundle tags first, then curated sets not fully in cart. */
+export function getBundleOfferPrice(
+  offer: CheckoutBundleOffer,
+  products: Product[],
+): number {
+  return resolveBundlePrice(
+    { price: offer.price ?? 0, productIds: offer.productIds },
+    products,
+  )
+}
+
+export function getBundleOfferCatalogTotal(
+  offer: CheckoutBundleOffer,
+  products: Product[],
+): number {
+  return getBundleCatalogTotal(offer.productIds, products)
+}
+
+/** Bundles to upsell — admin-defined bundles only. */
 export function getCheckoutBundleUpsells(
   cartItems: CartLineItem[],
   products: Product[],
-  bundleCollectionOrder?: string[] | null,
+  productBundles: ProductBundle[] = [],
   limit = 3,
+  options?: { showAll?: boolean },
 ): CheckoutBundleOffer[] {
   const inCart = new Set(cartItems.map((item) => item.id))
 
-  const catalogBundles = orderProductsForTagCollection(
-    products,
-    'bundle',
-    bundleCollectionOrder,
-  ).map(bundleFromProduct)
+  const offers = productBundles
+    .filter((bundle) => bundle.active && bundle.productIds.length > 0)
+    .map((bundle) => productBundleToOffer(bundle, products))
+    .filter((offer) => offer.productIds.length > 0)
+    .filter(
+      (offer) =>
+        options?.showAll || !offer.productIds.every((id) => inCart.has(id)),
+    )
 
-  const curated = checkoutBundleOffers.filter(
-    (offer) => !offer.productIds.every((id) => inCart.has(id)),
-  )
-
-  const seen = new Set<string>()
-  const merged: CheckoutBundleOffer[] = []
-
-  for (const offer of [...catalogBundles, ...curated]) {
-    if (seen.has(offer.id)) continue
-    if (offer.productIds.every((id) => inCart.has(id))) continue
-    seen.add(offer.id)
-    merged.push(offer)
-    if (merged.length >= limit) break
-  }
-
-  return merged
+  return options?.showAll ? offers : offers.slice(0, limit)
 }
 
 export function getMissingBundleProductIds(
   offer: CheckoutBundleOffer,
   cartItems: CartLineItem[],
+  products: Product[],
 ): string[] {
+  const resolvableIds = getResolvableBundleProductIds(
+    offer.productIds,
+    products,
+  )
   const inCart = new Set(cartItems.map((item) => item.id))
-  return offer.productIds.filter((id) => !inCart.has(id))
+  return resolvableIds.filter((id) => !inCart.has(id))
 }
 
 export function getCheckoutCrossSells(
@@ -159,13 +165,4 @@ export function getCheckoutCrossSells(
   return [...complementary, ...filler].slice(0, limit)
 }
 
-export function sumProductPrices(
-  productIds: string[],
-  products: Product[],
-): number {
-  const byId = new Map(products.map((product) => [product.id, product]))
-  return productIds.reduce(
-    (sum, id) => sum + (byId.get(id)?.price ?? 0),
-    0,
-  )
-}
+export { sumProductPrices } from '@/lib/product-bundle-pricing'

@@ -1,12 +1,15 @@
 'use client'
 
-import Image from 'next/image'
 import { ChevronDown } from 'lucide-react'
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { trackViewCategory } from '@/lib/meta-pixel'
 import { ShopCollectionCard } from '@/components/shop-collection-card'
 import { BundleUpsellsSection } from '@/components/bundle-upsells-section'
+import {
+  GELOS_CORAL,
+  GELOS_CORAL_DARK,
+} from '@/lib/gelos-brand-colors'
 import {
   Select,
   SelectContent,
@@ -22,8 +25,6 @@ import {
 } from '@/lib/product-tags'
 import { useProducts } from '@/components/products-provider'
 import { cn } from '@/lib/utils'
-
-const BUNDLE_BANNER_IMAGE = '/gelos/bundle.PNG'
 
 const categories = [
   'Toothpaste',
@@ -240,34 +241,21 @@ function ShopPageContent() {
     <div className="min-h-screen bg-white text-foreground">
       {/* Banner */}
       {bundlesMode ? (
-        <section className="px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-12 xl:px-12 xl:py-14">
-          <div
-            className={cn(
-              'relative mx-auto min-h-[14rem] w-full max-w-7xl overflow-hidden rounded-[2rem] bg-neutral-950 shadow-xl',
-              'sm:min-h-[16rem] lg:max-w-[90rem] lg:min-h-[18rem] lg:rounded-[2.5rem] xl:max-w-[100rem]',
-            )}
-          >
-            <Image
-              src={BUNDLE_BANNER_IMAGE}
-              alt=""
-              fill
-              priority
-              className="object-cover object-[left_center] lg:object-[28%_center]"
-              sizes="(max-width: 1024px) 100vw, 90rem"
-              aria-hidden
-            />
-            <div
-              className="absolute inset-0 bg-gradient-to-r from-neutral-950/75 via-neutral-950/35 to-transparent lg:from-neutral-950/60 lg:via-neutral-950/20"
-              aria-hidden
-            />
-            <div className="relative z-10 flex h-full min-h-[inherit] flex-col justify-end px-5 py-10 sm:px-8 sm:py-12 lg:justify-center lg:px-10 lg:py-14 xl:px-12">
-              <h1 className="max-w-2xl text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
-                {pageMeta.title}
-              </h1>
-              <p className="mt-3 max-w-xl text-base leading-relaxed text-white/90 sm:mt-4 sm:text-lg">
-                {pageMeta.description}
-              </p>
-            </div>
+        <section
+          style={{
+            background: `linear-gradient(135deg, ${GELOS_CORAL} 0%, ${GELOS_CORAL_DARK} 100%)`,
+          }}
+        >
+          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/80 sm:text-xs">
+              Bundle &amp; save
+            </p>
+            <h1 className="mt-2 max-w-2xl text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
+              {pageMeta.title}
+            </h1>
+            <p className="mt-4 max-w-xl text-base leading-relaxed text-white/90 sm:text-lg">
+              {pageMeta.description}
+            </p>
           </div>
         </section>
       ) : (
@@ -343,29 +331,7 @@ function ShopPageContent() {
       {/* Product grid */}
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
         {bundlesMode ? (
-          <div className="space-y-12">
-            <BundleUpsellsSection limit={12} />
-
-            {filteredProducts.length > 0 ? (
-              <div>
-                <h2 className="text-lg font-bold text-neutral-950 sm:text-xl">
-                  More bundle picks
-                </h2>
-                <p className="mt-1 text-sm text-neutral-600">
-                  Individual bundle products from the Gelos catalog.
-                </p>
-                <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 lg:grid-cols-4 lg:gap-x-8 lg:gap-y-12">
-                  {filteredProducts.map((product) => (
-                    <ShopCollectionCard
-                      key={product.id}
-                      product={product}
-                      badge={getProductDisplayBadge(product)}
-                    />
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
+          <BundleUpsellsSection limit={12} showAll />
         ) : filteredProducts.length === 0 ? (
           <div className="py-16 text-center">
             <p className="text-neutral-700">No products match this collection.</p>

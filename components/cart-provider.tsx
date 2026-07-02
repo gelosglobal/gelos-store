@@ -6,12 +6,19 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import type { AddToCartOptions, CartEntry } from '@/lib/cart-types'
+import type {
+  AddItemsResult,
+  AddToCartOptions,
+  CartAddRequest,
+  CartEntry,
+} from '@/lib/cart-types'
+import { mergeCartAddRequests } from '@/lib/cart-merge-requests'
 import { getCartLineKey } from '@/lib/cart-line-key'
 import { normalizeImageUrl } from '@/lib/image-url'
 import {
@@ -36,6 +43,10 @@ export type CartLineItem = {
   quantity: number
 }
 
+type AddItemsOptions = {
+  silent?: boolean
+}
+
 type CartContextValue = {
   items: CartLineItem[]
   itemCount: number
@@ -44,7 +55,11 @@ type CartContextValue = {
     productId: string,
     quantity?: number,
     options?: AddToCartOptions,
-  ) => void
+  ) => AddItemsResult
+  addItems: (
+    requests: CartAddRequest[],
+    options?: AddItemsOptions,
+  ) => AddItemsResult
   removeItem: (lineKey: string) => void
   setQuantity: (lineKey: string, quantity: number) => void
   clearCart: () => void
@@ -99,7 +114,7 @@ function entriesToLineItems(
         name: getCartDisplayName(product.name, variantLabel),
         variantLabel,
         variantImage: entry.variantImage,
-        price: product.price,
+        price: entry.unitPrice ?? product.price,
         image,
         quantity: entry.quantity,
       }
@@ -112,13 +127,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const { getProductById, products } = useProducts()
   const [entries, setEntries] = useState<CartEntry[]>([])
   const [isHydrated, setIsHydrated] = useState(false)
+  const entriesRef = useRef<CartEntry[]>([])
 
   useEffect(() => {
-    setEntries(loadStoredCart())
+    const stored = loadStoredCart()
+    setEntries(stored)
+    entriesRef.current = stored
     setIsHydrated(true)
   }, [])
 
   useEffect(() => {
+    entriesRef.current = entries
     if (isHydrated) saveCart(entries)
   }, [entries, isHydrated])
 
@@ -132,70 +151,98 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [items],
   )
 
-  const addItem = useCallback(
-    (productId: string, quantity = 1, options?: AddToCartOptions) => {
-      const product = getProductById(productId)
-      if (!product) return
-
-      const variantImage = options?.variantImage?.trim() || undefined
-      const variantLabel =
-        options?.variantLabel?.trim() ||
-        (variantImage ? undefined : getProductLineVariantLabel(product))
-
-      const entry: CartEntry = {
-        productId,
-        quantity,
-        variantImage,
-        variantLabel,
+  const addItems = useCallback(
+    (
+      requests: CartAddRequest[],
+      options?: AddItemsOptions,
+    ): AddItemsResult => {
+      if (requests.length === 0) {
+        return { added: 0, skipped: 0 }
       }
-      const lineKey = getCartLineKey(entry)
 
-      setEntries((prev) => {
-        const existing = prev.find((e) => getCartLineKey(e) === lineKey)
-        if (existing) {
-          return prev.map((e) =>
-            getCartLineKey(e) === lineKey
-              ? { ...e, quantity: e.quantity + quantity }
-              : e,
-          )
+      const result = mergeCartAddRequests(
+        entriesRef.current,
+        requests,
+        getProductById,
+      )
+
+      entriesRef.current = result.entries
+      setEntries(result.entries)
+
+      for (const event of result.trackEvents) {
+        trackAddToCart(event)
+      }
+
+      if (result.added === 0) {
+        if (!options?.silent) {
+          toast.error('Could not add items to your cart.')
         }
-        return [...prev, entry]
-      })
+        return { added: result.added, skipped: result.skipped }
+      }
 
-      const displayName = getCartDisplayName(product.name, variantLabel)
+      if (!options?.silent) {
+        if (result.added === 1) {
+          toast.success('Added to cart', {
+            description: result.addedNames[0],
+            action: {
+              label: 'View cart',
+              onClick: () => router.push('/cart'),
+            },
+          })
+        } else {
+          toast.success(`Added ${result.added} items to your cart`, {
+            action: {
+              label: 'View cart',
+              onClick: () => router.push('/cart'),
+            },
+          })
+        }
+      }
 
-      trackAddToCart({
-        id: product.id,
-        name: displayName,
-        price: product.price,
-        quantity,
-      })
+      if (result.skipped > 0 && !options?.silent) {
+        toast.error(
+          `${result.skipped} item${result.skipped === 1 ? '' : 's'} could not be added (out of stock or unavailable).`,
+        )
+      }
 
-      toast.success('Added to cart', {
-        description: displayName,
-        action: {
-          label: 'View cart',
-          onClick: () => router.push('/cart'),
-        },
-      })
+      return { added: result.added, skipped: result.skipped }
     },
     [getProductById, router],
   )
 
+  const addItem = useCallback(
+    (
+      productId: string,
+      quantity = 1,
+      options?: AddToCartOptions,
+    ): AddItemsResult =>
+      addItems([{ productId, quantity, options }]),
+    [addItems],
+  )
+
   const removeItem = useCallback((lineKey: string) => {
-    setEntries((prev) => prev.filter((e) => getCartLineKey(e) !== lineKey))
+    setEntries((prev) => {
+      const next = prev.filter((e) => getCartLineKey(e) !== lineKey)
+      entriesRef.current = next
+      return next
+    })
   }, [])
 
   const setQuantity = useCallback((lineKey: string, quantity: number) => {
     if (quantity < 1) return
-    setEntries((prev) =>
-      prev.map((e) =>
+    setEntries((prev) => {
+      const next = prev.map((e) =>
         getCartLineKey(e) === lineKey ? { ...e, quantity } : e,
-      ),
-    )
+      )
+      entriesRef.current = next
+      return next
+    })
   }, [])
 
-  const clearCart = useCallback(() => setEntries([]), [])
+  const clearCart = useCallback(() => {
+    entriesRef.current = []
+    setEntries([])
+  }, [])
 
   const value = useMemo(
     () => ({
@@ -203,6 +250,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       itemCount,
       isHydrated,
       addItem,
+      addItems,
       removeItem,
       setQuantity,
       clearCart,
@@ -212,6 +260,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       itemCount,
       isHydrated,
       addItem,
+      addItems,
       removeItem,
       setQuantity,
       clearCart,

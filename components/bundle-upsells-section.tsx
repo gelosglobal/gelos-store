@@ -6,31 +6,36 @@ import { BundleUpsellCard } from '@/components/bundle-upsell-card'
 import { useCart } from '@/components/cart-provider'
 import { useProducts } from '@/components/products-provider'
 import { getCheckoutBundleUpsells } from '@/lib/checkout-recommendations'
+import { GELOS_CORAL } from '@/lib/gelos-brand-colors'
 import { cn } from '@/lib/utils'
 
 type BundleUpsellsSectionProps = {
   limit?: number
   layout?: 'carousel' | 'grid'
   className?: string
+  /** Shop bundles page: show every active bundle, not only cart upsells. */
+  showAll?: boolean
 }
 
 export function BundleUpsellsSection({
   limit = 6,
   layout = 'grid',
   className,
+  showAll = false,
 }: BundleUpsellsSectionProps) {
   const { items } = useCart()
-  const { products, getTagCollectionOrder } = useProducts()
+  const { products, productBundles } = useProducts()
 
   const bundleUpsells = useMemo(
     () =>
       getCheckoutBundleUpsells(
         items,
         products,
-        getTagCollectionOrder('bundle'),
+        productBundles,
         limit,
+        { showAll },
       ),
-    [items, products, getTagCollectionOrder, limit],
+    [items, products, productBundles, limit, showAll],
   )
 
   if (bundleUpsells.length === 0) {
@@ -43,7 +48,7 @@ export function BundleUpsellsSection({
       className={cn(className)}
     >
       <div className="mb-4 flex items-center gap-2 sm:mb-6">
-        <Sparkles className="size-4 text-violet-600" />
+        <Sparkles className="size-4" style={{ color: GELOS_CORAL }} />
         <h2
           id="bundle-upsells-heading"
           className="text-base font-bold text-neutral-950 sm:text-lg"

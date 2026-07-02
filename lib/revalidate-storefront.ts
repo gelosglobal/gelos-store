@@ -6,7 +6,7 @@ export function revalidateStorefront(productSlug?: string) {
   revalidatePath('/')
   revalidatePath('/shop')
   revalidatePath('/api/products')
-  revalidatePath('/api/tag-collections')
+  revalidatePath('/api/product-bundles')
 
   if (productSlug) {
     revalidatePath(`/product/${productSlug}`)

@@ -36,6 +36,8 @@ import {
 import {
   getAdminVariantImageOptions,
   normalizeVariantImageOptions,
+  hasVariantLevelInventory,
+  sumVariantInventory,
   syncMainImageWithVariantOptions,
 } from '@/lib/product-variant-images'
 import { normalizeImageUrl } from '@/lib/image-url'
@@ -185,6 +187,10 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
     const variantImageOptions = normalizeVariantImageOptions(
       form.variantImageOptions,
     )
+    const variantInventoryTotal = sumVariantInventory(variantImageOptions)
+    const usesVariantInventory =
+      variantImageOptions.length > 0 && hasVariantLevelInventory(variantImageOptions)
+
     const payload: AdminProductInput = {
       ...form,
       name: form.name.trim(),
@@ -193,7 +199,11 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
         normalizeImageUrl(form.image.trim() || '/placeholder.svg'),
         variantImageOptions,
       ),
-      stock: inventoryTracked ? ghStock + usaStock : 999,
+      stock: inventoryTracked
+        ? usesVariantInventory
+          ? variantInventoryTotal
+          : ghStock + usaStock
+        : 999,
       price: Number(form.price) || 0,
       tags: normalizeProductTags(form.tags),
       variantImageOptions,
@@ -571,6 +581,12 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
               }
             />
             <ProductFormCardBody className="space-y-4">
+              {hasVariantLevelInventory(form.variantImageOptions) ? (
+                <p className="rounded-lg border border-sky-100 bg-sky-50 px-3 py-2 text-xs leading-relaxed text-sky-900">
+                  Flavour inventory is set in Variant images. Product stock
+                  saves as the total of those quantities ({sumVariantInventory(form.variantImageOptions)}).
+                </p>
+              ) : null}
               {inventoryTracked && (
                 <div className="overflow-hidden rounded-lg border border-neutral-200">
                   <div className="grid grid-cols-[1fr_auto] items-center gap-2 border-b border-neutral-100 bg-neutral-50/80 px-3 py-2 text-xs font-medium text-neutral-600">

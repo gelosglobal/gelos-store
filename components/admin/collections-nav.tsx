@@ -25,7 +25,20 @@ export function CollectionsNav() {
       <p className="px-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
         Product collections
       </p>
-      {productTagDefinitions.map((tag) => {
+      <Link
+        href="/admin/collections/bundles"
+        className={cn(
+          'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+          pathname.startsWith('/admin/collections/bundles')
+            ? 'bg-neutral-950 text-white'
+            : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-950',
+        )}
+      >
+        Bundles
+      </Link>
+      {productTagDefinitions
+        .filter((tag) => tag.id !== 'bundle')
+        .map((tag) => {
         const href = `/admin/collections/${tag.id}`
         const active = pathname === href
         return (

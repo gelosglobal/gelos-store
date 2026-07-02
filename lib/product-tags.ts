@@ -23,7 +23,7 @@ export const productTagDefinitions = [
   {
     id: 'bundle',
     label: 'Bundle',
-    description: 'Included when shoppers browse bundle collections.',
+    description: 'Legacy product tag. Use Admin → Collections → Bundles for named sets.',
   },
 ] as const
 

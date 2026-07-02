@@ -69,6 +69,30 @@ export function ProductVariantImagesField({
     )
   }
 
+  const updateStock = (index: number, raw: string) => {
+    onChange(
+      value.map((option, i) => {
+        if (i !== index) return option
+        if (raw.trim() === '') {
+          return { url: option.url, label: option.label }
+        }
+        const stock = Math.max(0, Math.floor(Number(raw) || 0))
+        return { ...option, stock }
+      }),
+    )
+  }
+
+  const adjustStock = (index: number, delta: number) => {
+    onChange(
+      value.map((option, i) => {
+        if (i !== index) return option
+        const current = option.stock ?? 0
+        const next = Math.max(0, current + delta)
+        return { ...option, stock: next }
+      }),
+    )
+  }
+
   const remove = (index: number) => {
     onChange(value.filter((_, i) => i !== index))
   }
@@ -79,8 +103,8 @@ export function ProductVariantImagesField({
     <div className="space-y-3">
       <p className="text-xs leading-relaxed text-neutral-500">
         Flavour or style picker on the product page and shop cards. Add an image
-        for each option and name it (e.g. Watermelon Mint, Mango Mint). Names
-        appear under the tiles when shoppers choose a variant.
+        for each option, name it (e.g. Watermelon Mint, Mango Mint), and set
+        inventory per flavour when tracked separately.
       </p>
 
       {value.length > 0 && (
@@ -133,6 +157,53 @@ export function ProductVariantImagesField({
                   placeholder="e.g. Cool Mint"
                   className="h-9 border-neutral-200 bg-white text-sm"
                 />
+                <label className="text-[11px] font-medium text-neutral-600">
+                  Inventory
+                </label>
+                <div className="flex items-center gap-2">
+                  <div className="inline-flex items-center rounded-lg border border-neutral-200 bg-neutral-50">
+                    <button
+                      type="button"
+                      onClick={() => adjustStock(index, -1)}
+                      disabled={(option.stock ?? 0) <= 0}
+                      className="px-3 py-1.5 text-base hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label="Decrease inventory"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      inputMode="numeric"
+                      value={option.stock === undefined ? '' : option.stock}
+                      placeholder="—"
+                      onChange={(e) => updateStock(index, e.target.value)}
+                      onFocus={(e) => e.target.select()}
+                      className="min-w-[2.75rem] w-12 border-0 bg-transparent px-1 text-center text-sm font-semibold tabular-nums text-neutral-950 [appearance:textfield] focus:outline-none focus:ring-1 focus:ring-neutral-300 rounded [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      aria-label="Inventory count"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => adjustStock(index, 1)}
+                      className="px-3 py-1.5 text-base hover:bg-neutral-100"
+                      aria-label="Increase inventory"
+                    >
+                      +
+                    </button>
+                  </div>
+                  {option.stock !== undefined ? (
+                    <button
+                      type="button"
+                      onClick={() => updateStock(index, '')}
+                      className="text-[11px] font-medium text-neutral-500 hover:text-neutral-800"
+                    >
+                      Use product stock
+                    </button>
+                  ) : (
+                    <span className="text-[11px] text-neutral-500">Uses product stock</span>
+                  )}
+                </div>
               </div>
               <Button
                 type="button"

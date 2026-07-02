@@ -10,6 +10,7 @@ type ProductAdminVariantPickerProps = {
   activeImage: string
   onSelect: (src: string) => void
   label?: string
+  isOptionDisabled?: (option: ProductVariantOption) => boolean
 }
 
 export function ProductAdminVariantPicker({
@@ -17,6 +18,7 @@ export function ProductAdminVariantPicker({
   activeImage,
   onSelect,
   label = 'Choose your flavour',
+  isOptionDisabled,
 }: ProductAdminVariantPickerProps) {
   if (options.length <= 1) return null
 
@@ -29,13 +31,18 @@ export function ProductAdminVariantPicker({
         {options.map((option, index) => {
           const isActive = option.url === activeImage
           const tileLabel = option.label.trim()
+          const disabled = isOptionDisabled?.(option) ?? false
 
           return (
             <button
               key={`${option.url}-${index}`}
               type="button"
               onClick={() => onSelect(option.url)}
-              className="flex w-[4.5rem] flex-col items-center gap-1.5 sm:w-20"
+              disabled={disabled}
+              className={cn(
+                'flex w-[4.5rem] flex-col items-center gap-1.5 sm:w-20',
+                disabled && 'cursor-not-allowed opacity-40',
+              )}
               aria-label={
                 tileLabel ? `${tileLabel} variant` : `Variant option ${index + 1}`
               }

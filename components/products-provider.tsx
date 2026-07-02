@@ -16,12 +16,14 @@ import { PRODUCTS_UPDATED_EVENT } from '@/lib/products-events'
 import type { ProductTagId } from '@/lib/product-tags'
 import { getDefaultTagCollectionOrder } from '@/lib/tag-collection-defaults'
 import type { Product } from '@/lib/types/product'
+import type { ProductBundle } from '@/lib/types/product-bundle'
 
 type TagCollectionsMap = Partial<Record<ProductTagId, string[]>>
 
 type ProductsContextValue = {
   products: Product[]
   tagCollections: TagCollectionsMap
+  productBundles: ProductBundle[]
   isLoading: boolean
   databaseConnected: boolean
   refreshProducts: () => Promise<void>
@@ -49,6 +51,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [databaseConnected, setDatabaseConnected] = useState(false)
   const [tagCollections, setTagCollections] = useState<TagCollectionsMap>({})
+  const [productBundles, setProductBundles] = useState<ProductBundle[]>([])
 
   const refreshProducts = useCallback(async () => {
     try {
@@ -56,11 +59,13 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
       const data = (await res.json()) as {
         products?: Product[]
         tagCollections?: TagCollectionsMap
+        productBundles?: ProductBundle[]
         databaseConnected?: boolean
       }
       if (res.ok && Array.isArray(data.products)) {
         setProducts(data.products)
         setTagCollections(data.tagCollections ?? {})
+        setProductBundles(data.productBundles ?? [])
         setDatabaseConnected(Boolean(data.databaseConnected))
       } else {
         setProducts((current) =>
@@ -108,6 +113,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
       value={{
         products,
         tagCollections,
+        productBundles,
         isLoading,
         databaseConnected,
         refreshProducts,

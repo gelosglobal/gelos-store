@@ -10,9 +10,14 @@ import { ProductFeatureGallery } from '@/components/product-feature-gallery'
 import { ProductGallery } from '@/components/product-gallery'
 import { ProductRating } from '@/components/product-rating'
 import { ProductShareMenu } from '@/components/product-share-menu'
-import { getAdminGalleryMedia, getAdminCarouselImages, getProductCarouselImages } from '@/lib/product-gallery-images'
+import {
+  getAdminGalleryMedia,
+  getAdminCarouselImages,
+  getProductCarouselImages,
+} from '@/lib/product-gallery-images'
 import {
   getAdminVariantImages,
+  getAvailableStockForVariant,
   getDefaultVariantDisplayImage,
   getProductPickerImages,
   getProductVariantPickerOptions,
@@ -87,6 +92,14 @@ export function ProductEnhancedPdp({
     product.variantImages,
   ])
 
+  useEffect(() => {
+    setQuantity((current) => {
+      const max = getAvailableStockForVariant(product, activeImage)
+      if (max <= 0) return 1
+      return Math.min(current, max)
+    })
+  }, [activeImage, product])
+
   const featureMedia = useMemo(
     () => getAdminGalleryMedia(product),
     [product],
@@ -129,6 +142,8 @@ export function ProductEnhancedPdp({
 
   const displayName = getVariantDisplayName(product, activeImage)
   const usageSection = getUsageStepsSectionMeta(product.category, content)
+  const availableStock = getAvailableStockForVariant(product, activeImage)
+  const isOutOfStock = availableStock <= 0
 
   const variantPicker = hasAdminVariants ? (
     <ProductAdminVariantPicker
@@ -214,14 +229,27 @@ export function ProductEnhancedPdp({
                   </span>
                   <button
                     type="button"
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="px-4 py-2.5 text-lg hover:bg-neutral-100"
+                    onClick={() =>
+                      setQuantity(Math.min(availableStock, quantity + 1))
+                    }
+                    disabled={quantity >= availableStock}
+                    className="px-4 py-2.5 text-lg hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Increase quantity"
                   >
                     +
                   </button>
                 </div>
               </div>
+
+              {isOutOfStock ? (
+                <p className="mt-4 text-sm font-medium text-red-600">
+                  This flavour is currently out of stock.
+                </p>
+              ) : availableStock <= 5 ? (
+                <p className="mt-4 text-sm text-neutral-600">
+                  Only {availableStock} left for this flavour.
+                </p>
+              ) : null}
 
               <button
                 type="button"
@@ -234,9 +262,10 @@ export function ProductEnhancedPdp({
                     variantLabel,
                   })
                 }}
-                className="mt-6 w-full rounded-full bg-neutral-950 py-4 text-base font-semibold text-white transition-colors hover:bg-neutral-800"
+                disabled={isOutOfStock}
+                className="mt-6 w-full rounded-full bg-neutral-950 py-4 text-base font-semibold text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-400"
               >
-                Add to cart
+                {isOutOfStock ? 'Out of stock' : 'Add to cart'}
               </button>
             </div>
 

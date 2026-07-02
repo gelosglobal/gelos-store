@@ -9,6 +9,13 @@ function isVariantOption(value: unknown): value is ProductVariantOption {
   return typeof record.url === 'string'
 }
 
+function parseVariantStock(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return undefined
+  return Math.max(0, Math.floor(parsed))
+}
+
 /** Parse variant options from DB JSON or legacy URL arrays. */
 export function normalizeVariantImageOptions(
   options: unknown,
@@ -17,15 +24,17 @@ export function normalizeVariantImageOptions(
   const seen = new Set<string>()
   const result: ProductVariantOption[] = []
 
-  const push = (rawUrl: string, rawLabel?: string) => {
+  const push = (rawUrl: string, rawLabel?: string, rawStock?: unknown) => {
     const trimmed = rawUrl.trim()
     if (!trimmed || trimmed === '/placeholder.svg') return
     const url = normalizeImageUrl(trimmed)
     if (seen.has(url)) return
     seen.add(url)
+    const stock = parseVariantStock(rawStock)
     result.push({
       url,
       label: typeof rawLabel === 'string' ? rawLabel.trim() : '',
+      ...(stock !== undefined ? { stock } : {}),
     })
   }
 
@@ -36,7 +45,7 @@ export function normalizeVariantImageOptions(
         continue
       }
       if (isVariantOption(item)) {
-        push(item.url, item.label)
+        push(item.url, item.label, item.stock)
       }
     }
   }
@@ -142,7 +151,11 @@ function dedupeVariantOptions(
     const url = normalizeImageUrl(option.url)
     if (seen.has(url)) continue
     seen.add(url)
-    result.push({ url, label: option.label })
+    result.push({
+      url,
+      label: option.label,
+      ...(option.stock !== undefined ? { stock: option.stock } : {}),
+    })
   }
 
   return result
@@ -206,6 +219,7 @@ export function getProductVariantPickerOptions(product: {
       options.map((option) => ({
         url: normalizeImageUrl(option.url),
         label: resolveVariantOptionLabel(product, option.url),
+        ...(option.stock !== undefined ? { stock: option.stock } : {}),
       })),
     )
   }
@@ -245,6 +259,43 @@ export function getVariantPickerLabel(category: string): string {
   if (category === 'Accessories') return 'Choose your option'
   if (category === 'Tools') return 'Choose your tool'
   return 'Choose your flavour'
+}
+
+export function hasVariantLevelInventory(
+  options: ProductVariantOption[] | undefined | null,
+): boolean {
+  return normalizeVariantImageOptions(options).some(
+    (option) => option.stock !== undefined,
+  )
+}
+
+export function sumVariantInventory(
+  options: ProductVariantOption[] | undefined | null,
+): number {
+  return normalizeVariantImageOptions(options).reduce(
+    (sum, option) => sum + (option.stock ?? 0),
+    0,
+  )
+}
+
+export function getVariantStockForImage(
+  product: { variantImageOptions?: ProductVariantOption[] },
+  imageUrl: string,
+): number | undefined {
+  const option = getAdminVariantOptionForUrl(product, imageUrl)
+  return option?.stock
+}
+
+/** Variant stock when set, otherwise product-level stock. */
+export function getAvailableStockForVariant(
+  product: { stock: number; variantImageOptions?: ProductVariantOption[] },
+  variantImageUrl?: string,
+): number {
+  if (variantImageUrl) {
+    const variantStock = getVariantStockForImage(product, variantImageUrl)
+    if (variantStock !== undefined) return variantStock
+  }
+  return product.stock
 }
 
 /** DB variant images, with legacy best-seller meta fallback when empty. */
