@@ -6,13 +6,13 @@ import { BundleUpsellCard } from '@/components/bundle-upsell-card'
 import { useCart } from '@/components/cart-provider'
 import { useProducts } from '@/components/products-provider'
 import { getCheckoutBundleUpsells } from '@/lib/checkout-recommendations'
-import { GELOS_CORAL } from '@/lib/gelos-brand-colors'
 import { cn } from '@/lib/utils'
 
 type BundleUpsellsSectionProps = {
   limit?: number
   layout?: 'carousel' | 'grid'
   className?: string
+  gridClassName?: string
   /** Shop bundles page: show every active bundle, not only cart upsells. */
   showAll?: boolean
 }
@@ -21,6 +21,7 @@ export function BundleUpsellsSection({
   limit = 6,
   layout = 'grid',
   className,
+  gridClassName,
   showAll = false,
 }: BundleUpsellsSectionProps) {
   const { items } = useCart()
@@ -48,7 +49,7 @@ export function BundleUpsellsSection({
       className={cn(className)}
     >
       <div className="mb-4 flex items-center gap-2 sm:mb-6">
-        <Sparkles className="size-4" style={{ color: GELOS_CORAL }} />
+        <Sparkles className="size-4 text-neutral-950" />
         <h2
           id="bundle-upsells-heading"
           className="text-base font-bold text-neutral-950 sm:text-lg"
@@ -73,7 +74,12 @@ export function BundleUpsellsSection({
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          className={cn(
+            'grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3',
+            gridClassName,
+          )}
+        >
           {bundleUpsells.map((offer) => (
             <BundleUpsellCard
               key={offer.id}

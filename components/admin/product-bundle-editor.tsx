@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { AdminPageHeader } from '@/components/admin/admin-page-header'
+import { ImageUploadField } from '@/components/admin/image-upload-field'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -326,16 +327,14 @@ export function ProductBundleEditor({ bundleId }: ProductBundleEditorProps) {
               />
             </div>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="bundle-image">Cover image URL (optional)</Label>
-            <Input
-              id="bundle-image"
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              placeholder="Uses first product image if empty"
-              className="border-neutral-200"
-            />
-          </div>
+          <ImageUploadField
+            value={image}
+            onChange={setImage}
+            endpoint="productImage"
+            label="Bundle cover image"
+            hint="PNG or JPG up to 8MB. Leave empty to use the first product image."
+            allowManualUrl={false}
+          />
           <label className="flex items-center gap-2 text-sm text-neutral-700">
             <input
               type="checkbox"

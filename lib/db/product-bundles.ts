@@ -192,6 +192,30 @@ export async function updateProductBundle(
   return toProductBundle(row)
 }
 
+export async function reorderProductBundles(
+  orderedBundleIds: string[],
+): Promise<ProductBundle[]> {
+  if (!isDatabaseConfigured()) {
+    throw new Error('DATABASE_NOT_CONFIGURED')
+  }
+
+  const uniqueIds = [...new Set(orderedBundleIds.filter(Boolean))]
+  if (uniqueIds.length === 0) {
+    return listProductBundles({ activeOnly: false })
+  }
+
+  await prisma.$transaction(
+    uniqueIds.map((bundleId, sortOrder) =>
+      prisma.productBundle.update({
+        where: { bundleId },
+        data: { sortOrder },
+      }),
+    ),
+  )
+
+  return listProductBundles({ activeOnly: false })
+}
+
 export async function deleteProductBundle(bundleId: string): Promise<void> {
   if (!isDatabaseConfigured()) {
     throw new Error('DATABASE_NOT_CONFIGURED')

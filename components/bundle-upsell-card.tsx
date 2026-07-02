@@ -1,9 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
-import { AlertTriangle, Package, Plus } from 'lucide-react'
+import { AlertTriangle, Plus } from 'lucide-react'
 import { toast } from 'sonner'
+import { BundleProductThumbnails } from '@/components/bundle-product-thumbnails'
 import { BundleVariantDialog } from '@/components/bundle-variant-dialog'
 import type { CartLineItem } from '@/components/cart-provider'
 import { useCart } from '@/components/cart-provider'
@@ -17,17 +18,20 @@ import {
 import { productNeedsBundleVariantChoice } from '@/lib/bundle-variant-selection'
 import { getBundleLineUnitPrice } from '@/lib/product-bundle-pricing'
 import { getBundleAddToCartOptions } from '@/lib/cart-merge-requests'
-import {
-  GELOS_CORAL,
-  GELOS_CORAL_BORDER,
-  GELOS_CORAL_LIGHT,
-} from '@/lib/gelos-brand-colors'
+import { getDefaultVariantDisplayImage } from '@/lib/product-variant-images'
+import { getProductDisplayBadge } from '@/lib/product-tags'
+import { getProductImageDisplayClass } from '@/lib/product-image-display'
+import { isExternalImageUrl } from '@/lib/image-url'
 import type { Product } from '@/lib/types/product'
 
 type BundleUpsellCardProps = {
   offer: CheckoutBundleOffer
   cartItems: CartLineItem[]
   products: Product[]
+}
+
+function getBundleDisplayImage(offer: CheckoutBundleOffer): string {
+  return offer.image || '/gelos/watermelon2.jpeg'
 }
 
 export function BundleUpsellCard({
@@ -45,9 +49,48 @@ export function BundleUpsellCard({
   const bundleTotal = getBundleOfferPrice(offer, products)
   const hasCompareAtPrice = catalogTotal > bundleTotal
 
-  const includedProducts = offer.productIds
-    .map((id) => products.find((product) => product.id === id))
-    .filter((product): product is Product => Boolean(product))
+  const includedProducts = useMemo(
+    () =>
+      offer.productIds
+        .map((id) => products.find((product) => product.id === id))
+        .filter((product): product is Product => Boolean(product)),
+    [offer.productIds, products],
+  )
+
+  const defaultImage = getBundleDisplayImage(offer)
+  const [activeImage, setActiveImage] = useState(defaultImage)
+
+  useEffect(() => {
+    setActiveImage(getBundleDisplayImage(offer))
+  }, [offer.id, offer.image])
+
+  const isShowingBundleCover = activeImage === offer.image
+
+  const activeProduct = useMemo(
+    () =>
+      includedProducts.find(
+        (product) => getDefaultVariantDisplayImage(product) === activeImage,
+      ),
+    [activeImage, includedProducts],
+  )
+
+  const activeProductBadge = activeProduct
+    ? getProductDisplayBadge(activeProduct)
+    : undefined
+
+  const imageBadges = useMemo(() => {
+    const badges: string[] = []
+    if (offer.badge?.trim()) badges.push(offer.badge.trim())
+    if (
+      activeProductBadge &&
+      !badges.some(
+        (badge) => badge.toLowerCase() === activeProductBadge.toLowerCase(),
+      )
+    ) {
+      badges.push(activeProductBadge)
+    }
+    return badges
+  }, [offer.badge, activeProductBadge])
 
   const variantChoiceProducts = useMemo(
     () =>
@@ -126,92 +169,110 @@ export function BundleUpsellCard({
 
   return (
     <>
-      <article
-        className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border bg-gradient-to-br to-white"
-        style={{
-          borderColor: GELOS_CORAL_BORDER,
-          backgroundImage: `linear-gradient(to bottom right, ${GELOS_CORAL_LIGHT}, white)`,
-        }}
-      >
-        <div className="relative h-36 overflow-hidden bg-white/70 sm:h-40">
-          <Image
-            src={offer.image}
-            alt=""
-            fill
-            className="object-cover"
-            sizes="(max-width: 640px) 100vw, 320px"
-          />
-          {offer.badge ? (
-            <span
-              className="absolute top-3 left-3 rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wide text-white uppercase"
-              style={{ backgroundColor: GELOS_CORAL }}
-            >
-              {offer.badge}
-            </span>
-          ) : null}
-        </div>
-
-        <div className="flex flex-1 flex-col p-4 sm:p-5">
-          <div className="flex items-start gap-2">
-            <Package
-              className="mt-0.5 size-4 shrink-0"
-              style={{ color: GELOS_CORAL }}
+      <article className="flex h-full min-w-0 flex-col">
+        {isShowingBundleCover ? (
+          <div className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50">
+            <Image
+              key={activeImage}
+              src={activeImage}
+              alt={offer.title}
+              width={1600}
+              height={1067}
+              className="block h-auto w-full"
+              style={{ width: '100%', height: 'auto' }}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 50vw"
+              unoptimized={isExternalImageUrl(activeImage)}
             />
-            <div className="min-w-0">
-              <h3 className="text-sm font-bold text-neutral-950 sm:text-base">
-                {offer.title}
-              </h3>
-              <p className="mt-1 text-xs leading-relaxed text-neutral-600 sm:text-sm">
-                {offer.description}
+            <BundleProductThumbnails
+              products={includedProducts}
+              bundleImage={offer.image}
+              activeImage={activeImage}
+              onSelect={setActiveImage}
+            />
+            {imageBadges.length > 0 ? (
+              <div className="pointer-events-none absolute left-1/2 top-3 z-20 flex -translate-x-1/2 flex-col items-center gap-1.5">
+                {imageBadges.map((badge) => (
+                  <span
+                    key={badge}
+                    className="whitespace-nowrap rounded-full bg-neutral-950 px-3 py-1 text-[11px] font-semibold tracking-wide text-white shadow-md"
+                  >
+                    {badge}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+            <Image
+              key={activeImage}
+              src={activeImage}
+              alt={offer.title}
+              fill
+              className={getProductImageDisplayClass(
+                activeProduct?.id ?? offer.id,
+                activeImage,
+                'transition-transform duration-300',
+              )}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              unoptimized={isExternalImageUrl(activeImage)}
+            />
+
+            <BundleProductThumbnails
+              products={includedProducts}
+              bundleImage={offer.image}
+              activeImage={activeImage}
+              onSelect={setActiveImage}
+            />
+
+            {imageBadges.length > 0 ? (
+              <div className="pointer-events-none absolute left-1/2 top-3 z-20 flex -translate-x-1/2 flex-col items-center gap-1.5">
+                {imageBadges.map((badge) => (
+                  <span
+                    key={badge}
+                    className="whitespace-nowrap rounded-full bg-neutral-950 px-3 py-1 text-[11px] font-semibold tracking-wide text-white shadow-md"
+                  >
+                    {badge}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        <div className="flex flex-1 flex-col items-center px-2 pt-3 text-center">
+          <h3 className="text-sm font-medium leading-snug text-neutral-950">
+            {offer.title}
+          </h3>
+
+          <div className="mt-1 flex items-baseline justify-center gap-2">
+            <p className="text-sm font-bold tabular-nums text-neutral-950">
+              {formatPrice(bundleTotal)}
+            </p>
+            {hasCompareAtPrice ? (
+              <p className="text-xs font-medium text-neutral-500 line-through tabular-nums sm:text-sm">
+                {formatPrice(catalogTotal)}
               </p>
-            </div>
+            ) : null}
           </div>
 
           {unavailableCount > 0 ? (
-            <p className="mt-3 flex items-start gap-1.5 text-[11px] text-amber-700 sm:text-xs">
+            <p className="mt-2 flex items-start justify-center gap-1.5 text-[11px] text-amber-700 sm:text-xs">
               <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-              {unavailableCount} product{unavailableCount === 1 ? '' : 's'} in this
-              bundle {unavailableCount === 1 ? 'is' : 'are'} unavailable. Update
-              the bundle in admin.
+              {unavailableCount} product{unavailableCount === 1 ? '' : 's'}{' '}
+              unavailable
             </p>
           ) : null}
 
-          <ul className="mt-3 space-y-1 text-[11px] text-neutral-500 sm:text-xs">
-            {includedProducts.map((product) => (
-              <li key={product.id} className="truncate">
-                • {product.name}
-                {productNeedsBundleVariantChoice(product)
-                  ? ' (choose flavour)'
-                  : ''}
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-auto flex items-end justify-between gap-3 pt-4">
-            <div>
-              <p className="text-[11px] text-neutral-500">Bundle price</p>
-              <p className="text-base font-bold tabular-nums text-neutral-950 sm:text-lg">
-                {formatPrice(bundleTotal)}
-              </p>
-              {hasCompareAtPrice ? (
-                <p
-                  className="text-[11px] font-medium line-through tabular-nums sm:text-xs"
-                  style={{ color: GELOS_CORAL }}
-                >
-                  {formatPrice(catalogTotal)}
-                </p>
-              ) : null}
-            </div>
-            <button
-              type="button"
-              onClick={addBundle}
-              disabled={missingIds.length === 0}
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#E5515F] px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#D64555] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2.5 sm:text-sm"
-            >
-              <Plus className="size-3.5 sm:size-4" />
-              Add bundle
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={addBundle}
+            disabled={missingIds.length === 0}
+            className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-neutral-950 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+          >
+            <Plus className="size-3.5 sm:size-4" />
+            Add bundle
+          </button>
         </div>
       </article>
 

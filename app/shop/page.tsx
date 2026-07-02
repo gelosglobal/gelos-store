@@ -7,10 +7,6 @@ import { trackViewCategory } from '@/lib/meta-pixel'
 import { ShopCollectionCard } from '@/components/shop-collection-card'
 import { BundleUpsellsSection } from '@/components/bundle-upsells-section'
 import {
-  GELOS_CORAL,
-  GELOS_CORAL_DARK,
-} from '@/lib/gelos-brand-colors'
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -241,11 +237,7 @@ function ShopPageContent() {
     <div className="min-h-screen bg-white text-foreground">
       {/* Banner */}
       {bundlesMode ? (
-        <section
-          style={{
-            background: `linear-gradient(135deg, ${GELOS_CORAL} 0%, ${GELOS_CORAL_DARK} 100%)`,
-          }}
-        >
+        <section className="bg-neutral-950">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/80 sm:text-xs">
               Bundle &amp; save

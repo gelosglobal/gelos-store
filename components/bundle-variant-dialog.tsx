@@ -118,7 +118,7 @@ export function BundleVariantDialog({
           </Button>
           <Button
             type="button"
-            className="bg-[#E5515F] text-white hover:bg-[#D64555]"
+            className="bg-neutral-950 text-white hover:bg-neutral-800"
             disabled={!allInStock}
             onClick={() => {
               onConfirm(selections)
