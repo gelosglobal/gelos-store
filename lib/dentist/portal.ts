@@ -4,5 +4,9 @@ export function isDentistPortalPath(pathname: string | null | undefined): boolea
 
 export function isStorefrontChromeHidden(pathname: string | null | undefined): boolean {
   if (!pathname) return false
-  return pathname.startsWith('/admin') || isDentistPortalPath(pathname)
+  return (
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/whatsapp-order') ||
+    isDentistPortalPath(pathname)
+  )
 }

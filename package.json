@@ -12,6 +12,7 @@
     "db:push": "node --env-file=.env.local node_modules/prisma/build/index.js db push",
     "db:studio": "node --env-file=.env.local node_modules/prisma/build/index.js studio",
     "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
+    "db:seed-admin": "tsx --env-file=.env.local scripts/seed-admin.ts",
     "db:repair-images": "tsx --env-file=.env.local scripts/repair-product-images.ts",
     "db:test": "tsx --env-file=.env.local scripts/test-db-connection.ts"
   },
@@ -48,6 +49,7 @@
     "@uploadthing/react": "^7.3.3",
     "@vercel/analytics": "1.6.1",
     "autoprefixer": "^10.4.20",
+    "better-auth": "^1.6.23",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.1.1",

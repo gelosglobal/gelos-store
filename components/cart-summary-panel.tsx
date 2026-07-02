@@ -4,16 +4,20 @@ import Link from 'next/link'
 import { ChevronDown, Tag } from 'lucide-react'
 import { useState } from 'react'
 import { CartPaymentMethods } from '@/components/cart-payment-methods'
+import { WhatsAppOrderButton } from '@/components/whatsapp-order-button'
+import type { CartLineItem } from '@/components/cart-provider'
 import type { PromoCode } from '@/lib/store-promotions'
 import { cn } from '@/lib/utils'
 
 type CartSummaryPanelProps = {
+  items: CartLineItem[]
   itemCount: number
   total: number
   subtotal: number
   discount: number
   shipping: number
   formatPrice: (amount: number) => string
+  locationLabel?: string
   promoCode: string
   promoError: string
   appliedPromo: PromoCode | null
@@ -24,12 +28,14 @@ type CartSummaryPanelProps = {
 }
 
 export function CartSummaryPanel({
+  items,
   itemCount,
   total,
   subtotal,
   discount,
   shipping,
   formatPrice,
+  locationLabel,
   promoCode,
   promoError,
   appliedPromo,
@@ -80,6 +86,18 @@ export function CartSummaryPanel({
       >
         Checkout
       </Link>
+
+      <WhatsAppOrderButton
+        items={items}
+        subtotal={subtotal}
+        discount={discount}
+        shipping={shipping}
+        total={total}
+        formatPrice={formatPrice}
+        promoCode={appliedPromo?.code}
+        locationLabel={locationLabel}
+        className="mt-3"
+      />
 
       <CartPaymentMethods />
 

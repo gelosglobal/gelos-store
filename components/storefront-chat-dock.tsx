@@ -2,13 +2,12 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import Script from 'next/script'
 import { usePathname } from 'next/navigation'
 import { isStorefrontChromeHidden } from '@/lib/dentist/portal'
+import { WhatsAppChatButton } from '@/components/whatsapp-chat-button'
 import { cn } from '@/lib/utils'
 
 const GELOS_AI_AVATAR = '/gelos/dentist.png'
-const ELFSIGHT_WHATSAPP_APP_ID = 'elfsight-app-9b3ba36b-6e34-46ac-bcfd-a31a30d03004'
 
 export function StorefrontChatDock() {
   const pathname = usePathname()
@@ -19,9 +18,6 @@ export function StorefrontChatDock() {
 
   return (
     <>
-      <Script src="https://elfsightcdn.com/platform.js" strategy="lazyOnload" />
-
-      {/* Gelos AI — fixed bottom-left */}
       {!isChatPage ? (
         <div
           id="gelos-ai-dock"
@@ -51,8 +47,7 @@ export function StorefrontChatDock() {
         </div>
       ) : null}
 
-      {/* WhatsApp — Elfsight defaults to bottom-right */}
-      <div className={ELFSIGHT_WHATSAPP_APP_ID} data-elfsight-app-lazy />
+      <WhatsAppChatButton />
     </>
   )
 }

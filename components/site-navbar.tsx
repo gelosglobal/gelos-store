@@ -7,6 +7,7 @@ import { Menu, ShoppingCart, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { AnnouncementBar } from '@/components/announcement-bar'
 import { LocationSelector } from '@/components/location-selector'
+import { StorefrontAdminLink } from '@/components/storefront-admin-link'
 import { MegaMenu } from '@/components/mega-menu'
 import {
   Sheet,
@@ -164,6 +165,11 @@ export function SiteNavbar() {
                     <LocationSelector showFullLabel className="w-full" />
                   </div>
                   <div className="mb-4 flex flex-col gap-1 border-b border-neutral-100 pb-4">
+                    <StorefrontAdminLink
+                      showLabel
+                      className="w-full px-2 py-2.5 hover:bg-neutral-50"
+                      onNavigate={() => setMobileOpen(false)}
+                    />
                     {mainNavLinks.map((item) => {
                         const Icon = item.icon
                         return (
@@ -209,6 +215,7 @@ export function SiteNavbar() {
                   </Link>
                 )
               })}
+            <StorefrontAdminLink />
             <Link
               href="/cart"
               className="relative p-2 text-foreground transition-opacity hover:opacity-70"

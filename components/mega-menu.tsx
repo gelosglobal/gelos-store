@@ -101,7 +101,7 @@ export function MegaMenu({ onNavigate }: MegaMenuProps) {
                   Bundle builder
                 </p>
                 <p className="mt-0.5 text-sm font-semibold text-white">
-                  Curated sets — coming soon
+                  Shop curated sets
                 </p>
               </div>
               <span className="absolute bottom-2.5 right-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-[#E91E8C] text-white transition-transform group-hover:scale-105">

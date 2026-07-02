@@ -6,6 +6,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { trackViewCategory } from '@/lib/meta-pixel'
 import { ShopCollectionCard } from '@/components/shop-collection-card'
+import { BundleUpsellsSection } from '@/components/bundle-upsells-section'
 import {
   Select,
   SelectContent,
@@ -67,7 +68,8 @@ function ShopPageContent() {
     if (bundlesMode) {
       return {
         title: 'Bundles',
-        description: 'Curated Gelos sets — coming soon.',
+        description:
+          'Curated Gelos sets — toothpaste, mouthwash, whitening kits, and more in one tap.',
       }
     }
     if (newArrivalsMode) {
@@ -341,16 +343,28 @@ function ShopPageContent() {
       {/* Product grid */}
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
         {bundlesMode ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center sm:py-24">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#65A30D]">
-              Bundle builder
-            </p>
-            <h2 className="mt-3 text-2xl font-bold tracking-tight text-neutral-950 sm:text-3xl">
-              Coming soon
-            </h2>
-            <p className="mt-3 max-w-md text-sm leading-relaxed text-neutral-600 sm:text-base">
-              We&apos;re putting together curated smile-care sets so you can build your routine in one tap. Check back shortly.
-            </p>
+          <div className="space-y-12">
+            <BundleUpsellsSection limit={12} />
+
+            {filteredProducts.length > 0 ? (
+              <div>
+                <h2 className="text-lg font-bold text-neutral-950 sm:text-xl">
+                  More bundle picks
+                </h2>
+                <p className="mt-1 text-sm text-neutral-600">
+                  Individual bundle products from the Gelos catalog.
+                </p>
+                <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 lg:grid-cols-4 lg:gap-x-8 lg:gap-y-12">
+                  {filteredProducts.map((product) => (
+                    <ShopCollectionCard
+                      key={product.id}
+                      product={product}
+                      badge={getProductDisplayBadge(product)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="py-16 text-center">

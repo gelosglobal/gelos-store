@@ -2,7 +2,7 @@
 
 import type { ComponentType } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Package,
@@ -19,8 +19,10 @@ import {
   ExternalLink,
   Menu,
   X,
+  LogOut,
 } from 'lucide-react'
 import { useState } from 'react'
+import { signOut, useSession } from '@/lib/auth-client'
 import { productTagDefinitions } from '@/lib/product-tags'
 import { cn } from '@/lib/utils'
 
@@ -83,8 +85,34 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { data: session } = useSession()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
+
+  const isLoginPage = pathname === '/admin/login'
+
+  const handleSignOut = async () => {
+    if (signingOut) return
+    setSigningOut(true)
+    try {
+      await signOut()
+      router.replace('/admin/login')
+      router.refresh()
+    } finally {
+      setSigningOut(false)
+    }
+  }
+
+  if (isLoginPage) {
+    return children
+  }
+
+  const userInitial =
+    session?.user?.name?.trim().charAt(0).toUpperCase() ||
+    session?.user?.email?.trim().charAt(0).toUpperCase() ||
+    'A'
 
   const isActive = (href: string, hasChildren?: boolean) => {
     if (href === '/admin') return pathname === '/admin'
@@ -231,8 +259,22 @@ export default function AdminLayout({
           <p className="text-sm font-medium text-neutral-500 md:ml-0">
             Gelos Admin · Content Management
           </p>
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-950 text-sm font-semibold text-white">
-            A
+          <div className="flex items-center gap-3">
+            {session?.user?.name ? (
+              <p className="hidden text-sm text-neutral-600 sm:block">{session.user.name}</p>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => void handleSignOut()}
+              disabled={signingOut}
+              className="hidden items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-950 sm:inline-flex"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-950 text-sm font-semibold text-white">
+              {userInitial}
+            </div>
           </div>
         </header>
 

@@ -206,12 +206,14 @@ export default function CartPage() {
 
             <div className="space-y-4 lg:sticky lg:top-[6.5rem]">
               <CartSummaryPanel
+                items={items}
                 itemCount={itemCount}
                 total={total}
                 subtotal={subtotal}
                 discount={discount}
                 shipping={shipping}
                 formatPrice={formatPrice}
+                locationLabel={location.label}
                 promoCode={promoCode}
                 promoError={promoError}
                 appliedPromo={appliedPromo}
