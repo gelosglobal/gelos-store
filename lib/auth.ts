@@ -3,19 +3,7 @@ import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { admin } from 'better-auth/plugins'
 import { nextCookies } from 'better-auth/next-js'
 import { prisma } from '@/lib/prisma'
-
-function getAuthBaseUrl(): string {
-  if (process.env.BETTER_AUTH_URL?.trim()) {
-    return process.env.BETTER_AUTH_URL.trim()
-  }
-  if (process.env.NEXT_PUBLIC_APP_URL?.trim()) {
-    return process.env.NEXT_PUBLIC_APP_URL.trim()
-  }
-  if (process.env.VERCEL_URL?.trim()) {
-    return `https://${process.env.VERCEL_URL.trim()}`
-  }
-  return 'http://localhost:3000'
-}
+import { getAuthBaseUrl, getAuthTrustedOrigins } from '@/lib/auth-url'
 
 const adminUserIds = (process.env.BETTER_AUTH_ADMIN_USER_IDS ?? '')
   .split(',')
@@ -33,15 +21,14 @@ export const auth = betterAuth({
     database: {
       generateId: false,
     },
+    // Enable if your host only exposes the public domain via x-forwarded-host.
+    trustedProxyHeaders: process.env.BETTER_AUTH_TRUSTED_PROXY_HEADERS === 'true',
   },
   emailAndPassword: {
     enabled: true,
     disableSignUp: true,
   },
-  trustedOrigins: [
-    getAuthBaseUrl(),
-    process.env.NEXT_PUBLIC_APP_URL?.trim(),
-  ].filter((value): value is string => Boolean(value)),
+  trustedOrigins: getAuthTrustedOrigins(),
   plugins: [
     admin({
       defaultRole: 'user',
