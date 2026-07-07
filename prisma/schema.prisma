@@ -205,12 +205,16 @@ model InboxMessage {
 
 /** Anonymous storefront presence for live analytics (heartbeat updates lastSeenAt). */
 model VisitorSession {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  visitorId   String   @unique
-  path        String   @default("/")
-  referrer    String   @default("")
-  lastSeenAt  DateTime @default(now())
-  firstSeenAt DateTime @default(now())
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  visitorId     String   @unique
+  path          String   @default("/")
+  referrer      String   @default("")
+  locationId    String   @default("")
+  city          String   @default("")
+  country       String   @default("")
+  locationLabel String   @default("")
+  lastSeenAt    DateTime @default(now())
+  firstSeenAt   DateTime @default(now())
 
   @@map("visitor_sessions")
 }

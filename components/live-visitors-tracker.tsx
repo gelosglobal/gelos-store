@@ -2,7 +2,9 @@
 
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
+import { useLocation } from '@/components/location-provider'
 import { isStorefrontChromeHidden } from '@/lib/dentist/portal'
+import type { LocationId } from '@/lib/locations'
 
 const VISITOR_STORAGE_KEY = 'gelos:visitor-id'
 const HEARTBEAT_INTERVAL_MS = 30_000
@@ -22,7 +24,7 @@ function getOrCreateVisitorId(): string {
   return id
 }
 
-async function sendHeartbeat(path: string) {
+async function sendHeartbeat(path: string, locationId: LocationId) {
   const visitorId = getOrCreateVisitorId()
   if (!visitorId) return
 
@@ -33,6 +35,7 @@ async function sendHeartbeat(path: string) {
       visitorId,
       path,
       referrer: document.referrer || undefined,
+      locationId,
     }),
     keepalive: true,
   }).catch(() => undefined)
@@ -40,6 +43,7 @@ async function sendHeartbeat(path: string) {
 
 export function LiveVisitorsTracker() {
   const pathname = usePathname()
+  const { locationId } = useLocation()
   const lastPath = useRef('')
 
   useEffect(() => {
@@ -48,15 +52,15 @@ export function LiveVisitorsTracker() {
     const path = `${pathname}${window.location.search}`
     lastPath.current = path
 
-    void sendHeartbeat(path)
+    void sendHeartbeat(path, locationId)
 
     const interval = window.setInterval(() => {
-      void sendHeartbeat(lastPath.current || path)
+      void sendHeartbeat(lastPath.current || path, locationId)
     }, HEARTBEAT_INTERVAL_MS)
 
     const onVisible = () => {
       if (document.visibilityState === 'visible') {
-        void sendHeartbeat(lastPath.current || path)
+        void sendHeartbeat(lastPath.current || path, locationId)
       }
     }
 
@@ -65,7 +69,7 @@ export function LiveVisitorsTracker() {
       window.clearInterval(interval)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [pathname])
+  }, [pathname, locationId])
 
   return null
 }

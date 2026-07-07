@@ -3,7 +3,7 @@ import type { AnalyticsPeriod } from '@/lib/admin/analytics-types'
 import { getAdminAnalytics } from '@/lib/db/admin-analytics'
 import { isAdminDatabaseReady } from '@/lib/db/admin-products'
 
-const PERIODS: AnalyticsPeriod[] = ['today', 'last7', 'last30']
+const PERIODS: AnalyticsPeriod[] = ['today', 'last7', 'last30', 'custom']
 
 export async function GET(request: Request) {
   try {
@@ -13,7 +13,14 @@ export async function GET(request: Request) {
       ? (periodParam as AnalyticsPeriod)
       : 'today'
 
-    const analytics = await getAdminAnalytics(period)
+    const startDate = searchParams.get('startDate') ?? ''
+    const endDate = searchParams.get('endDate') ?? ''
+    const customRange =
+      period === 'custom' && startDate && endDate
+        ? { startDate, endDate }
+        : undefined
+
+    const analytics = await getAdminAnalytics(period, customRange)
 
     return NextResponse.json({
       ...analytics,

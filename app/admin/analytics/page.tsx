@@ -18,6 +18,7 @@ import { AnalyticsMetricCard } from '@/components/admin/analytics-metric-card'
 import { AnalyticsOverviewHeader } from '@/components/admin/analytics-overview-header'
 import { LiveVisitorsPanel } from '@/components/admin/live-visitors-panel'
 import type {
+  AnalyticsCustomRange,
   AnalyticsPayload,
   AnalyticsPeriod,
 } from '@/lib/admin/analytics-types'
@@ -103,15 +104,34 @@ const emptyAnalytics: AnalyticsPayload = {
   },
 }
 
+function dateInputValue(date: Date): string {
+  return date.toISOString().slice(0, 10)
+}
+
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState<AnalyticsPeriod>('today')
+  const [customRange, setCustomRange] = useState<AnalyticsCustomRange>(() => {
+    const end = new Date()
+    const start = new Date(end)
+    start.setDate(start.getDate() - 6)
+    return {
+      startDate: dateInputValue(start),
+      endDate: dateInputValue(end),
+    }
+  })
   const [data, setData] = useState<AnalyticsPayload>(emptyAnalytics)
   const [loading, setLoading] = useState(true)
   const [showLiveActivity, setShowLiveActivity] = useState(false)
 
   const loadAnalytics = useCallback(async () => {
     try {
-      const res = await fetch(`/api/admin/analytics?period=${period}`, {
+      const params = new URLSearchParams({ period })
+      if (period === 'custom' && customRange.startDate && customRange.endDate) {
+        params.set('startDate', customRange.startDate)
+        params.set('endDate', customRange.endDate)
+      }
+
+      const res = await fetch(`/api/admin/analytics?${params.toString()}`, {
         cache: 'no-store',
       })
       const json = await res.json()
@@ -131,7 +151,7 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false)
     }
-  }, [period])
+  }, [customRange.endDate, customRange.startDate, period])
 
   useEffect(() => {
     setLoading(true)
@@ -153,7 +173,9 @@ export default function AnalyticsPage() {
       ? 'Today'
       : period === 'last7'
         ? 'Last 7 days'
-        : 'Last 30 days'
+        : period === 'last30'
+          ? 'Last 30 days'
+          : 'Custom range'
 
   const topCategoryMax = topCategories[0]?.revenue ?? 1
   const insightHref =
@@ -164,6 +186,9 @@ export default function AnalyticsPage() {
       <AnalyticsOverviewHeader
         period={period}
         onPeriodChange={setPeriod}
+        customStartDate={customRange.startDate}
+        customEndDate={customRange.endDate}
+        onCustomRangeChange={setCustomRange}
         snapshot={snapshot}
         series={series}
         loading={loading}

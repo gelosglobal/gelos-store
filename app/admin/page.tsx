@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { formatOrderTotal } from '@/lib/admin/order-format'
 import type {
+  AnalyticsCustomRange,
   AnalyticsPayload,
   AnalyticsPeriod,
 } from '@/lib/admin/analytics-types'
@@ -19,6 +20,7 @@ import type { StoreOrder } from '@/lib/types/order'
 import { AdminPageHeader } from '@/components/admin/admin-page-header'
 import { AdminStatCard } from '@/components/admin/admin-stat-card'
 import { AnalyticsOverviewHeader } from '@/components/admin/analytics-overview-header'
+import { LiveVisitorsPanel } from '@/components/admin/live-visitors-panel'
 import { Button } from '@/components/ui/button'
 
 type Stats = {
@@ -58,16 +60,36 @@ const emptyAnalytics: AnalyticsPayload = {
   },
 }
 
+function dateInputValue(date: Date): string {
+  return date.toISOString().slice(0, 10)
+}
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [recentOrders, setRecentOrders] = useState<StoreOrder[]>([])
   const [period, setPeriod] = useState<AnalyticsPeriod>('today')
+  const [customRange, setCustomRange] = useState<AnalyticsCustomRange>(() => {
+    const end = new Date()
+    const start = new Date(end)
+    start.setDate(start.getDate() - 6)
+    return {
+      startDate: dateInputValue(start),
+      endDate: dateInputValue(end),
+    }
+  })
   const [analytics, setAnalytics] = useState<AnalyticsPayload>(emptyAnalytics)
   const [analyticsLoading, setAnalyticsLoading] = useState(true)
+  const [showLiveActivity, setShowLiveActivity] = useState(false)
 
   const loadAnalytics = useCallback(async () => {
     try {
-      const res = await fetch(`/api/admin/analytics?period=${period}`, {
+      const params = new URLSearchParams({ period })
+      if (period === 'custom' && customRange.startDate && customRange.endDate) {
+        params.set('startDate', customRange.startDate)
+        params.set('endDate', customRange.endDate)
+      }
+
+      const res = await fetch(`/api/admin/analytics?${params.toString()}`, {
         cache: 'no-store',
       })
       const json = await res.json()
@@ -87,7 +109,7 @@ export default function AdminDashboard() {
     } finally {
       setAnalyticsLoading(false)
     }
-  }, [period])
+  }, [customRange.endDate, customRange.startDate, period])
 
   useEffect(() => {
     fetch('/api/admin/stats')
@@ -114,10 +136,17 @@ export default function AdminDashboard() {
       <AnalyticsOverviewHeader
         period={period}
         onPeriodChange={setPeriod}
+        customStartDate={customRange.startDate}
+        customEndDate={customRange.endDate}
+        onCustomRangeChange={setCustomRange}
         snapshot={analytics.snapshot}
         series={analytics.series}
         loading={analyticsLoading}
+        liveVisitorsExpanded={showLiveActivity}
+        onLiveVisitorsClick={() => setShowLiveActivity((open) => !open)}
       />
+
+      {showLiveActivity ? <LiveVisitorsPanel compact /> : null}
 
       <AdminPageHeader
         title="Dashboard"

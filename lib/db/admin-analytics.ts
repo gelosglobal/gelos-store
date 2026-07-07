@@ -1,6 +1,7 @@
 import type { Order as PrismaOrder } from '@prisma/client'
 import type { CheckoutLineItem } from '@/lib/checkout'
 import type {
+  AnalyticsCustomRange,
   AnalyticsPayload,
   AnalyticsPeriod,
   AnalyticsSeriesPoint,
@@ -47,12 +48,35 @@ function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate())
 }
 
-function periodRange(period: AnalyticsPeriod, now = new Date()) {
+function periodRange(
+  period: AnalyticsPeriod,
+  now = new Date(),
+  customRange?: AnalyticsCustomRange,
+) {
   const end = now
   const start = new Date(now)
 
   if (period === 'today') {
     return { start: startOfDay(now), end, previousStart: new Date(startOfDay(now).getTime() - 86_400_000), previousEnd: startOfDay(now) }
+  }
+
+  if (period === 'custom' && customRange?.startDate && customRange.endDate) {
+    const startDate = new Date(customRange.startDate)
+    const endDate = new Date(customRange.endDate)
+    if (!Number.isNaN(startDate.getTime()) && !Number.isNaN(endDate.getTime())) {
+      const orderedStart = startDate <= endDate ? startDate : endDate
+      const orderedEnd = endDate >= startDate ? endDate : startDate
+      const customStart = startOfDay(orderedStart)
+      const customEnd = new Date(startOfDay(orderedEnd))
+      customEnd.setDate(customEnd.getDate() + 1)
+      const durationMs = Math.max(86_400_000, customEnd.getTime() - customStart.getTime())
+      return {
+        start: customStart,
+        end: customEnd,
+        previousStart: new Date(customStart.getTime() - durationMs),
+        previousEnd: customStart,
+      }
+    }
   }
 
   const days = period === 'last7' ? 7 : 30
@@ -117,6 +141,7 @@ function buildEmptySeries(period: AnalyticsPeriod): AnalyticsSeriesPoint[] {
       previous: 0,
     }))
   }
+  if (period === 'custom') return []
   return Array.from({ length: 6 }, (_, index) => ({
     hour: `W${index + 1}`,
     sales: 0,
@@ -272,14 +297,72 @@ function buildLast30Series(
   })
 }
 
+function buildCustomSeries(
+  current: PrismaOrder[],
+  previous: PrismaOrder[],
+  rangeStart: Date,
+  rangeEnd: Date,
+): AnalyticsSeriesPoint[] {
+  const totalDays = Math.max(
+    1,
+    Math.ceil((rangeEnd.getTime() - rangeStart.getTime()) / 86_400_000),
+  )
+  const bucketCount = Math.min(8, totalDays)
+  const bucketDays = Math.max(1, Math.ceil(totalDays / bucketCount))
+  const points: AnalyticsSeriesPoint[] = []
+
+  for (let index = 0; index < bucketCount; index += 1) {
+    const bucketStart = new Date(rangeStart)
+    bucketStart.setDate(bucketStart.getDate() + index * bucketDays)
+    if (bucketStart >= rangeEnd) break
+
+    const bucketEnd = new Date(bucketStart)
+    bucketEnd.setDate(bucketEnd.getDate() + bucketDays)
+    if (bucketEnd > rangeEnd) bucketEnd.setTime(rangeEnd.getTime())
+
+    const previousBucketStart = new Date(bucketStart)
+    previousBucketStart.setTime(
+      previousBucketStart.getTime() - (rangeEnd.getTime() - rangeStart.getTime()),
+    )
+    const previousBucketEnd = new Date(bucketEnd)
+    previousBucketEnd.setTime(
+      previousBucketEnd.getTime() - (rangeEnd.getTime() - rangeStart.getTime()),
+    )
+
+    const currentBucket = current.filter((order) =>
+      inRange(order.createdAt, bucketStart, bucketEnd),
+    )
+    const previousBucket = previous.filter((order) =>
+      inRange(order.createdAt, previousBucketStart, previousBucketEnd),
+    )
+
+    points.push({
+      hour: bucketStart.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+      }),
+      sales: sumSales(currentBucket),
+      orders: currentBucket.length,
+      customers: uniqueCustomers(currentBucket),
+      previous: sumSales(previousBucket),
+    })
+  }
+
+  return points
+}
+
 function buildSeries(
   period: AnalyticsPeriod,
   current: PrismaOrder[],
   previous: PrismaOrder[],
   rangeStart: Date,
+  rangeEnd: Date,
 ): AnalyticsSeriesPoint[] {
   if (period === 'today') return buildTodaySeries(current, previous)
   if (period === 'last7') return buildLast7Series(current, previous, rangeStart)
+  if (period === 'custom') {
+    return buildCustomSeries(current, previous, rangeStart, rangeEnd)
+  }
   return buildLast30Series(current, previous, rangeStart)
 }
 
@@ -412,11 +495,16 @@ function buildInsight(
 
 export async function getAdminAnalytics(
   period: AnalyticsPeriod,
+  customRange?: AnalyticsCustomRange,
 ): Promise<AnalyticsPayload> {
   if (!isDatabaseConfigured()) return emptyPayload(period)
 
   const now = new Date()
-  const { start, end, previousStart, previousEnd } = periodRange(period, now)
+  const { start, end, previousStart, previousEnd } = periodRange(
+    period,
+    now,
+    customRange,
+  )
 
   const [orders, products, currentSessions, previousSessions] = await Promise.all([
     prisma.order.findMany({ orderBy: { createdAt: 'desc' } }),
@@ -445,7 +533,7 @@ export async function getAdminAnalytics(
 
   return {
     snapshot,
-    series: buildSeries(period, current, previous, start),
+    series: buildSeries(period, current, previous, start, end),
     salesChannels,
     topCategories,
     topProducts,

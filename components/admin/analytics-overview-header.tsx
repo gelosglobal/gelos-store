@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { ChevronDown } from 'lucide-react'
 import type {
   AnalyticsPeriod,
   AnalyticsSeriesPoint,
@@ -21,11 +20,15 @@ const PERIOD_LABELS: Record<AnalyticsPeriod, string> = {
   today: 'Today',
   last7: 'Last 7 days',
   last30: 'Last 30 days',
+  custom: 'Custom',
 }
 
 type AnalyticsOverviewHeaderProps = {
   period: AnalyticsPeriod
   onPeriodChange: (period: AnalyticsPeriod) => void
+  customStartDate?: string
+  customEndDate?: string
+  onCustomRangeChange?: (range: { startDate: string; endDate: string }) => void
   snapshot: AnalyticsSnapshot
   series: AnalyticsSeriesPoint[]
   loading?: boolean
@@ -78,6 +81,9 @@ function WorldMapBackdrop() {
 export function AnalyticsOverviewHeader({
   period,
   onPeriodChange,
+  customStartDate,
+  customEndDate,
+  onCustomRangeChange,
   snapshot,
   series,
   loading,
@@ -146,16 +152,47 @@ export function AnalyticsOverviewHeader({
             value={period}
             onValueChange={(value) => onPeriodChange(value as AnalyticsPeriod)}
           >
-            <SelectTrigger className="mt-0.5 h-auto w-auto gap-1 border-0 bg-transparent p-0 text-lg font-semibold text-neutral-950 shadow-none hover:bg-transparent focus:ring-0 [&>svg]:hidden">
+            <SelectTrigger className="mt-1 h-9 w-auto min-w-[9.5rem] gap-2 rounded-md border border-neutral-200 bg-white px-2.5 text-left text-base font-semibold text-neutral-950 shadow-none hover:bg-neutral-50 focus:ring-2 focus:ring-neutral-200 [&_svg]:text-neutral-500 [&_svg]:opacity-100">
               <SelectValue />
-              <ChevronDown className="h-4 w-4 text-neutral-500" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="today">Today</SelectItem>
               <SelectItem value="last7">Last 7 days</SelectItem>
               <SelectItem value="last30">Last 30 days</SelectItem>
+              <SelectItem value="custom">Custom</SelectItem>
             </SelectContent>
           </Select>
+          {period === 'custom' && onCustomRangeChange ? (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <input
+                type="date"
+                value={customStartDate ?? ''}
+                max={customEndDate || undefined}
+                onChange={(event) =>
+                  onCustomRangeChange({
+                    startDate: event.target.value,
+                    endDate: customEndDate ?? '',
+                  })
+                }
+                className="h-8 rounded-md border border-neutral-200 bg-white px-2 text-xs text-neutral-700 outline-none focus:border-neutral-400"
+                aria-label="Custom start date"
+              />
+              <span className="text-xs text-neutral-500">to</span>
+              <input
+                type="date"
+                value={customEndDate ?? ''}
+                min={customStartDate || undefined}
+                onChange={(event) =>
+                  onCustomRangeChange({
+                    startDate: customStartDate ?? '',
+                    endDate: event.target.value,
+                  })
+                }
+                className="h-8 rounded-md border border-neutral-200 bg-white px-2 text-xs text-neutral-700 outline-none focus:border-neutral-400"
+                aria-label="Custom end date"
+              />
+            </div>
+          ) : null}
           <p className="sr-only">{PERIOD_LABELS[period]}</p>
         </div>
 

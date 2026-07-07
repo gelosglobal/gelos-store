@@ -1,4 +1,9 @@
-export type AnalyticsPeriod = 'today' | 'last7' | 'last30'
+export type AnalyticsPeriod = 'today' | 'last7' | 'last30' | 'custom'
+
+export type AnalyticsCustomRange = {
+  startDate: string
+  endDate: string
+}
 
 export type AnalyticsSnapshot = {
   totalSales: number

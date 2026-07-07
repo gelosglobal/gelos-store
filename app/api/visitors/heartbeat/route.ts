@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { upsertVisitorHeartbeat } from '@/lib/db/visitor-sessions'
+import { getGeoFromRequestHeaders } from '@/lib/visitor-location'
 
 const bodySchema = z.object({
   visitorId: z.string().min(8).max(120),
   path: z.string().max(500),
   referrer: z.string().max(500).optional(),
+  locationId: z
+    .enum(['international', 'nigeria', 'ghana', 'usa'])
+    .optional(),
 })
 
 export async function POST(request: Request) {
@@ -17,7 +21,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid heartbeat' }, { status: 400 })
     }
 
-    const result = await upsertVisitorHeartbeat(parsed.data)
+    const geo = getGeoFromRequestHeaders(request.headers)
+    const result = await upsertVisitorHeartbeat({
+      ...parsed.data,
+      geoCity: geo.city,
+      geoCountry: geo.country,
+    })
     if (!result.ok) {
       return NextResponse.json({ ok: false })
     }

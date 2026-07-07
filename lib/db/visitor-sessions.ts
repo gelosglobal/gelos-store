@@ -1,6 +1,11 @@
 import type { LiveVisitorsPayload } from '@/lib/admin/live-visitors-types'
 import { isDatabaseConfigured } from '@/lib/env'
 import { prisma } from '@/lib/prisma'
+import {
+  getVisitorLocationDisplayLabel,
+  getVisitorLocationFlag,
+  resolveVisitorLocation,
+} from '@/lib/visitor-location'
 
 export const LIVE_VISITOR_WINDOW_MS = 2 * 60 * 1000
 const STALE_CLEANUP_MS = 30 * 60 * 1000
@@ -44,6 +49,18 @@ function formatLastSeenLabel(lastSeenAt: Date, now = new Date()): string {
   return `${minutes}m ago`
 }
 
+function locationGroupKey(session: {
+  locationId: string
+  country: string
+  locationLabel: string
+}): string {
+  const locationId = session.locationId?.trim()
+  if (locationId) return `id:${locationId}`
+  const country = session.country?.trim()
+  if (country) return `country:${country.toLowerCase()}`
+  return `label:${session.locationLabel?.trim() || 'unknown'}`
+}
+
 export async function countSessionsInRange(start: Date, end: Date): Promise<number> {
   if (!isDatabaseConfigured()) return 0
 
@@ -61,6 +78,9 @@ export async function upsertVisitorHeartbeat(input: {
   visitorId: string
   path: string
   referrer?: string
+  locationId?: string
+  geoCity?: string
+  geoCountry?: string
 }) {
   if (!isDatabaseConfigured()) {
     return { ok: false as const, reason: 'no_database' as const }
@@ -73,6 +93,11 @@ export async function upsertVisitorHeartbeat(input: {
 
   const path = input.path.trim().slice(0, 500) || '/'
   const referrer = input.referrer?.trim().slice(0, 500) ?? ''
+  const location = resolveVisitorLocation({
+    locationId: input.locationId,
+    geoCity: input.geoCity,
+    geoCountry: input.geoCountry,
+  })
   const now = new Date()
 
   await prisma.visitorSession.upsert({
@@ -81,12 +106,20 @@ export async function upsertVisitorHeartbeat(input: {
       visitorId,
       path,
       referrer,
+      locationId: location.locationId ?? '',
+      city: location.city,
+      country: location.country,
+      locationLabel: location.label,
       firstSeenAt: now,
       lastSeenAt: now,
     },
     update: {
       path,
       referrer,
+      locationId: location.locationId ?? '',
+      city: location.city,
+      country: location.country,
+      locationLabel: location.label,
       lastSeenAt: now,
     },
   })
@@ -113,6 +146,7 @@ export async function getLiveVisitors(): Promise<LiveVisitorsPayload> {
       liveCount: 0,
       todayVisitors: 0,
       activePages: [],
+      activeLocations: [],
       sessions: [],
       activeWindowSeconds: LIVE_VISITOR_WINDOW_MS / 1000,
       refreshedAt: now.toISOString(),
@@ -133,9 +167,47 @@ export async function getLiveVisitors(): Promise<LiveVisitorsPayload> {
   ])
 
   const pageCounts = new Map<string, number>()
+  const locationCounts = new Map<
+    string,
+    {
+      locationId: string
+      locationLabel: string
+      locationDisplayLabel: string
+      locationFlag: string
+      visitors: number
+    }
+  >()
+
   for (const session of activeSessions) {
     const path = session.path || '/'
     pageCounts.set(path, (pageCounts.get(path) ?? 0) + 1)
+
+    const locationId = session.locationId?.trim() ?? ''
+    const locationLabel = session.locationLabel?.trim() || 'Unknown location'
+    const locationDisplayLabel =
+      getVisitorLocationDisplayLabel({
+        locationId,
+        city: session.city,
+        country: session.country,
+      }) || locationLabel
+    const locationFlag = getVisitorLocationFlag({
+      locationId,
+      country: session.country,
+    })
+    const key = locationGroupKey(session)
+    const existing = locationCounts.get(key)
+
+    if (existing) {
+      existing.visitors += 1
+    } else {
+      locationCounts.set(key, {
+        locationId,
+        locationLabel,
+        locationDisplayLabel,
+        locationFlag,
+        visitors: 1,
+      })
+    }
   }
 
   const activePages = [...pageCounts.entries()]
@@ -146,19 +218,49 @@ export async function getLiveVisitors(): Promise<LiveVisitorsPayload> {
     }))
     .sort((a, b) => b.visitors - a.visitors)
 
+  const activeLocations = [...locationCounts.entries()]
+    .map(([key, location]) => ({
+      key,
+      locationId: location.locationId,
+      locationLabel: location.locationLabel,
+      locationDisplayLabel: location.locationDisplayLabel,
+      locationFlag: location.locationFlag,
+      visitors: location.visitors,
+    }))
+    .sort((a, b) => b.visitors - a.visitors)
+
   return {
     liveCount: activeSessions.length,
     todayVisitors,
     activePages,
-    sessions: activeSessions.map((session) => ({
-      visitorId: session.visitorId,
-      path: session.path,
-      pathLabel: formatVisitorPath(session.path),
-      referrer: session.referrer,
-      referrerLabel: formatReferrerLabel(session.referrer),
-      lastSeenAt: session.lastSeenAt.toISOString(),
-      lastSeenLabel: formatLastSeenLabel(session.lastSeenAt, now),
-    })),
+    activeLocations,
+    sessions: activeSessions.map((session) => {
+      const locationId = session.locationId?.trim() ?? ''
+      const locationLabel = session.locationLabel?.trim() || 'Unknown location'
+      const locationDisplayLabel =
+        getVisitorLocationDisplayLabel({
+          locationId,
+          city: session.city,
+          country: session.country,
+        }) || locationLabel
+
+      return {
+        visitorId: session.visitorId,
+        path: session.path,
+        pathLabel: formatVisitorPath(session.path),
+        referrer: session.referrer,
+        referrerLabel: formatReferrerLabel(session.referrer),
+        locationId,
+        locationLabel,
+        locationDisplayLabel,
+        locationFlag: getVisitorLocationFlag({
+          locationId,
+          country: session.country,
+        }),
+        lastSeenAt: session.lastSeenAt.toISOString(),
+        lastSeenLabel: formatLastSeenLabel(session.lastSeenAt, now),
+      }
+    }),
     activeWindowSeconds: LIVE_VISITOR_WINDOW_MS / 1000,
     refreshedAt: now.toISOString(),
   }
