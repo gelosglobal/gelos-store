@@ -16,6 +16,7 @@ export function generateAffiliateId(): string {
 
 export type StoredAffiliate = {
   affiliateId: string
+  userId: string
   code: string
   name: string
   email: string
@@ -35,6 +36,7 @@ export type StoredAffiliate = {
 function prismaToStoredAffiliate(record: PrismaAffiliate): StoredAffiliate {
   return {
     affiliateId: record.affiliateId,
+    userId: record.userId,
     code: record.code,
     name: record.name,
     email: record.email,
@@ -60,6 +62,61 @@ export async function listStoredAffiliates(): Promise<StoredAffiliate[]> {
   })
 
   return records.map(prismaToStoredAffiliate)
+}
+
+export async function findStoredAffiliateById(
+  affiliateId: string,
+): Promise<StoredAffiliate | null> {
+  if (!isDatabaseConfigured()) return null
+
+  const record = await prisma.affiliate.findUnique({
+    where: { affiliateId },
+  })
+
+  return record ? prismaToStoredAffiliate(record) : null
+}
+
+export async function findAffiliateByUserId(
+  userId: string,
+): Promise<StoredAffiliate | null> {
+  if (!isDatabaseConfigured() || !userId.trim()) return null
+
+  const record = await prisma.affiliate.findFirst({
+    where: { userId: userId.trim(), enabled: true },
+  })
+
+  return record ? prismaToStoredAffiliate(record) : null
+}
+
+export async function findInvitedAffiliateByEmail(
+  email: string,
+): Promise<StoredAffiliate | null> {
+  if (!isDatabaseConfigured()) return null
+
+  const normalized = email.trim().toLowerCase()
+  if (!normalized) return null
+
+  const record = await prisma.affiliate.findFirst({
+    where: { email: normalized, enabled: true },
+  })
+
+  return record ? prismaToStoredAffiliate(record) : null
+}
+
+export async function linkAffiliateToUser(
+  affiliateId: string,
+  userId: string,
+): Promise<StoredAffiliate> {
+  if (!isDatabaseConfigured()) {
+    throw new Error('DATABASE_NOT_CONFIGURED')
+  }
+
+  const record = await prisma.affiliate.update({
+    where: { affiliateId },
+    data: { userId },
+  })
+
+  return prismaToStoredAffiliate(record)
 }
 
 export async function findAffiliateByCode(
@@ -133,7 +190,7 @@ export async function createStoredAffiliate(
       affiliateId: generateAffiliateId(),
       code: input.code,
       name: input.name.trim(),
-      email: input.email?.trim() ?? '',
+      email: input.email?.trim().toLowerCase() ?? '',
       phone: input.phone?.trim() ?? '',
       commissionPercent: input.commissionPercent,
       enabled: input.enabled ?? true,
@@ -167,7 +224,9 @@ export async function updateStoredAffiliate(
     data: {
       ...(input.name !== undefined ? { name: input.name.trim() } : {}),
       ...(input.code !== undefined ? { code: input.code } : {}),
-      ...(input.email !== undefined ? { email: input.email.trim() } : {}),
+      ...(input.email !== undefined
+        ? { email: input.email.trim().toLowerCase() }
+        : {}),
       ...(input.phone !== undefined ? { phone: input.phone.trim() } : {}),
       ...(input.commissionPercent !== undefined
         ? { commissionPercent: input.commissionPercent }

@@ -1,3 +1,5 @@
+import { normalizeAuthOrigin } from '@/lib/auth-url'
+
 /** MongoDB connection URL for Prisma (DATABASE_URL preferred, MONGODB_URI supported) */
 export function getDatabaseUrl(): string | undefined {
   const url = process.env.DATABASE_URL?.trim() || process.env.MONGODB_URI?.trim()
@@ -42,11 +44,31 @@ export function getAdminNotificationEmail(): string | undefined {
   return getAdminNotificationEmails()[0]
 }
 
-export function getAppUrl(): string {
+export function getPublicAppUrl(): string {
   const url = process.env.NEXT_PUBLIC_APP_URL?.trim()
-  if (url) return url.replace(/\/$/, '')
-  // Used for absolute URLs in emails (logo, links). `localhost` breaks in real inboxes.
-  return 'https://gelosglobal.com'
+  let origin = url ? url.replace(/\/$/, '') : 'https://www.gelosglobal.com'
+
+  // Vercel redirects apex -> www; use canonical www in links.
+  if (origin === 'https://gelosglobal.com') {
+    origin = 'https://www.gelosglobal.com'
+  }
+
+  return origin
+}
+
+/** Absolute links in outbound email (dev uses local app URL). */
+export function getEmailAppUrl(): string {
+  if (process.env.NODE_ENV === 'development') {
+    return (
+      normalizeAuthOrigin(process.env.BETTER_AUTH_URL) ?? 'http://localhost:3000'
+    )
+  }
+
+  return getPublicAppUrl()
+}
+
+export function getAppUrl(): string {
+  return getPublicAppUrl()
 }
 
 /** Groq — powers Gelos AI shopping assistant */

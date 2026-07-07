@@ -318,7 +318,7 @@ export default function AffiliateRegisterPage() {
 
               <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                 <Button asChild className="h-11 flex-1 rounded-full">
-                  <Link href="/affiliate">Affiliate dashboard</Link>
+                  <Link href="/affiliate/login">Affiliate sign in</Link>
                 </Button>
                 <Button asChild variant="outline" className="h-11 flex-1 rounded-full">
                   <Link href="/shop">Browse products</Link>
@@ -359,7 +359,7 @@ export default function AffiliateRegisterPage() {
             </div>
             <div className="flex flex-wrap gap-3 text-sm">
               <Link
-                href="/affiliate"
+                href="/affiliate/login"
                 className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-2 font-semibold text-white transition-colors hover:bg-white/10"
               >
                 Already approved?

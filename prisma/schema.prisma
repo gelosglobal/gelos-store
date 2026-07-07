@@ -108,6 +108,7 @@ model Order {
 model Affiliate {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
   affiliateId       String   @unique
+  userId            String   @default("")
   code              String   @unique
   name              String
   email             String   @default("")
@@ -123,6 +124,7 @@ model Affiliate {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  @@index([userId])
   @@map("affiliates")
 }
 

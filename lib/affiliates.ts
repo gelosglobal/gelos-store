@@ -21,6 +21,37 @@ export function buildAffiliateReferralUrl(
   return origin ? `${origin}/?ref=${encodeURIComponent(normalized)}` : `/?ref=${normalized}`
 }
 
+export function buildAffiliateDashboardUrl(
+  baseUrl?: string,
+): string {
+  const origin =
+    baseUrl?.replace(/\/$/, '') ||
+    (typeof window !== 'undefined' ? window.location.origin : '')
+  return origin ? `${origin}/affiliate/dashboard` : '/affiliate/dashboard'
+}
+
+export function buildAffiliateLoginUrl(baseUrl?: string): string {
+  const origin =
+    baseUrl?.replace(/\/$/, '') ||
+    (typeof window !== 'undefined' ? window.location.origin : '')
+  return origin ? `${origin}/affiliate/login` : '/affiliate/login'
+}
+
+export function buildAffiliateSignupUrl(
+  email?: string,
+  baseUrl?: string,
+): string {
+  const origin =
+    baseUrl?.replace(/\/$/, '') ||
+    (typeof window !== 'undefined' ? window.location.origin : '')
+  const url = new URL('/affiliate/signup', origin || 'http://localhost')
+  const normalizedEmail = email?.trim().toLowerCase()
+  if (normalizedEmail) {
+    url.searchParams.set('email', normalizedEmail)
+  }
+  return origin ? url.toString() : url.pathname + url.search
+}
+
 export function buildProductShareUrl(
   productPath: string,
   baseUrl?: string,

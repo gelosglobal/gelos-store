@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server'
 import { adminAffiliateInputSchema } from '@/lib/admin/affiliate-input'
 import {
   deleteStoredAffiliate,
+  findStoredAffiliateById,
   markAffiliateCommissionPaid,
   updateStoredAffiliate,
 } from '@/lib/db/affiliates'
 import { isAdminDatabaseReady } from '@/lib/db/admin-products'
+import { sendAffiliateWelcomeEmail } from '@/lib/email/send-affiliate-welcome-email'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,7 +33,24 @@ export async function PATCH(request: Request, context: RouteContext) {
       )
     }
 
+    const previous = await findStoredAffiliateById(id)
     const affiliate = await updateStoredAffiliate(id, parsed.data)
+
+    const wasApproved =
+      previous &&
+      !previous.enabled &&
+      affiliate.enabled &&
+      affiliate.email.trim()
+
+    if (wasApproved) {
+      void sendAffiliateWelcomeEmail({
+        name: affiliate.name,
+        email: affiliate.email,
+        code: affiliate.code,
+        commissionPercent: affiliate.commissionPercent,
+      })
+    }
+
     return NextResponse.json({ affiliate })
   } catch (error) {
     if (error instanceof Error && error.message === 'AFFILIATE_CODE_EXISTS') {

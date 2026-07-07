@@ -6,6 +6,7 @@ import {
 } from '@/lib/db/admin-affiliates'
 import { createStoredAffiliate } from '@/lib/db/affiliates'
 import { isAdminDatabaseReady } from '@/lib/db/admin-products'
+import { sendAffiliateWelcomeEmail } from '@/lib/email/send-affiliate-welcome-email'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,6 +51,16 @@ export async function POST(request: Request) {
     }
 
     const affiliate = await createStoredAffiliate(parsed.data)
+
+    if (affiliate.email.trim() && affiliate.enabled) {
+      void sendAffiliateWelcomeEmail({
+        name: affiliate.name,
+        email: affiliate.email,
+        code: affiliate.code,
+        commissionPercent: affiliate.commissionPercent,
+      })
+    }
+
     return NextResponse.json({ affiliate }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'AFFILIATE_CODE_EXISTS') {

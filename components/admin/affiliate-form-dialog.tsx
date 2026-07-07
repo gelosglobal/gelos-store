@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -74,11 +73,6 @@ export function AffiliateFormDialog({
           <DialogTitle>
             {isEditing ? 'Edit affiliate' : 'Add affiliate'}
           </DialogTitle>
-          <DialogDescription>
-            Create a unique referral code and commission rate. Customers who
-            visit with <code>?ref=CODE</code> will be attributed to this
-            affiliate at checkout.
-          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
