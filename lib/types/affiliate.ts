@@ -16,4 +16,24 @@ export type StoreAffiliate = {
   notes: string
   referralUrl: string
   createdAt: string
+  payoutMethod: string
+  payoutAccountName: string
+  payoutAccountNumber: string
+  payoutProvider: string
+  payoutConfigured: boolean
+}
+
+export type AdminAffiliateOrder = {
+  orderNumber: string
+  date: string
+  dateLabel: string
+  total: number
+  currency: string
+  commissionAmount: number
+  commissionStatus: string
+  channel: string
+}
+
+export type AdminAffiliateDetail = StoreAffiliate & {
+  recentOrders: AdminAffiliateOrder[]
 }

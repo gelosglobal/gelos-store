@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Copy,
   Link2,
@@ -37,7 +38,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-
 type AffiliateStats = {
   totalAffiliates: number
   activeAffiliates: number
@@ -47,6 +47,7 @@ type AffiliateStats = {
 }
 
 export default function AdminAffiliatesPage() {
+  const router = useRouter()
   const [affiliates, setAffiliates] = useState<StoreAffiliate[]>([])
   const [stats, setStats] = useState<AffiliateStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -141,22 +142,8 @@ export default function AdminAffiliatesPage() {
     }
   }
 
-  const handlePayout = async (affiliate: StoreAffiliate) => {
-    try {
-      const res = await fetch(`/api/admin/affiliates/${affiliate.id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'payout' }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Failed to mark payout')
-      toast.success(`Marked ${affiliate.name}'s pending commission as paid`)
-      await loadAffiliates()
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to mark payout',
-      )
-    }
+  const openAffiliate = (affiliateId: string) => {
+    router.push(`/admin/affiliates/${affiliateId}`)
   }
 
   const copyReferralLink = async (affiliate: StoreAffiliate) => {
@@ -269,7 +256,11 @@ export default function AdminAffiliatesPage() {
                 </TableRow>
               ) : (
                 filtered.map((affiliate) => (
-                  <TableRow key={affiliate.id} className="hover:bg-neutral-50/80">
+                  <TableRow
+                    key={affiliate.id}
+                    className="cursor-pointer hover:bg-neutral-50/80"
+                    onClick={() => openAffiliate(affiliate.id)}
+                  >
                     <TableCell>
                       <div>
                         <p className="font-medium text-neutral-950">
@@ -305,7 +296,7 @@ export default function AdminAffiliatesPage() {
                         {affiliate.enabled ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="pr-4">
+                    <TableCell className="pr-4" onClick={(event) => event.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -313,6 +304,12 @@ export default function AdminAffiliatesPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => openAffiliate(affiliate.id)}
+                          >
+                            <Link2 className="h-4 w-4" />
+                            View affiliate
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => copyReferralLink(affiliate)}
                           >
@@ -327,13 +324,6 @@ export default function AdminAffiliatesPage() {
                           >
                             <Link2 className="h-4 w-4" />
                             Edit affiliate
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            disabled={affiliate.pendingCommission <= 0}
-                            onClick={() => handlePayout(affiliate)}
-                          >
-                            <Wallet className="h-4 w-4" />
-                            Mark commission paid
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"

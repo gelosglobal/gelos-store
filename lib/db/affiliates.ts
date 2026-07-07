@@ -1,4 +1,5 @@
 import type { Affiliate as PrismaAffiliate } from '@prisma/client'
+import type { AffiliatePayoutSettings } from '@/lib/affiliate/payout'
 import { normalizeAffiliateCode } from '@/lib/affiliates'
 import type { AdminAffiliateInput } from '@/lib/admin/affiliate-input'
 import {
@@ -29,6 +30,10 @@ export type StoredAffiliate = {
   pendingCommission: number
   paidCommission: number
   notes: string
+  payoutMethod: string
+  payoutAccountName: string
+  payoutAccountNumber: string
+  payoutProvider: string
   createdAt: Date
   updatedAt: Date
 }
@@ -49,6 +54,10 @@ function prismaToStoredAffiliate(record: PrismaAffiliate): StoredAffiliate {
     pendingCommission: record.pendingCommission,
     paidCommission: record.paidCommission,
     notes: record.notes,
+    payoutMethod: record.payoutMethod,
+    payoutAccountName: record.payoutAccountName,
+    payoutAccountNumber: record.payoutAccountNumber,
+    payoutProvider: record.payoutProvider,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   }
@@ -300,4 +309,53 @@ export async function markAffiliateCommissionPaid(
   ])
 
   return prismaToStoredAffiliate(updated)
+}
+
+export function toAffiliatePayoutSettings(
+  affiliate: Pick<
+    StoredAffiliate,
+    | 'payoutMethod'
+    | 'payoutAccountName'
+    | 'payoutAccountNumber'
+    | 'payoutProvider'
+  >,
+): AffiliatePayoutSettings {
+  return {
+    payoutMethod:
+      affiliate.payoutMethod === 'mobile_money' ||
+      affiliate.payoutMethod === 'bank_transfer'
+        ? affiliate.payoutMethod
+        : '',
+    payoutAccountName: affiliate.payoutAccountName,
+    payoutAccountNumber: affiliate.payoutAccountNumber,
+    payoutProvider: affiliate.payoutProvider,
+  }
+}
+
+export async function updateAffiliateReferralCode(
+  affiliateId: string,
+  code: string,
+): Promise<StoredAffiliate> {
+  return updateStoredAffiliate(affiliateId, { code })
+}
+
+export async function updateAffiliatePayoutSettings(
+  affiliateId: string,
+  input: AffiliatePayoutSettings,
+): Promise<StoredAffiliate> {
+  if (!isDatabaseConfigured()) {
+    throw new Error('DATABASE_NOT_CONFIGURED')
+  }
+
+  const record = await prisma.affiliate.update({
+    where: { affiliateId },
+    data: {
+      payoutMethod: input.payoutMethod,
+      payoutAccountName: input.payoutAccountName,
+      payoutAccountNumber: input.payoutAccountNumber,
+      payoutProvider: input.payoutProvider,
+    },
+  })
+
+  return prismaToStoredAffiliate(record)
 }

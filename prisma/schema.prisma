@@ -121,6 +121,10 @@ model Affiliate {
   pendingCommission Float    @default(0)
   paidCommission    Float    @default(0)
   notes             String   @default("")
+  payoutMethod      String   @default("")
+  payoutAccountName String   @default("")
+  payoutAccountNumber String @default("")
+  payoutProvider    String   @default("")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

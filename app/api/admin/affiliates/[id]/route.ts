@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { adminAffiliateInputSchema } from '@/lib/admin/affiliate-input'
+import { getAdminAffiliateDetail } from '@/lib/db/admin-affiliates'
 import {
   deleteStoredAffiliate,
   findStoredAffiliateById,
@@ -12,6 +13,31 @@ import { sendAffiliateWelcomeEmail } from '@/lib/email/send-affiliate-welcome-em
 export const dynamic = 'force-dynamic'
 
 type RouteContext = { params: Promise<{ id: string }> }
+
+export async function GET(_request: Request, context: RouteContext) {
+  if (!isAdminDatabaseReady()) {
+    return NextResponse.json(
+      { error: 'Database is not connected.' },
+      { status: 503 },
+    )
+  }
+
+  try {
+    const { id } = await context.params
+    const affiliate = await getAdminAffiliateDetail(id)
+    if (!affiliate) {
+      return NextResponse.json({ error: 'Affiliate not found.' }, { status: 404 })
+    }
+
+    return NextResponse.json({ affiliate })
+  } catch (error) {
+    console.error('[GET /api/admin/affiliates/[id]]', error)
+    return NextResponse.json(
+      { error: 'Failed to load affiliate' },
+      { status: 500 },
+    )
+  }
+}
 
 export async function PATCH(request: Request, context: RouteContext) {
   if (!isAdminDatabaseReady()) {

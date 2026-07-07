@@ -2,6 +2,20 @@ export function normalizeAffiliateCode(code: string): string {
   return code.trim().toUpperCase().replace(/\s+/g, '')
 }
 
+export function validateAffiliateReferralCode(code: string): string | null {
+  const normalized = normalizeAffiliateCode(code)
+  if (normalized.length < 3) {
+    return 'Code must be at least 3 characters.'
+  }
+  if (normalized.length > 24) {
+    return 'Code is too long.'
+  }
+  if (!/^[A-Z0-9_-]+$/.test(normalized)) {
+    return 'Use letters, numbers, hyphens, or underscores only.'
+  }
+  return null
+}
+
 export function calculateAffiliateCommission(
   orderTotal: number,
   commissionPercent: number,
