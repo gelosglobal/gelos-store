@@ -3,9 +3,9 @@ import Link from 'next/link'
 function AnnouncementMessage() {
   return (
     <span className="inline-flex items-center gap-1 whitespace-nowrap text-sm text-white">
-      <span className="font-semibold text-[#D4FF59]">Mid year promo &amp; discounts</span>
+      <span className="font-semibold text-[#D4FF59]"> New Oral Care Bundles are here</span>
       <span aria-hidden>—</span>
-      <span>Limited-time savings on Gelos favorites.</span>
+      <span>Designed to give you everything you need.</span>
       <Link
         href="/shop"
         className="ml-1 font-semibold underline underline-offset-2 transition-colors hover:text-[#D4FF59]"
@@ -24,7 +24,7 @@ export function AnnouncementBar() {
       aria-label="Promotion"
     >
       <p className="sr-only">
-        Mid year promo and discounts. Limited-time savings on Gelos favorites. Shop now.
+        New Oral Care Bundles are here - Designed to give you everything you need. Shop now.
       </p>
       <p className="hidden justify-center px-4 font-nav motion-reduce:flex">
         <AnnouncementMessage />
