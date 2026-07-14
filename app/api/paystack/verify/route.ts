@@ -4,8 +4,10 @@ import {
   createPaidOrder,
   generateOrderNumber,
   getOrderByReference,
+  markOrderPaidByReference,
 } from '@/lib/db/orders'
 import { notifyOrderPlaced } from '@/lib/email/send-order-emails'
+import { parseCheckoutLineItems } from '@/lib/parse-checkout-line-items'
 import { isPaystackConfigured, verifyTransaction } from '@/lib/paystack'
 import type { CheckoutLineItem } from '@/lib/checkout'
 
@@ -13,36 +15,8 @@ const bodySchema = z.object({
   reference: z.string().min(3),
 })
 
-function parseItems(metadata: Record<string, unknown>): CheckoutLineItem[] {
-  const raw = metadata.items
-  if (!Array.isArray(raw)) return []
-
-  return raw
-    .map((item) => {
-      if (!item || typeof item !== 'object') return null
-      const record = item as Record<string, unknown>
-      if (
-        typeof record.id !== 'string' ||
-        typeof record.name !== 'string' ||
-        typeof record.price !== 'number' ||
-        typeof record.quantity !== 'number'
-      ) {
-        return null
-      }
-      return {
-        id: record.id,
-        name: record.name,
-        productName:
-          typeof record.productName === 'string' ? record.productName : undefined,
-        price: record.price,
-        quantity: record.quantity,
-        variantLabel:
-          typeof record.variantLabel === 'string' ? record.variantLabel : undefined,
-        variantImage:
-          typeof record.variantImage === 'string' ? record.variantImage : undefined,
-      }
-    })
-    .filter((item): item is CheckoutLineItem => item !== null)
+function orderItemsForEmail(items: unknown): CheckoutLineItem[] {
+  return parseCheckoutLineItems(items)
 }
 
 export async function POST(request: Request) {
@@ -64,7 +38,7 @@ export async function POST(request: Request) {
     const { reference } = parsed.data
     const existing = await getOrderByReference(reference)
 
-    if (existing) {
+    if (existing?.paymentStatus === 'Paid') {
       return NextResponse.json({
         ok: true,
         alreadyProcessed: true,
@@ -78,9 +52,46 @@ export async function POST(request: Request) {
     }
 
     const payment = await verifyTransaction(reference)
-    const metadata = payment.metadata
 
-    const items = parseItems(metadata)
+    // Preferred path: pending order created at initialize already has full line items.
+    if (existing) {
+      const paid = await markOrderPaidByReference(reference)
+      if (!paid) {
+        throw new Error('Could not mark order as paid')
+      }
+
+      const items = orderItemsForEmail(paid.items)
+      await notifyOrderPlaced({
+        orderNumber: paid.orderNumber,
+        customerName: paid.customerName,
+        customerEmail: paid.customerEmail,
+        customerPhone: paid.customerPhone ?? undefined,
+        shippingAddress: paid.shippingAddress ?? undefined,
+        items,
+        subtotal: paid.subtotal,
+        shipping: paid.shipping,
+        discount: paid.discount,
+        total: paid.total,
+        currency: paid.currency,
+        paymentStatus: 'Paid',
+        channel: paid.channel,
+      })
+
+      return NextResponse.json({
+        ok: true,
+        order: {
+          orderNumber: paid.orderNumber,
+          total: paid.total,
+          currency: paid.currency,
+          reference: paid.paystackReference,
+          persisted: true,
+        },
+      })
+    }
+
+    // Fallback for older flows / missing pending draft: rebuild from Paystack metadata.
+    const metadata = payment.metadata
+    const items = parseCheckoutLineItems(metadata.items)
     const subtotal = Number(metadata.subtotal ?? 0)
     const discount = Number(metadata.discount ?? 0)
     const shipping = Number(metadata.shipping ?? 0)

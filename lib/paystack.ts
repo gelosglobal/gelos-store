@@ -122,7 +122,7 @@ export async function initializeTransaction(
           price: item.price,
           quantity: item.quantity,
           variantLabel: item.variantLabel,
-          variantImage: item.variantImage,
+          // Omit long image URLs from Paystack metadata — items are stored in DB at initialize.
         })),
       },
     }),

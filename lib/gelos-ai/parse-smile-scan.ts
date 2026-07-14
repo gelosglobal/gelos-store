@@ -76,6 +76,7 @@ export function parseSmileScanReport(
     const report: SmileScanReport = {
       snapshot: stripMarkdown(String(parsed.snapshot ?? '').trim()),
       imageQuality: parseImageQuality(parsed.imageQuality),
+      subjectIsChild: parsed.subjectIsChild === true,
       scores: {
         brightness: clampScore(scores.brightness),
         freshness: clampScore(scores.freshness),

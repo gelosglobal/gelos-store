@@ -37,6 +37,7 @@ export function createCodReference(): string {
 
 export async function createOrder(input: CreateOrderInput) {
   const orderNumber = input.orderNumber ?? generateOrderNumber()
+  const paymentStatus = input.paymentStatus ?? 'Payment pending'
 
   if (!isDatabaseConfigured()) {
     return {
@@ -44,10 +45,18 @@ export async function createOrder(input: CreateOrderInput) {
       paystackReference: input.paystackReference,
       total: input.total,
       currency: input.currency,
-      paymentStatus: input.paymentStatus ?? 'Payment pending',
+      paymentStatus,
       persisted: false as const,
     }
   }
+
+  const commissionAmount = input.commissionAmount ?? 0
+  const channel = input.channel ?? 'Online store'
+  // COD is confirmed at placement; Paystack pending waits until verify marks Paid.
+  const shouldTrackCommission =
+    Boolean(input.affiliateId) &&
+    commissionAmount > 0 &&
+    (paymentStatus === 'Paid' || channel === 'Cash on delivery')
 
   const order = await prisma.order.create({
     data: {
@@ -63,21 +72,25 @@ export async function createOrder(input: CreateOrderInput) {
       discount: input.discount,
       total: input.total,
       currency: input.currency,
-      paymentStatus: input.paymentStatus ?? 'Payment pending',
+      paymentStatus,
       fulfillmentStatus: 'Unfulfilled',
-      channel: input.channel ?? 'Online store',
+      channel,
       affiliateCode: input.affiliateCode,
       affiliateId: input.affiliateId,
-      commissionAmount: input.commissionAmount ?? 0,
-      commissionStatus: input.commissionStatus ?? 'none',
+      commissionAmount,
+      commissionStatus: shouldTrackCommission
+        ? (input.commissionStatus ?? 'pending')
+        : input.commissionStatus === 'paid'
+          ? 'paid'
+          : 'none',
     },
   })
 
-  if (input.affiliateId && (input.commissionAmount ?? 0) > 0) {
+  if (shouldTrackCommission && input.affiliateId) {
     await recordAffiliateConversion({
       affiliateId: input.affiliateId,
       orderTotal: input.total,
-      commissionAmount: input.commissionAmount ?? 0,
+      commissionAmount,
     })
   }
 
@@ -96,6 +109,20 @@ export async function createPaidOrder(input: CreateOrderInput) {
     ...input,
     paymentStatus: 'Paid',
     channel: input.channel ?? 'Paystack',
+    commissionStatus:
+      input.affiliateId && (input.commissionAmount ?? 0) > 0
+        ? 'pending'
+        : 'none',
+  })
+}
+
+/** Persist cart line items before Paystack redirect so verify never relies on metadata alone. */
+export async function createPendingPaystackOrder(input: CreateOrderInput) {
+  return createOrder({
+    ...input,
+    paymentStatus: 'Payment pending',
+    channel: input.channel ?? 'Paystack',
+    commissionStatus: 'none',
   })
 }
 
@@ -115,4 +142,38 @@ export async function getOrderByReference(reference: string) {
   return prisma.order.findUnique({
     where: { paystackReference: reference },
   })
+}
+
+/** Mark a pending Paystack order as paid after successful verification. */
+export async function markOrderPaidByReference(reference: string) {
+  if (!isDatabaseConfigured()) return null
+
+  const existing = await prisma.order.findUnique({
+    where: { paystackReference: reference },
+  })
+  if (!existing) return null
+  if (existing.paymentStatus === 'Paid') return existing
+
+  const commissionAmount = existing.commissionAmount ?? 0
+  const shouldTrackCommission =
+    Boolean(existing.affiliateId) && commissionAmount > 0
+
+  const updated = await prisma.order.update({
+    where: { paystackReference: reference },
+    data: {
+      paymentStatus: 'Paid',
+      channel: existing.channel?.trim() || 'Paystack',
+      ...(shouldTrackCommission ? { commissionStatus: 'pending' } : {}),
+    },
+  })
+
+  if (shouldTrackCommission && existing.affiliateId) {
+    await recordAffiliateConversion({
+      affiliateId: existing.affiliateId,
+      orderTotal: existing.total,
+      commissionAmount,
+    })
+  }
+
+  return updated
 }

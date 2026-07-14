@@ -118,10 +118,10 @@ function resolveRoutineProductSlots(report: SmileScanReport): {
   const extras: BundleSlot[] = []
 
   const toothpaste: BundleSlot = 'toothpaste'
+  // Adult smile scans default to the SonicWave electric brush. Kids brushes
+  // and bamboo/manual brushes are only kept when the subject is clearly a child.
   const brush: BundleSlot =
-    report.scores.confidence > 0 && report.scores.confidence < 7
-      ? 'electricBrush'
-      : 'bambooBrush'
+    report.subjectIsChild === true ? 'bambooBrush' : 'electricBrush'
 
   morning.push(toothpaste, brush, pairMouthwashSlotForToothpasteSlot(toothpaste))
   night.push(toothpaste, brush)

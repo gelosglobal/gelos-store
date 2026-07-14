@@ -77,12 +77,13 @@ const SLOT_MATCHERS: Record<BundleSlot, SlotMatcher> = {
     preferredId: BUNDLE_PRODUCT_IDS.bambooBrush,
     category: 'Toothbrushes',
     nameIncludesAny: ['bamboo'],
-    categoryFallback: true,
+    excludeNameIncludes: ['kid', 'kids', 'child', 'junior', 'sonic', 'electric'],
   },
   electricBrush: {
     preferredId: BUNDLE_PRODUCT_IDS.electricBrush,
     category: 'Toothbrushes',
     nameIncludesAny: ['sonic', 'electric', '3d'],
+    excludeNameIncludes: ['kid', 'kids', 'child', 'junior'],
   },
   mouthwashWatermelon: {
     preferredId: BUNDLE_PRODUCT_IDS.mouthwashWatermelon,

@@ -4,8 +4,8 @@ import { formatOrderDateLabel } from '@/lib/admin/order-format'
 import { buildOrderTimeline } from '@/lib/admin/order-timeline'
 import { isDatabaseConfigured } from '@/lib/env'
 import { normalizeImageUrl } from '@/lib/image-url'
+import { parseCheckoutLineItems } from '@/lib/parse-checkout-line-items'
 import { prisma } from '@/lib/prisma'
-import type { CheckoutLineItem } from '@/lib/checkout'
 import type {
   AdminOrderDetail,
   FulfillmentStatus,
@@ -15,26 +15,16 @@ import type {
 } from '@/lib/types/order'
 
 function parseLineItems(items: unknown): StoreOrderLineItem[] {
-  if (!Array.isArray(items)) return []
-
-  return items
-    .map((entry) => {
-      if (!entry || typeof entry !== 'object') return null
-      const item = entry as CheckoutLineItem
-      if (typeof item.id !== 'string' || typeof item.name !== 'string') return null
-
-      return {
-        id: item.id,
-        name: item.name,
-        price: Number(item.price) || 0,
-        quantity: Number(item.quantity) || 0,
-        variantLabel: item.variantLabel,
-        variantImage: item.variantImage,
-        productName: item.productName,
-        lineTotal: (Number(item.price) || 0) * (Number(item.quantity) || 0),
-      }
-    })
-    .filter((item): item is StoreOrderLineItem => item !== null)
+  return parseCheckoutLineItems(items).map((item) => ({
+    id: item.id,
+    name: item.name,
+    price: item.price,
+    quantity: item.quantity,
+    variantLabel: item.variantLabel,
+    variantImage: item.variantImage,
+    productName: item.productName,
+    lineTotal: item.price * item.quantity,
+  }))
 }
 
 function countLineItems(items: unknown): number {

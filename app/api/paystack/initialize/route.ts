@@ -3,6 +3,10 @@ import {
   buildLocalizedCheckoutOrder,
   checkoutRequestSchema,
 } from '@/lib/build-checkout-order'
+import {
+  createPendingPaystackOrder,
+  generateOrderNumber,
+} from '@/lib/db/orders'
 import { initializeTransaction, isPaystackConfigured } from '@/lib/paystack'
 import type { LocationId } from '@/lib/locations'
 
@@ -40,7 +44,7 @@ export async function POST(request: Request) {
 
     checkoutLocationId = parsed.data.locationId as LocationId
 
-    const { localizedItems, totals, promoCode, affiliate } =
+    const { localizedItems, totals, promoCode, affiliate, currency } =
       await buildLocalizedCheckoutOrder(parsed.data)
     const { email, name, phone, shippingAddress } = parsed.data
 
@@ -60,6 +64,33 @@ export async function POST(request: Request) {
       commissionAmount: affiliate?.commissionAmount,
       callbackUrl,
     })
+
+    // Save full cart items before redirect. Paystack metadata often drops or
+    // stringifies nested items, which used to leave paid orders with 0 items.
+    try {
+      await createPendingPaystackOrder({
+        orderNumber: generateOrderNumber(),
+        paystackReference: payment.reference,
+        customerName: name,
+        customerEmail: email,
+        customerPhone: phone,
+        shippingAddress,
+        items: localizedItems,
+        subtotal: totals.subtotal,
+        shipping: totals.shipping,
+        discount: totals.discount,
+        total: totals.total,
+        currency,
+        affiliateCode: affiliate?.code,
+        affiliateId: affiliate?.affiliateId,
+        commissionAmount: affiliate?.commissionAmount ?? 0,
+      })
+    } catch (persistError) {
+      console.error(
+        '[POST /api/paystack/initialize] Failed to persist pending order',
+        persistError,
+      )
+    }
 
     return NextResponse.json({
       authorizationUrl: payment.authorizationUrl,

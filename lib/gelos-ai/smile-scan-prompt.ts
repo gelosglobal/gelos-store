@@ -63,7 +63,8 @@ Use this exact JSON shape:
     }
   ],
   "dentistNote": "One sentence on when to book a professional check-up",
-  "disclaimer": "Visual wellness guide only — not a medical diagnosis."
+  "disclaimer": "Visual wellness guide only — not a medical diagnosis.",
+  "subjectIsChild": false
 }
 
 Product catalog — you MUST pick products only from this list. Copy the exact name and href:
@@ -74,6 +75,10 @@ Additional rules:
 - tips: exactly 3 tips — photo retake tips when not analyzable; teeth/oral care tips only when analyzable
 - products: 0 items when not analyzable; otherwise 2 to 3 items copied exactly from the catalog
 - For whitening goals suggest Whitening products; for freshness suggest Mouthwash; for daily care suggest Toothpaste
+- SUBJECT AGE (required when analyzable):
+  - Set subjectIsChild to true ONLY if the face/smile clearly appears to be a young child (roughly under 12). When unsure, set false.
+  - For adult / teen / uncertain smiles (subjectIsChild false): NEVER recommend kids toothbrushes, kid-labelled brushes, or bamboo manual brushes as the primary brush. Prefer the SonicWave / electric toothbrush from the Toothbrushes category for daily brushing upgrades.
+  - For child smiles (subjectIsChild true): you may recommend kid-friendly products (kids toothbrush, strawberry flavour care) when they exist in the catalog.
 - Do not invent clinical conditions
 - Keep all text plain — no formatting characters like #, *, or - at the start of lines`
 }
