@@ -14,6 +14,7 @@
     "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
     "db:seed-admin": "tsx --env-file=.env.local scripts/seed-admin.ts",
     "db:repair-images": "tsx --env-file=.env.local scripts/repair-product-images.ts",
+    "db:backfill-order-items": "tsx --env-file=.env.local scripts/backfill-order-items.ts",
     "db:test": "tsx --env-file=.env.local scripts/test-db-connection.ts"
   },
   "dependencies": {

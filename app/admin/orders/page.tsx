@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LayoutGrid,
+  Loader2,
   Plus,
   Search,
   ShoppingBag,
@@ -74,6 +75,7 @@ export default function AdminOrdersPage() {
   const [period, setPeriod] = useState<'today' | 'all'>('today')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
+  const [backfilling, setBackfilling] = useState(false)
   const pageSize = 50
 
   const loadOrders = useCallback(async () => {
@@ -146,6 +148,37 @@ export default function AdminOrdersPage() {
     router.push(`/admin/orders/${orderId}`)
   }
 
+  const backfillMissingItems = async () => {
+    if (backfilling) return
+    setBackfilling(true)
+    try {
+      const res = await fetch('/api/admin/orders/backfill-items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      const data = (await res.json()) as {
+        error?: string
+        scanned?: number
+        recovered?: number
+        failed?: number
+        skipped?: number
+      }
+      if (!res.ok) throw new Error(data.error ?? 'Backfill failed')
+
+      toast.success(
+        `Checked ${data.scanned ?? 0} empty orders · restored ${data.recovered ?? 0} · failed ${data.failed ?? 0}`,
+      )
+      await loadOrders()
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to restore order items',
+      )
+    } finally {
+      setBackfilling(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
@@ -166,6 +199,21 @@ export default function AdminOrdersPage() {
             </Select>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1"
+              disabled={backfilling}
+              onClick={() => void backfillMissingItems()}
+            >
+              {backfilling ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <ShoppingBag className="h-3.5 w-3.5" />
+              )}
+              Restore missing items
+            </Button>
             <Button variant="outline" size="sm" className="h-8">
               Export
             </Button>

@@ -51,9 +51,11 @@ type OrderDetailViewProps = {
   order: AdminOrderDetail
   updating?: boolean
   sendingInvoice?: boolean
+  repairingItems?: boolean
   onPaymentStatusChange?: (status: PaymentStatus) => void
   onSendInvoice?: () => void
   onFulfillmentStatusChange?: (status: FulfillmentStatus) => void
+  onRepairItems?: () => void
 }
 
 const PAYMENT_STATUSES: PaymentStatus[] = [
@@ -358,9 +360,11 @@ export function OrderDetailView({
   order,
   updating = false,
   sendingInvoice = false,
+  repairingItems = false,
   onPaymentStatusChange,
   onSendInvoice,
   onFulfillmentStatusChange,
+  onRepairItems,
 }: OrderDetailViewProps) {
   const [conversionOpen, setConversionOpen] = useState(false)
   const [invoiceConfirmOpen, setInvoiceConfirmOpen] = useState(false)
@@ -371,6 +375,11 @@ export function OrderDetailView({
     balance > 0 &&
     order.paymentStatus !== 'Refunded' &&
     order.paymentStatus !== 'Voided'
+  const canRepairItems =
+    Boolean(onRepairItems) &&
+    order.items === 0 &&
+    Boolean(order.paystackReference) &&
+    !order.paystackReference.startsWith('cod_')
 
   return (
     <div className="space-y-5">
@@ -396,6 +405,22 @@ export function OrderDetailView({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {canRepairItems ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2"
+              disabled={repairingItems}
+              onClick={() => onRepairItems?.()}
+            >
+              {repairingItems ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ShoppingBag className="h-4 w-4" />
+              )}
+              Restore items from Paystack
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant="outline"
@@ -429,6 +454,14 @@ export function OrderDetailView({
               </p>
 
               <ul className="space-y-3">
+                {order.lineItems.length === 0 ? (
+                  <li className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                    No line items stored on this order.
+                    {canRepairItems
+                      ? ' Try restoring them from Paystack metadata.'
+                      : ''}
+                  </li>
+                ) : null}
                 {order.lineItems.map((item) => {
                   const lineTotal =
                     item.lineTotal ?? item.price * item.quantity

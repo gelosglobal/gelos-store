@@ -9,9 +9,22 @@ import {
 
 export const LIVE_VISITOR_WINDOW_MS = 2 * 60 * 1000
 const STALE_CLEANUP_MS = 30 * 60 * 1000
+const HOURLY_RETENTION_MS = 14 * 24 * 60 * 60 * 1000
 
 function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate())
+}
+
+function startOfHour(date: Date): Date {
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    date.getHours(),
+    0,
+    0,
+    0,
+  )
 }
 
 export function formatVisitorPath(path: string): string {
@@ -61,6 +74,17 @@ function locationGroupKey(session: {
   return `label:${session.locationLabel?.trim() || 'unknown'}`
 }
 
+function emptyCharts(): Pick<
+  LiveVisitorsPayload,
+  'trafficTrend' | 'pageShare' | 'locationShare'
+> {
+  return {
+    trafficTrend: [],
+    pageShare: [],
+    locationShare: [],
+  }
+}
+
 export async function countSessionsInRange(start: Date, end: Date): Promise<number> {
   if (!isDatabaseConfigured()) return 0
 
@@ -70,6 +94,43 @@ export async function countSessionsInRange(start: Date, end: Date): Promise<numb
         gte: start,
         lt: end,
       },
+    },
+  })
+}
+
+async function recordHourlyPresence(input: {
+  visitorId: string
+  path: string
+  locationId: string
+  city: string
+  country: string
+  locationLabel: string
+  now: Date
+}) {
+  const hourStart = startOfHour(input.now)
+
+  await prisma.visitorHourlyPresence.upsert({
+    where: {
+      hourStart_visitorId: {
+        hourStart,
+        visitorId: input.visitorId,
+      },
+    },
+    create: {
+      hourStart,
+      visitorId: input.visitorId,
+      path: input.path,
+      locationId: input.locationId,
+      city: input.city,
+      country: input.country,
+      locationLabel: input.locationLabel,
+    },
+    update: {
+      path: input.path,
+      locationId: input.locationId,
+      city: input.city,
+      country: input.country,
+      locationLabel: input.locationLabel,
     },
   })
 }
@@ -124,16 +185,138 @@ export async function upsertVisitorHeartbeat(input: {
     },
   })
 
+  try {
+    await recordHourlyPresence({
+      visitorId,
+      path,
+      locationId: location.locationId ?? '',
+      city: location.city,
+      country: location.country,
+      locationLabel: location.label,
+      now,
+    })
+  } catch (error) {
+    console.error('[visitor-sessions] hourly presence failed', error)
+  }
+
   return { ok: true as const }
 }
 
 async function cleanupStaleSessions(now = new Date()) {
   if (!isDatabaseConfigured()) return
 
-  const cutoff = new Date(now.getTime() - STALE_CLEANUP_MS)
-  await prisma.visitorSession.deleteMany({
-    where: { lastSeenAt: { lt: cutoff } },
-  })
+  const sessionCutoff = new Date(now.getTime() - STALE_CLEANUP_MS)
+  const hourlyCutoff = new Date(now.getTime() - HOURLY_RETENTION_MS)
+
+  await Promise.all([
+    prisma.visitorSession.deleteMany({
+      where: { lastSeenAt: { lt: sessionCutoff } },
+    }),
+    prisma.visitorHourlyPresence.deleteMany({
+      where: { hourStart: { lt: hourlyCutoff } },
+    }),
+  ])
+}
+
+async function buildStoredCharts(
+  now: Date,
+): Promise<Pick<LiveVisitorsPayload, 'trafficTrend' | 'pageShare' | 'locationShare'>> {
+  const rangeStart = new Date(now.getTime() - 23 * 60 * 60 * 1000)
+  const fromHour = startOfHour(rangeStart)
+  const todayStart = startOfDay(now)
+
+  const [hourlyRows, todayRows] = await Promise.all([
+    prisma.visitorHourlyPresence.findMany({
+      where: { hourStart: { gte: fromHour } },
+      select: { hourStart: true, visitorId: true },
+    }),
+    prisma.visitorHourlyPresence.findMany({
+      where: { hourStart: { gte: todayStart } },
+      select: {
+        path: true,
+        locationId: true,
+        city: true,
+        country: true,
+        locationLabel: true,
+        visitorId: true,
+      },
+    }),
+  ])
+
+  const visitorsByHour = new Map<number, Set<string>>()
+  for (const row of hourlyRows) {
+    const key = row.hourStart.getTime()
+    const set = visitorsByHour.get(key) ?? new Set<string>()
+    set.add(row.visitorId)
+    visitorsByHour.set(key, set)
+  }
+
+  const trafficTrend: LiveVisitorsPayload['trafficTrend'] = []
+  for (let i = 23; i >= 0; i -= 1) {
+    const hour = startOfHour(new Date(now.getTime() - i * 60 * 60 * 1000))
+    trafficTrend.push({
+      hour: hour.toISOString(),
+      hourLabel: hour.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+      }),
+      visitors: visitorsByHour.get(hour.getTime())?.size ?? 0,
+    })
+  }
+
+  const pageCounts = new Map<string, number>()
+  const locationCounts = new Map<
+    string,
+    { label: string; flag: string; visitors: number }
+  >()
+
+  for (const row of todayRows) {
+    const path = row.path || '/'
+    pageCounts.set(path, (pageCounts.get(path) ?? 0) + 1)
+
+    const locationId = row.locationId?.trim() ?? ''
+    const locationLabel = row.locationLabel?.trim() || 'Unknown location'
+    const label =
+      getVisitorLocationDisplayLabel({
+        locationId,
+        city: row.city,
+        country: row.country,
+      }) || locationLabel
+    const flag = getVisitorLocationFlag({
+      locationId,
+      country: row.country,
+    })
+    const key = locationGroupKey(row)
+    const existing = locationCounts.get(key)
+    if (existing) existing.visitors += 1
+    else locationCounts.set(key, { label, flag, visitors: 1 })
+  }
+
+  const pageTotal = [...pageCounts.values()].reduce((sum, n) => sum + n, 0) || 1
+  const locationTotal =
+    [...locationCounts.values()].reduce((sum, row) => sum + row.visitors, 0) || 1
+
+  const pageShare = [...pageCounts.entries()]
+    .map(([path, visitors]) => ({
+      path,
+      pathLabel: formatVisitorPath(path),
+      visitors,
+      share: Math.round((visitors / pageTotal) * 100),
+    }))
+    .sort((a, b) => b.visitors - a.visitors)
+    .slice(0, 6)
+
+  const locationShare = [...locationCounts.entries()]
+    .map(([key, row]) => ({
+      key,
+      label: row.label,
+      flag: row.flag,
+      visitors: row.visitors,
+      share: Math.round((row.visitors / locationTotal) * 100),
+    }))
+    .sort((a, b) => b.visitors - a.visitors)
+    .slice(0, 6)
+
+  return { trafficTrend, pageShare, locationShare }
 }
 
 export async function getLiveVisitors(): Promise<LiveVisitorsPayload> {
@@ -150,19 +333,27 @@ export async function getLiveVisitors(): Promise<LiveVisitorsPayload> {
       sessions: [],
       activeWindowSeconds: LIVE_VISITOR_WINDOW_MS / 1000,
       refreshedAt: now.toISOString(),
+      ...emptyCharts(),
     }
   }
 
   await cleanupStaleSessions(now)
 
-  const [activeSessions, todayVisitors] = await Promise.all([
+  const [activeSessions, todayVisitors, charts] = await Promise.all([
     prisma.visitorSession.findMany({
       where: { lastSeenAt: { gte: activeCutoff } },
       orderBy: { lastSeenAt: 'desc' },
       take: 50,
     }),
-    prisma.visitorSession.count({
-      where: { lastSeenAt: { gte: todayStart } },
+    prisma.visitorHourlyPresence
+      .findMany({
+        where: { hourStart: { gte: todayStart } },
+        select: { visitorId: true },
+      })
+      .then((rows) => new Set(rows.map((row) => row.visitorId)).size),
+    buildStoredCharts(now).catch((error) => {
+      console.error('[visitor-sessions] charts failed', error)
+      return emptyCharts()
     }),
   ])
 
@@ -263,5 +454,6 @@ export async function getLiveVisitors(): Promise<LiveVisitorsPayload> {
     }),
     activeWindowSeconds: LIVE_VISITOR_WINDOW_MS / 1000,
     refreshedAt: now.toISOString(),
+    ...charts,
   }
 }

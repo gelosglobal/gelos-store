@@ -225,6 +225,24 @@ model VisitorSession {
   @@map("visitor_sessions")
 }
 
+/** Hourly unique visitor presence for stored traffic charts (survives live-session cleanup). */
+model VisitorHourlyPresence {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  hourStart     DateTime
+  visitorId     String
+  path          String   @default("/")
+  locationId    String   @default("")
+  city          String   @default("")
+  country       String   @default("")
+  locationLabel String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([hourStart, visitorId])
+  @@index([hourStart])
+  @@map("visitor_hourly_presence")
+}
+
 /** Gelos AI dentist booking requests from the storefront. */
 model DentistAppointment {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId

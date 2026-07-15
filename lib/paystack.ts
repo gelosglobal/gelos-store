@@ -170,3 +170,15 @@ export async function verifyTransaction(
     metadata: payload.data.metadata ?? {},
   }
 }
+
+/** Fetch transaction metadata even when status is not success (used for item backfill). */
+export async function fetchTransactionMetadata(
+  reference: string,
+): Promise<Record<string, unknown>> {
+  const payload = await paystackFetch<{
+    metadata?: Record<string, unknown> | null
+  }>(`/transaction/verify/${encodeURIComponent(reference)}`)
+
+  return payload.data.metadata ?? {}
+}
+

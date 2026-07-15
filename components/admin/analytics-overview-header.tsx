@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import type {
   AnalyticsPeriod,
   AnalyticsSeriesPoint,
@@ -197,30 +198,45 @@ export function AnalyticsOverviewHeader({
         </div>
 
         <div className="grid flex-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {metrics.map((metric) => (
-            <div key={metric.label} className="min-w-0">
-              <p className="text-xs text-neutral-500">{metric.label}</p>
-              <div className="mt-1 flex items-center gap-2">
-                <p
-                  className={cn(
-                    'text-base font-semibold tracking-tight text-neutral-950 sm:text-lg',
-                    loading && 'opacity-60',
-                  )}
+          {metrics.map((metric) => {
+            const content = (
+              <>
+                <p className="text-xs text-neutral-500">{metric.label}</p>
+                <div className="mt-1 flex items-center gap-2">
+                  <p
+                    className={cn(
+                      'text-base font-semibold tracking-tight text-neutral-950 sm:text-lg',
+                      loading && 'opacity-60',
+                    )}
+                  >
+                    {metric.value}
+                  </p>
+                  <MiniSparkline values={metric.spark} />
+                  <span className="text-xs font-medium text-neutral-500">
+                    {formatChange(metric.change)}
+                  </span>
+                </div>
+              </>
+            )
+
+            if (metric.label === 'Sessions') {
+              return (
+                <Link
+                  key={metric.label}
+                  href="/admin/sessions"
+                  className="min-w-0 rounded-lg p-1 -m-1 transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300"
                 >
-                  {metric.value}
-                </p>
-                <MiniSparkline values={metric.spark} />
-                <span
-                  className={cn(
-                    'text-xs font-medium',
-                    metric.change >= 0 ? 'text-neutral-500' : 'text-neutral-500',
-                  )}
-                >
-                  {formatChange(metric.change)}
-                </span>
+                  {content}
+                </Link>
+              )
+            }
+
+            return (
+              <div key={metric.label} className="min-w-0">
+                {content}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {onLiveVisitorsClick ? (

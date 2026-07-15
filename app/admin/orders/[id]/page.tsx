@@ -14,6 +14,7 @@ export default function AdminOrderDetailPage() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [sendingInvoice, setSendingInvoice] = useState(false)
+  const [repairingItems, setRepairingItems] = useState(false)
 
   const loadOrder = useCallback(async () => {
     if (!orderId) return
@@ -35,7 +36,7 @@ export default function AdminOrderDetailPage() {
 
   useEffect(() => {
     setLoading(true)
-    loadOrder()
+    void loadOrder()
   }, [loadOrder])
 
   const patchOrder = async (body: {
@@ -82,6 +83,48 @@ export default function AdminOrderDetailPage() {
     }
   }
 
+  const repairItems = async () => {
+    if (!orderId) return
+
+    setRepairingItems(true)
+    try {
+      const res = await fetch('/api/admin/orders/backfill-items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      })
+      const data = (await res.json()) as {
+        error?: string
+        recovered?: number
+        failed?: number
+        results?: { status: string; itemCount?: number; reason?: string }[]
+      }
+      if (!res.ok) throw new Error(data.error ?? 'Failed to restore items')
+
+      const result = data.results?.[0]
+      if (result?.status === 'recovered') {
+        toast.success(
+          `Restored ${result.itemCount ?? 0} item${(result.itemCount ?? 0) === 1 ? '' : 's'} from Paystack`,
+        )
+        await loadOrder()
+        return
+      }
+
+      throw new Error(
+        result?.reason ??
+          (data.failed
+            ? 'Could not restore items from Paystack'
+            : 'No missing items to restore'),
+      )
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to restore items',
+      )
+    } finally {
+      setRepairingItems(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -103,7 +146,9 @@ export default function AdminOrderDetailPage() {
       order={order}
       updating={updating}
       sendingInvoice={sendingInvoice}
+      repairingItems={repairingItems}
       onSendInvoice={sendInvoice}
+      onRepairItems={() => void repairItems()}
       onPaymentStatusChange={(paymentStatus) => patchOrder({ paymentStatus })}
       onFulfillmentStatusChange={(fulfillmentStatus) =>
         patchOrder({ fulfillmentStatus })

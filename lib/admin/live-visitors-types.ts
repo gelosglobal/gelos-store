@@ -35,4 +35,22 @@ export type LiveVisitorsPayload = {
   sessions: LiveVisitorSession[]
   activeWindowSeconds: number
   refreshedAt: string
+  trafficTrend: {
+    hour: string
+    hourLabel: string
+    visitors: number
+  }[]
+  pageShare: {
+    path: string
+    pathLabel: string
+    visitors: number
+    share: number
+  }[]
+  locationShare: {
+    key: string
+    label: string
+    flag: string
+    visitors: number
+    share: number
+  }[]
 }
