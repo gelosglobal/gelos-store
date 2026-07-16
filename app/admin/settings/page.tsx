@@ -258,6 +258,63 @@ export default function SettingsPage() {
             </SettingsSectionCard>
           </div>
 
+          <div id="settings-meta-catalog">
+            <SettingsSectionCard
+              title="Meta Ads catalog"
+              description="Download or host a product feed for Meta Commerce Manager"
+              icon={settingsSections[0].icon}
+            >
+              <div className="space-y-4">
+                <p className="text-sm text-neutral-600">
+                  Upload a CSV, TSV, or XML feed in Commerce Manager → Catalog →
+                  Data sources. Product IDs match your Pixel{' '}
+                  <code className="rounded bg-neutral-100 px-1 py-0.5 text-xs">
+                    content_id
+                  </code>{' '}
+                  values.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      ['csv', 'Download CSV'],
+                      ['tsv', 'Download TSV'],
+                      ['xml', 'Download XML'],
+                    ] as const
+                  ).map(([format, label]) => (
+                    <Button
+                      key={format}
+                      variant="outline"
+                      size="sm"
+                      className="h-9 bg-white"
+                      asChild
+                    >
+                      <a
+                        href={`/api/feeds/meta-catalog?format=${format}&download=1`}
+                        download
+                      >
+                        {label}
+                      </a>
+                    </Button>
+                  ))}
+                </div>
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5">
+                  <p className="text-xs font-medium text-neutral-700">
+                    Scheduled feed URL (CSV)
+                  </p>
+                  <p className="mt-1 break-all font-mono text-xs text-neutral-600">
+                    /api/feeds/meta-catalog?format=csv
+                  </p>
+                  <p className="mt-2 text-xs text-neutral-500">
+                    On production, use{' '}
+                    <span className="font-mono">
+                      https://www.gelosglobal.com/api/feeds/meta-catalog?format=csv
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </SettingsSectionCard>
+          </div>
+
           <div id="settings-notifications">
             <SettingsSectionCard
               title="Notifications"

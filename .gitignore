@@ -14,6 +14,7 @@ node_modules
 .next/
 .DS_Store
 tsconfig.tsbuildinfo
+exports/
 
 # Large raw media — only storefront PNGs, hero video, and compressed JPGs are tracked
 public/gelos/*

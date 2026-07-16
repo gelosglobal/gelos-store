@@ -136,7 +136,7 @@ export const paymentsSections: HelpContentSection[] = [
   {
     title: 'Secure checkout',
     body: [
-      'All online payments are processed securely through Paystack. Your card and mobile money details are encrypted and never stored on Gelos servers.',
+      'Online payments in Ghana, Nigeria, and other supported regions are processed securely through Paystack. US inhaler orders are processed through Stripe. Your card and mobile money details are encrypted and never stored on Gelos servers.',
     ],
   },
   {
@@ -144,13 +144,14 @@ export const paymentsSections: HelpContentSection[] = [
     body: [
       'Visa and Mastercard debit/credit cards.',
       'Mobile Money (MTN MoMo and other networks supported by Paystack at checkout).',
+      'Stripe card checkout (and Apple Pay / Google Pay where available) for USA inhaler orders at /us.',
       'Additional payment options may appear at checkout depending on your device and location.',
     ],
   },
   {
     title: 'Currency',
     body: [
-      'Prices on gelosglobal.com are shown in Ghanaian Cedi (GH₵). If you switch region at checkout, amounts may display in your selected currency using the current conversion rate.',
+      'Catalog prices are stored in Ghanaian Cedi (GH₵). When you switch region, amounts display in your selected currency using the current conversion rate. USA checkout charges in USD via Stripe.',
     ],
   },
   {

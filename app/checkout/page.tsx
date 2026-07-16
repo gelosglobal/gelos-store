@@ -14,9 +14,10 @@ import { useAffiliate } from '@/components/affiliate-provider'
 import { calculateCheckoutTotals } from '@/lib/checkout'
 import { hasSmileRewardFreeShipping } from '@/lib/gelos-ai/smile-reward-storage'
 import { trackInitiateCheckout, trackPurchase, trackAddPaymentInfo } from '@/lib/meta-pixel'
+import { isUsInhalerProductId } from '@/lib/us-market'
 import { cn } from '@/lib/utils'
 
-type PaymentMethod = 'paystack' | 'cod'
+type PaymentMethod = 'paystack' | 'stripe' | 'cod'
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -32,10 +33,19 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [smileRewardFreeShipping, setSmileRewardFreeShipping] = useState(false)
   const checkoutTracked = useRef(false)
+  const isUsMarket = locationId === 'usa'
+  const usCartHasNonInhalers =
+    isUsMarket && items.some((item) => !isUsInhalerProductId(item.id))
 
   useEffect(() => {
     setSmileRewardFreeShipping(hasSmileRewardFreeShipping())
   }, [])
+
+  useEffect(() => {
+    if (isUsMarket) {
+      setPaymentMethod('stripe')
+    }
+  }, [isUsMarket])
 
   const totals = useMemo(
     () =>
@@ -84,15 +94,26 @@ export default function CheckoutPage() {
       return
     }
 
-    if (paymentMethod === 'cod') {
-      if (!phone.trim()) {
+    if (paymentMethod === 'cod' || paymentMethod === 'stripe') {
+      if (paymentMethod === 'cod' && !phone.trim()) {
         toast.error('Phone number is required for cash on delivery')
         return
       }
       if (!shippingAddress.trim()) {
-        toast.error('Delivery address is required for cash on delivery')
+        toast.error(
+          paymentMethod === 'stripe'
+            ? 'Delivery address is required for US orders'
+            : 'Delivery address is required for cash on delivery',
+        )
         return
       }
+    }
+
+    if (paymentMethod === 'stripe' && usCartHasNonInhalers) {
+      toast.error(
+        'US checkout is for nasal inhalers only. Remove other products or visit /us.',
+      )
+      return
     }
 
     setIsSubmitting(true)
@@ -148,6 +169,26 @@ export default function CheckoutPage() {
         return
       }
 
+      if (paymentMethod === 'stripe') {
+        const response = await fetch('/api/stripe/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(checkoutPayload),
+        })
+
+        const data = (await response.json()) as {
+          url?: string
+          error?: string
+        }
+
+        if (!response.ok || !data.url) {
+          throw new Error(data.error ?? 'Could not start Stripe payment')
+        }
+
+        window.location.href = data.url
+        return
+      }
+
       const response = await fetch('/api/paystack/initialize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -186,10 +227,10 @@ export default function CheckoutPage() {
         <h1 className="text-2xl font-bold text-neutral-950">Nothing to checkout</h1>
         <p className="mt-3 text-neutral-600">Add items to your cart first.</p>
         <Link
-          href="/shop"
+          href={isUsMarket ? '/us' : '/shop'}
           className="mt-6 inline-flex rounded-full bg-neutral-950 px-8 py-3 text-sm font-semibold text-white"
         >
-          Browse shop
+          {isUsMarket ? 'Browse US inhalers' : 'Browse shop'}
         </Link>
       </div>
     )
@@ -269,70 +310,99 @@ export default function CheckoutPage() {
               <div>
                 <label htmlFor="checkout-address" className="text-sm font-medium">
                   Delivery address
-                  {paymentMethod === 'cod' ? (
+                  {paymentMethod === 'cod' || paymentMethod === 'stripe' ? (
                     <span className="text-[#E91E8C]"> *</span>
                   ) : null}
                 </label>
                 <textarea
                   id="checkout-address"
                   rows={3}
-                  required={paymentMethod === 'cod'}
+                  required={paymentMethod === 'cod' || paymentMethod === 'stripe'}
                   value={shippingAddress}
                   onChange={(e) => setShippingAddress(e.target.value)}
-                  placeholder="Street, city, region"
+                  placeholder={
+                    paymentMethod === 'stripe'
+                      ? 'Street, city, state, ZIP'
+                      : 'Street, city, region'
+                  }
                   className="mt-1.5 w-full resize-none rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950"
                 />
               </div>
             </div>
 
+            {usCartHasNonInhalers ? (
+              <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                US checkout is inhalers only. Remove other products from your
+                cart, or{' '}
+                <Link href="/us" className="font-semibold underline underline-offset-2">
+                  shop inhalers
+                </Link>
+                .
+              </div>
+            ) : null}
+
             <div className="mt-8">
               <h2 className="text-lg font-semibold text-neutral-950">
                 Payment method
               </h2>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('paystack')}
-                  className={cn(
-                    'rounded-2xl border px-4 py-4 text-left transition-colors',
-                    paymentMethod === 'paystack'
-                      ? 'border-neutral-950 bg-neutral-50'
-                      : 'border-neutral-200 hover:border-neutral-400',
-                  )}
-                >
+              {isUsMarket ? (
+                <div className="mt-4 rounded-2xl border border-neutral-950 bg-neutral-50 px-4 py-4 text-left">
                   <div className="flex items-center gap-2">
                     <Lock className="size-4" />
-                    <span className="text-sm font-semibold">Pay online</span>
+                    <span className="text-sm font-semibold">Pay with Stripe</span>
                   </div>
                   <p className="mt-1 text-xs text-neutral-500">
-                    Card, mobile money & bank via Paystack
+                    Secure card checkout in USD for US inhaler orders
                   </p>
-                </button>
+                </div>
+              ) : (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('paystack')}
+                    className={cn(
+                      'rounded-2xl border px-4 py-4 text-left transition-colors',
+                      paymentMethod === 'paystack'
+                        ? 'border-neutral-950 bg-neutral-50'
+                        : 'border-neutral-200 hover:border-neutral-400',
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Lock className="size-4" />
+                      <span className="text-sm font-semibold">Pay online</span>
+                    </div>
+                    <p className="mt-1 text-xs text-neutral-500">
+                      Card, mobile money & bank via Paystack
+                    </p>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('cod')}
-                  className={cn(
-                    'rounded-2xl border px-4 py-4 text-left transition-colors',
-                    paymentMethod === 'cod'
-                      ? 'border-neutral-950 bg-neutral-50'
-                      : 'border-neutral-200 hover:border-neutral-400',
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <Banknote className="size-4" />
-                    <span className="text-sm font-semibold">Cash on delivery</span>
-                  </div>
-                  <p className="mt-1 text-xs text-neutral-500">
-                    Pay with cash when your order arrives
-                  </p>
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('cod')}
+                    className={cn(
+                      'rounded-2xl border px-4 py-4 text-left transition-colors',
+                      paymentMethod === 'cod'
+                        ? 'border-neutral-950 bg-neutral-50'
+                        : 'border-neutral-200 hover:border-neutral-400',
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Banknote className="size-4" />
+                      <span className="text-sm font-semibold">
+                        Cash on delivery
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-neutral-500">
+                      Pay with cash when your order arrives
+                    </p>
+                  </button>
+                </div>
+              )}
             </div>
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || usCartHasNonInhalers}
               className="mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-neutral-950 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isSubmitting ? (
@@ -340,12 +410,19 @@ export default function CheckoutPage() {
                   <Loader2 className="size-4 animate-spin" />
                   {paymentMethod === 'cod'
                     ? 'Placing order…'
-                    : 'Redirecting to Paystack…'}
+                    : paymentMethod === 'stripe'
+                      ? 'Redirecting to Stripe…'
+                      : 'Redirecting to Paystack…'}
                 </>
               ) : paymentMethod === 'cod' ? (
                 <>
                   <Banknote className="size-4" />
                   Place order — cash on delivery
+                </>
+              ) : paymentMethod === 'stripe' ? (
+                <>
+                  <Lock className="size-4" />
+                  Pay with Stripe
                 </>
               ) : (
                 <>
@@ -358,6 +435,12 @@ export default function CheckoutPage() {
             <p className="mt-4 text-center text-xs text-neutral-500">
               {paymentMethod === 'cod' ? (
                 <>You&apos;ll pay in cash when your order is delivered.</>
+              ) : paymentMethod === 'stripe' ? (
+                <>
+                  You&apos;ll be charged in{' '}
+                  <span className="font-medium text-neutral-700">USD</span> via
+                  Stripe for US inhaler delivery.
+                </>
               ) : (
                 <>
                   You&apos;ll be charged in{' '}
@@ -380,7 +463,7 @@ export default function CheckoutPage() {
         </div>
 
         <div className="mt-8 lg:mt-10">
-          <CheckoutUpsells cartItems={items} />
+          {isUsMarket ? null : <CheckoutUpsells cartItems={items} />}
         </div>
       </div>
     </div>
