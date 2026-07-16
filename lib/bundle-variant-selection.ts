@@ -1,13 +1,14 @@
 import {
   getAvailableStockForVariant,
   getProductVariantPickerOptions,
-  hasAdminVariantPicker,
+  productNeedsVariantChoice,
 } from '@/lib/product-variant-images'
 import type { Product } from '@/lib/types/product'
 
+export { productNeedsVariantChoice }
+
 export function productNeedsBundleVariantChoice(product: Product): boolean {
-  if (!hasAdminVariantPicker(product)) return false
-  return getProductVariantPickerOptions(product).length > 1
+  return productNeedsVariantChoice(product)
 }
 
 export function getDefaultBundleVariantImage(product: Product): string {

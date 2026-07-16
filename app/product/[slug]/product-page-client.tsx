@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { useProducts } from '@/components/products-provider'
 import { ProductCatalogPage } from '@/components/product-catalog-page'
 import { trackViewContent } from '@/lib/meta-pixel'
@@ -12,7 +12,7 @@ type ProductPageClientProps = {
   communityFavorites: Product[]
 }
 
-export function ProductPageClient({
+function ProductPageClientInner({
   product: serverProduct,
   variants,
   communityFavorites,
@@ -35,5 +35,19 @@ export function ProductPageClient({
       variants={variants}
       communityFavorites={communityFavorites}
     />
+  )
+}
+
+export function ProductPageClient(props: ProductPageClientProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[40vh] items-center justify-center text-neutral-500">
+          Loading product…
+        </div>
+      }
+    >
+      <ProductPageClientInner {...props} />
+    </Suspense>
   )
 }

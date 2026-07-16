@@ -184,19 +184,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (result.added === 1) {
           toast.success('Added to cart', {
             description: result.addedNames[0],
-            action: {
-              label: 'View cart',
-              onClick: () => router.push('/cart'),
-            },
           })
         } else {
-          toast.success(`Added ${result.added} items to your cart`, {
-            action: {
-              label: 'View cart',
-              onClick: () => router.push('/cart'),
-            },
-          })
+          toast.success(`Added ${result.added} items to your cart`)
         }
+        router.push('/cart')
       }
 
       if (result.skipped > 0 && !options?.silent) {

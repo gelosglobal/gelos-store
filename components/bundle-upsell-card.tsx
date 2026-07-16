@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { AlertTriangle, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { BundleProductThumbnails } from '@/components/bundle-product-thumbnails'
@@ -41,6 +42,7 @@ export function BundleUpsellCard({
 }: BundleUpsellCardProps) {
   const { addItems } = useCart()
   const { formatPrice } = useLocation()
+  const router = useRouter()
   const [variantDialogOpen, setVariantDialogOpen] = useState(false)
 
   const missingIds = getMissingBundleProductIds(offer, cartItems, products)
@@ -154,6 +156,8 @@ export function BundleUpsellCard({
         `${result.skipped} item${result.skipped === 1 ? '' : 's'} in this bundle ${result.skipped === 1 ? 'is' : 'are'} out of stock.`,
       )
     }
+
+    router.push('/cart')
   }
 
   const addBundle = () => {

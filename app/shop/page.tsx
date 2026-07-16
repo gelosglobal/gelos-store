@@ -20,6 +20,8 @@ import {
   orderProductsForTagCollection,
 } from '@/lib/product-tags'
 import { useProducts } from '@/components/products-provider'
+import { getProductHref } from '@/lib/product-utils'
+import { expandProductsForShopCatalog } from '@/lib/shop-catalog-items'
 import { cn } from '@/lib/utils'
 
 const categories = [
@@ -206,6 +208,33 @@ function ShopPageContent() {
     getTagCollectionOrder,
   ])
 
+  const catalogItems = useMemo(() => {
+    // Tagged lists stay one card per product; category browse expands flavours.
+    if (
+      bundlesMode ||
+      newArrivalsMode ||
+      bestSellersMode ||
+      collectionFilter === 'best-sellers'
+    ) {
+      return filteredProducts.map((product) => ({
+        key: product.id,
+        product,
+        displayName: product.name,
+        image: product.image,
+        flavourLocked: false as const,
+        href: getProductHref(product),
+      }))
+    }
+
+    return expandProductsForShopCatalog(filteredProducts)
+  }, [
+    filteredProducts,
+    bundlesMode,
+    newArrivalsMode,
+    bestSellersMode,
+    collectionFilter,
+  ])
+
   useEffect(() => {
     const categoryKey = bundlesMode
       ? 'bundles'
@@ -220,7 +249,7 @@ function ShopPageContent() {
 
     trackViewCategory({
       category: pageMeta.title,
-      contentIds: filteredProducts.map((product) => product.id),
+      contentIds: catalogItems.map((item) => item.product.id),
     })
   }, [
     bundlesMode,
@@ -228,7 +257,7 @@ function ShopPageContent() {
     bestSellersMode,
     collectionFilter,
     pageMeta.title,
-    filteredProducts,
+    catalogItems,
   ])
 
   const showCollectionFilter = !bundlesMode && !newArrivalsMode && !bestSellersMode
@@ -324,17 +353,26 @@ function ShopPageContent() {
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
         {bundlesMode ? (
           <BundleUpsellsSection limit={12} showAll />
-        ) : filteredProducts.length === 0 ? (
+        ) : catalogItems.length === 0 ? (
           <div className="py-16 text-center">
             <p className="text-neutral-700">No products match this collection.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 lg:grid-cols-4 lg:gap-x-8 lg:gap-y-12">
-            {filteredProducts.map((product) => (
+            {catalogItems.map((item) => (
               <ShopCollectionCard
-                key={product.id}
-                product={product}
-                badge={getProductDisplayBadge(product)}
+                key={item.key}
+                product={item.product}
+                badge={getProductDisplayBadge(item.product)}
+                displayName={item.displayName}
+                displayImage={item.image}
+                href={item.href}
+                lockedVariantImage={
+                  item.flavourLocked ? item.variantImage : undefined
+                }
+                lockedVariantLabel={
+                  item.flavourLocked ? item.variantLabel : undefined
+                }
               />
             ))}
           </div>

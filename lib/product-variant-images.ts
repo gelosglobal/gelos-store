@@ -94,6 +94,15 @@ export function hasAdminVariantPicker(product: {
   )
 }
 
+/** Multi-flavour products must pick a tile before add to cart. */
+export function productNeedsVariantChoice(product: {
+  variantImages?: string[]
+  variantImageOptions?: ProductVariantOption[]
+}): boolean {
+  if (!hasAdminVariantPicker(product)) return false
+  return getProductVariantPickerOptions(product).length > 1
+}
+
 /** Default hero/card image — first admin variant when configured, else main product image. */
 export function getDefaultVariantDisplayImage(product: {
   id?: string

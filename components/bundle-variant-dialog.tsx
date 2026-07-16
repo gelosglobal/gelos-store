@@ -99,6 +99,7 @@ export function BundleVariantDialog({
                     }))
                   }
                   label={getVariantPickerLabel(product.category)}
+                  layout="grid"
                   isOptionDisabled={(option) =>
                     !isBundleVariantInStock(product, option.url)
                   }

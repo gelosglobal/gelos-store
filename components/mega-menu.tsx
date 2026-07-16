@@ -7,7 +7,7 @@ import { useMemo, useState } from 'react'
 import { useProducts } from '@/components/products-provider'
 import { useIsMobile } from '@/components/ui/use-mobile'
 import { navCategories, type NavCategoryId } from '@/lib/nav-config'
-import { getProductHref } from '@/lib/product-utils'
+import { expandProductsForShopCatalog } from '@/lib/shop-catalog-items'
 import { cn } from '@/lib/utils'
 
 type MegaMenuProps = {
@@ -37,10 +37,15 @@ export function MegaMenu({ onNavigate }: MegaMenuProps) {
       return products.filter((p) => p.price <= 20)
     }
     return products
-  }, [activeCategory, activeConfig])
+  }, [activeCategory, activeConfig, products])
 
-  const previewProducts = filteredProducts.slice(0, previewLimit)
-  const hasMoreProducts = filteredProducts.length > previewLimit
+  const catalogItems = useMemo(
+    () => expandProductsForShopCatalog(filteredProducts),
+    [filteredProducts],
+  )
+
+  const previewItems = catalogItems.slice(0, previewLimit)
+  const hasMoreProducts = catalogItems.length > previewLimit
 
   return (
     <div className="font-nav flex flex-col overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-2xl lg:h-[min(640px,90vh)] lg:flex-row">
@@ -125,7 +130,8 @@ export function MegaMenu({ onNavigate }: MegaMenuProps) {
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3 lg:px-6">
           <p className="text-sm font-medium text-neutral-500">
-            {filteredProducts.length} products
+            {catalogItems.length}{' '}
+            {catalogItems.length === 1 ? 'product' : 'products'}
           </p>
           <Link
             href={activeConfig.href}
@@ -138,24 +144,24 @@ export function MegaMenu({ onNavigate }: MegaMenuProps) {
 
         <div className="flex min-h-0 flex-1 flex-col p-4 lg:p-6 lg:pt-4">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:grid-rows-2">
-            {previewProducts.map((product) => (
+            {previewItems.map((item) => (
               <Link
-                key={product.id}
-                href={getProductHref(product)}
+                key={item.key}
+                href={item.href}
                 onClick={onNavigate}
                 className="group flex flex-col"
               >
                 <div className="relative aspect-square overflow-hidden rounded-2xl bg-white transition-transform group-hover:scale-[1.02]">
                   <Image
-                    src={product.image}
-                    alt={product.name}
+                    src={item.image}
+                    alt={item.displayName}
                     fill
-                    className={cn(megaMenuImageClass(product.image))}
+                    className={cn(megaMenuImageClass(item.image))}
                     sizes="160px"
                   />
                 </div>
                 <p className="mt-2 line-clamp-2 text-center text-xs font-medium leading-snug text-foreground">
-                  {product.name}
+                  {item.displayName}
                 </p>
               </Link>
             ))}
@@ -169,7 +175,7 @@ export function MegaMenu({ onNavigate }: MegaMenuProps) {
             >
               See more
               <span className="text-neutral-500">
-                ({filteredProducts.length - previewLimit} more)
+                ({catalogItems.length - previewLimit} more)
               </span>
               <ChevronRight className="h-4 w-4" />
             </Link>

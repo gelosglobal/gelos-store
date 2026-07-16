@@ -7,10 +7,11 @@ const MAX_VISIBLE = 3
 
 type ProductVariantThumbnailsProps = {
   variantImages: string[]
-  activeImage: string
+  activeImage: string | null
   onSelect: (src: string) => void
   productId: string
   className?: string
+  isImageDisabled?: (src: string) => boolean
 }
 
 function inferThumbFit(src: string): 'contain' | 'cover' {
@@ -34,6 +35,7 @@ export function ProductVariantThumbnails({
   onSelect,
   productId,
   className,
+  isImageDisabled,
 }: ProductVariantThumbnailsProps) {
   const visibleVariants = variantImages.slice(0, MAX_VISIBLE)
   const extraVariantCount = Math.max(0, variantImages.length - MAX_VISIBLE)
@@ -47,35 +49,43 @@ export function ProductVariantThumbnails({
         className,
       )}
     >
-      {visibleVariants.map((src, index) => (
-        <button
-          key={`${productId}-variant-${index}`}
-          type="button"
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            onSelect(src)
-          }}
-          className={cn(
-            'relative h-9 w-9 shrink-0 overflow-hidden rounded-md border-2 bg-white shadow-sm transition-colors sm:h-10 sm:w-10',
-            activeImage === src
-              ? 'border-neutral-900'
-              : 'border-neutral-200 hover:border-neutral-400',
-          )}
-        >
-          <Image
-            src={src}
-            alt=""
-            fill
+      {visibleVariants.map((src, index) => {
+        const disabled = isImageDisabled?.(src) ?? false
+
+        return (
+          <button
+            key={`${productId}-variant-${index}`}
+            type="button"
+            disabled={disabled}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              if (disabled) return
+              onSelect(src)
+            }}
             className={cn(
-              inferThumbFit(src) === 'contain'
-                ? 'object-contain p-0.5'
-                : 'object-cover',
+              'relative h-9 w-9 shrink-0 overflow-hidden rounded-md border-2 bg-white shadow-sm transition-colors sm:h-10 sm:w-10',
+              activeImage === src
+                ? 'border-neutral-900'
+                : 'border-neutral-200 hover:border-neutral-400',
+              disabled && 'cursor-not-allowed opacity-40',
             )}
-            sizes="40px"
-          />
-        </button>
-      ))}
+            aria-label={disabled ? 'Flavour out of stock' : `Select flavour ${index + 1}`}
+          >
+            <Image
+              src={src}
+              alt=""
+              fill
+              className={cn(
+                inferThumbFit(src) === 'contain'
+                  ? 'object-contain p-0.5'
+                  : 'object-cover',
+              )}
+              sizes="40px"
+            />
+          </button>
+        )
+      })}
       {extraVariantCount > 0 && (
         <div className="flex h-9 w-9 items-center justify-center rounded-md border border-neutral-200 bg-white text-[10px] font-semibold text-neutral-600 shadow-sm sm:h-10 sm:w-10">
           +{extraVariantCount}

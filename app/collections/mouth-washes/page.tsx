@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { ShopCollectionCard } from '@/components/shop-collection-card'
 import { useProducts } from '@/components/products-provider'
+import { expandProductsForShopCatalog } from '@/lib/shop-catalog-items'
 import {
   Select,
   SelectContent,
@@ -34,6 +35,11 @@ export default function MouthWashesCollectionPage() {
       }
     })
   }, [products, sortBy])
+
+  const catalogItems = useMemo(
+    () => expandProductsForShopCatalog(mouthwashProducts),
+    [mouthwashProducts],
+  )
 
   return (
     <div className="min-h-screen bg-white text-foreground">
@@ -66,7 +72,8 @@ export default function MouthWashesCollectionPage() {
       <section className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-4 sm:gap-4 sm:px-6 lg:px-8">
           <p className="text-sm font-medium text-neutral-700">
-            {mouthwashProducts.length} products
+            {catalogItems.length}{' '}
+            {catalogItems.length === 1 ? 'product' : 'products'}
           </p>
           <Select
             value={sortBy}
@@ -91,14 +98,26 @@ export default function MouthWashesCollectionPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
-        {mouthwashProducts.length === 0 ? (
+        {catalogItems.length === 0 ? (
           <p className="py-16 text-center text-neutral-500">
             No mouthwash products available yet.
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 lg:grid-cols-4 lg:gap-x-8 lg:gap-y-12">
-            {mouthwashProducts.map((product) => (
-              <ShopCollectionCard key={product.id} product={product} />
+            {catalogItems.map((item) => (
+              <ShopCollectionCard
+                key={item.key}
+                product={item.product}
+                displayName={item.displayName}
+                displayImage={item.image}
+                href={item.href}
+                lockedVariantImage={
+                  item.flavourLocked ? item.variantImage : undefined
+                }
+                lockedVariantLabel={
+                  item.flavourLocked ? item.variantLabel : undefined
+                }
+              />
             ))}
           </div>
         )}

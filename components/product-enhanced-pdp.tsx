@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useCart } from '@/components/cart-provider'
 import { useLocation } from '@/components/location-provider'
 import { ProductAccordionSection } from '@/components/product-accordion-section'
@@ -10,6 +11,7 @@ import { ProductFeatureGallery } from '@/components/product-feature-gallery'
 import { ProductGallery } from '@/components/product-gallery'
 import { ProductRating } from '@/components/product-rating'
 import { ProductShareMenu } from '@/components/product-share-menu'
+import { ProductVariantChoiceDialog } from '@/components/product-variant-choice-dialog'
 import {
   getAdminGalleryMedia,
   getAdminCarouselImages,
@@ -22,6 +24,7 @@ import {
   getProductPickerImages,
   getProductVariantPickerOptions,
   getVariantPickerLabel,
+  productNeedsVariantChoice,
 } from '@/lib/product-variant-images'
 import { getProductHref } from '@/lib/product-utils'
 import { ShopCollectionCard } from '@/components/shop-collection-card'
@@ -34,6 +37,7 @@ import {
   getVariantDisplayName,
   getVariantSelectionForCart,
 } from '@/lib/variant-display'
+import { findVariantOptionByFlavourSlug } from '@/lib/shop-catalog-items'
 import type { Product } from '@/lib/types/product'
 
 type ProductEnhancedPdpProps = {
@@ -62,10 +66,14 @@ export function ProductEnhancedPdp({
 }: ProductEnhancedPdpProps) {
   const { addItem } = useCart()
   const { formatPrice } = useLocation()
+  const searchParams = useSearchParams()
+  const flavourParam = searchParams.get('flavour')
   const [quantity, setQuantity] = useState(1)
+  const [variantDialogOpen, setVariantDialogOpen] = useState(false)
 
   const adminVariantImages = getAdminVariantImages(product)
   const hasAdminVariants = adminVariantImages.length > 0
+  const needsVariantChoice = productNeedsVariantChoice(product)
   const pickerImages = getProductPickerImages(product)
   const variantPickerOptions = useMemo(
     () => getProductVariantPickerOptions(product),
@@ -73,11 +81,24 @@ export function ProductEnhancedPdp({
   )
   const pickerLabel = getVariantPickerLabel(product.category)
 
-  const [activeImage, setActiveImage] = useState(() =>
-    getDefaultVariantDisplayImage(product),
-  )
+  const initialImage = useMemo(() => {
+    if (flavourParam) {
+      const match = findVariantOptionByFlavourSlug(product, flavourParam)
+      if (match?.url) return match.url
+    }
+    return getDefaultVariantDisplayImage(product)
+  }, [flavourParam, product])
+
+  const [activeImage, setActiveImage] = useState(initialImage)
 
   useEffect(() => {
+    if (flavourParam) {
+      const match = findVariantOptionByFlavourSlug(product, flavourParam)
+      if (match?.url) {
+        setActiveImage(match.url)
+        return
+      }
+    }
     const custom = getAdminCarouselImages(product)
     if (custom.length > 0) {
       setActiveImage(custom[0])
@@ -85,6 +106,7 @@ export function ProductEnhancedPdp({
     }
     setActiveImage(getDefaultVariantDisplayImage(product))
   }, [
+    flavourParam,
     product.id,
     product.image,
     product.carouselImages,
@@ -144,6 +166,12 @@ export function ProductEnhancedPdp({
   const usageSection = getUsageStepsSectionMeta(product.category, content)
   const availableStock = getAvailableStockForVariant(product, activeImage)
   const isOutOfStock = availableStock <= 0
+  const hasAnyFlavourInStock = variantPickerOptions.some(
+    (option) => getAvailableStockForVariant(product, option.url) > 0,
+  )
+  const canAddToCart = needsVariantChoice
+    ? hasAnyFlavourInStock
+    : !isOutOfStock
 
   const variantPicker = hasAdminVariants ? (
     <ProductAdminVariantPicker
@@ -151,10 +179,26 @@ export function ProductEnhancedPdp({
       activeImage={activeImage}
       onSelect={setActiveImage}
       label={pickerLabel}
+      isOptionDisabled={(option) =>
+        getAvailableStockForVariant(product, option.url) <= 0
+      }
     />
   ) : (
     flavorPicker
   )
+
+  const handleAddToCart = () => {
+    if (needsVariantChoice) {
+      setVariantDialogOpen(true)
+      return
+    }
+
+    const { variantImage, variantLabel } = getVariantSelectionForCart(
+      product,
+      activeImage,
+    )
+    addItem(product.id, quantity, { variantImage, variantLabel })
+  }
 
   return (
     <div className="min-h-screen bg-white text-foreground">
@@ -230,9 +274,20 @@ export function ProductEnhancedPdp({
                   <button
                     type="button"
                     onClick={() =>
-                      setQuantity(Math.min(availableStock, quantity + 1))
+                      setQuantity(
+                        Math.min(
+                          needsVariantChoice
+                            ? Math.max(product.stock, availableStock)
+                            : availableStock,
+                          quantity + 1,
+                        ),
+                      )
                     }
-                    disabled={quantity >= availableStock}
+                    disabled={
+                      needsVariantChoice
+                        ? quantity >= Math.max(product.stock, 1)
+                        : quantity >= availableStock
+                    }
                     className="px-4 py-2.5 text-lg hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Increase quantity"
                   >
@@ -241,31 +296,27 @@ export function ProductEnhancedPdp({
                 </div>
               </div>
 
-              {isOutOfStock ? (
+              {!needsVariantChoice && isOutOfStock ? (
                 <p className="mt-4 text-sm font-medium text-red-600">
-                  This flavour is currently out of stock.
+                  This flavour is currently out of stock. Pick another flavour.
                 </p>
-              ) : availableStock <= 5 ? (
+              ) : !needsVariantChoice && availableStock <= 5 ? (
                 <p className="mt-4 text-sm text-neutral-600">
                   Only {availableStock} left for this flavour.
+                </p>
+              ) : needsVariantChoice ? (
+                <p className="mt-4 text-sm text-neutral-600">
+                  You&apos;ll choose your flavour in the next step.
                 </p>
               ) : null}
 
               <button
                 type="button"
-                onClick={() => {
-                  const { variantImage, variantLabel } =
-                    getVariantSelectionForCart(product, activeImage)
-
-                  addItem(product.id, quantity, {
-                    variantImage,
-                    variantLabel,
-                  })
-                }}
-                disabled={isOutOfStock}
+                onClick={handleAddToCart}
+                disabled={!canAddToCart}
                 className="mt-6 w-full rounded-full bg-neutral-950 py-4 text-base font-semibold text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-400"
               >
-                {isOutOfStock ? 'Out of stock' : 'Add to cart'}
+                {!canAddToCart ? 'Out of stock' : 'Add to cart'}
               </button>
             </div>
 
@@ -372,6 +423,19 @@ export function ProductEnhancedPdp({
           </section>
         )}
       </div>
+
+      {needsVariantChoice ? (
+        <ProductVariantChoiceDialog
+          open={variantDialogOpen}
+          onOpenChange={setVariantDialogOpen}
+          product={product}
+          quantity={quantity}
+          onConfirm={({ variantImage, variantLabel }) => {
+            addItem(product.id, quantity, { variantImage, variantLabel })
+            if (variantImage) setActiveImage(variantImage)
+          }}
+        />
+      ) : null}
     </div>
   )
 }
