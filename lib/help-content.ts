@@ -144,7 +144,7 @@ export const paymentsSections: HelpContentSection[] = [
     body: [
       'Visa and Mastercard debit/credit cards.',
       'Mobile Money (MTN MoMo and other networks supported by Paystack at checkout).',
-      'Stripe card checkout (and Apple Pay / Google Pay where available) for USA inhaler orders at /us.',
+      'Stripe card checkout (and Apple Pay / Google Pay where available) for USA inhaler orders.',
       'Additional payment options may appear at checkout depending on your device and location.',
     ],
   },

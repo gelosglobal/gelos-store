@@ -111,7 +111,7 @@ export default function CheckoutPage() {
 
     if (paymentMethod === 'stripe' && usCartHasNonInhalers) {
       toast.error(
-        'US checkout is for nasal inhalers only. Remove other products or visit /us.',
+        'US checkout is for nasal inhalers only. Remove other products to continue.',
       )
       return
     }
@@ -227,10 +227,10 @@ export default function CheckoutPage() {
         <h1 className="text-2xl font-bold text-neutral-950">Nothing to checkout</h1>
         <p className="mt-3 text-neutral-600">Add items to your cart first.</p>
         <Link
-          href={isUsMarket ? '/us' : '/shop'}
+          href="/shop"
           className="mt-6 inline-flex rounded-full bg-neutral-950 px-8 py-3 text-sm font-semibold text-white"
         >
-          {isUsMarket ? 'Browse US inhalers' : 'Browse shop'}
+          Browse shop
         </Link>
       </div>
     )
@@ -333,11 +333,7 @@ export default function CheckoutPage() {
             {usCartHasNonInhalers ? (
               <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
                 US checkout is inhalers only. Remove other products from your
-                cart, or{' '}
-                <Link href="/us" className="font-semibold underline underline-offset-2">
-                  shop inhalers
-                </Link>
-                .
+                cart to continue.
               </div>
             ) : null}
 

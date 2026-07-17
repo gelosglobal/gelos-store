@@ -1,6 +1,5 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import {
   Select,
   SelectContent,
@@ -9,7 +8,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useLocation } from '@/components/location-provider'
-import { locations, type LocationId } from '@/lib/locations'
+import { locations } from '@/lib/locations'
 import { cn } from '@/lib/utils'
 
 type LocationSelectorProps = {
@@ -22,7 +21,6 @@ export function LocationSelector({
   className,
   showFullLabel = false,
 }: LocationSelectorProps) {
-  const router = useRouter()
   const { locationId, setLocationId, isHydrated, location } = useLocation()
 
   if (!isHydrated) {
@@ -44,11 +42,7 @@ export function LocationSelector({
     <Select
       value={locationId}
       onValueChange={(value) => {
-        const next = value as LocationId
-        setLocationId(next)
-        if (next === 'usa') {
-          router.push('/us')
-        }
+        setLocationId(value as (typeof locations)[number]['id'])
       }}
     >
       <SelectTrigger

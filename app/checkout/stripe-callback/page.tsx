@@ -123,10 +123,10 @@ function StripeCallbackContent() {
             Total paid: {formatPrice(state.total)}
           </p>
           <Link
-            href="/us"
+            href="/shop"
             className="mt-8 inline-flex rounded-full bg-neutral-950 px-8 py-3 text-sm font-semibold text-white"
           >
-            Back to US shop
+            Back to shop
           </Link>
         </>
       ) : null}
@@ -146,10 +146,10 @@ function StripeCallbackContent() {
               Try again
             </Link>
             <Link
-              href="/us"
+              href="/shop"
               className="text-sm font-medium text-neutral-600 underline-offset-2 hover:underline"
             >
-              Back to US shop
+              Back to shop
             </Link>
           </div>
         </>
