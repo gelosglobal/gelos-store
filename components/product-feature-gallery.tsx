@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ProductGalleryVideo } from '@/components/product-gallery-video'
 import {
   Carousel,
@@ -10,9 +10,13 @@ import {
   CarouselItem,
   type CarouselApi,
 } from '@/components/ui/carousel'
+import { useIsMobile } from '@/components/ui/use-mobile'
 import { isExternalImageUrl } from '@/lib/image-url'
 import type { GalleryMediaItem } from '@/lib/product-gallery-images'
 import { cn } from '@/lib/utils'
+
+const MOBILE_AUTOPLAY_MS = 3500
+const AUTOPLAY_RESUME_MS = 6000
 
 type ProductFeatureGalleryProps = {
   items: GalleryMediaItem[]
@@ -77,15 +81,27 @@ export function ProductFeatureGallery({
   alt,
   className,
 }: ProductFeatureGalleryProps) {
+  const isMobile = useIsMobile()
   const [api, setApi] = useState<CarouselApi>()
   const [canScrollPrev, setCanScrollPrev] = useState(false)
   const [canScrollNext, setCanScrollNext] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [autoplayPaused, setAutoplayPaused] = useState(false)
+  const resumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const onSelect = useCallback((carouselApi: CarouselApi) => {
     setCanScrollPrev(carouselApi.canScrollPrev())
     setCanScrollNext(carouselApi.canScrollNext())
     setSelectedIndex(carouselApi.selectedScrollSnap())
+  }, [])
+
+  const pauseAutoplay = useCallback(() => {
+    setAutoplayPaused(true)
+    if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current)
+    resumeTimeoutRef.current = setTimeout(() => {
+      setAutoplayPaused(false)
+      resumeTimeoutRef.current = null
+    }, AUTOPLAY_RESUME_MS)
   }, [])
 
   useEffect(() => {
@@ -100,6 +116,32 @@ export function ProductFeatureGallery({
       api.off('select', onSelect)
     }
   }, [api, onSelect])
+
+  useEffect(() => {
+    return () => {
+      if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!api || !isMobile || items.length < 2 || autoplayPaused) return
+
+    const prefersReducedMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches
+    if (prefersReducedMotion) return
+
+    const id = window.setInterval(() => {
+      if (document.hidden) return
+      if (api.canScrollNext()) {
+        api.scrollNext()
+      } else {
+        api.scrollTo(0)
+      }
+    }, MOBILE_AUTOPLAY_MS)
+
+    return () => window.clearInterval(id)
+  }, [api, isMobile, items.length, autoplayPaused])
 
   if (items.length === 0) return null
 
@@ -118,7 +160,10 @@ export function ProductFeatureGallery({
           {showNav ? (
             <button
               type="button"
-              onClick={() => api?.scrollPrev()}
+              onClick={() => {
+                pauseAutoplay()
+                api?.scrollPrev()
+              }}
               disabled={!canScrollPrev}
               className={cn(
                 navButtonClass,
@@ -134,6 +179,7 @@ export function ProductFeatureGallery({
             opts={{ align: 'center', containScroll: 'trimSnaps' }}
             setApi={setApi}
             className="min-w-0 flex-1"
+            onPointerDown={showNav ? pauseAutoplay : undefined}
           >
             <CarouselContent className="-ml-0 sm:-ml-4">
               {items.map((item, index) => (
@@ -150,7 +196,10 @@ export function ProductFeatureGallery({
               <>
                 <button
                   type="button"
-                  onClick={() => api?.scrollPrev()}
+                  onClick={() => {
+                    pauseAutoplay()
+                    api?.scrollPrev()
+                  }}
                   disabled={!canScrollPrev}
                   className={cn(
                     navButtonClass,
@@ -162,7 +211,10 @@ export function ProductFeatureGallery({
                 </button>
                 <button
                   type="button"
-                  onClick={() => api?.scrollNext()}
+                  onClick={() => {
+                    pauseAutoplay()
+                    api?.scrollNext()
+                  }}
                   disabled={!canScrollNext}
                   className={cn(
                     navButtonClass,
@@ -179,7 +231,10 @@ export function ProductFeatureGallery({
           {showNav ? (
             <button
               type="button"
-              onClick={() => api?.scrollNext()}
+              onClick={() => {
+                pauseAutoplay()
+                api?.scrollNext()
+              }}
               disabled={!canScrollNext}
               className={cn(
                 navButtonClass,
@@ -201,7 +256,10 @@ export function ProductFeatureGallery({
               <button
                 key={`dot-${item.type}-${item.url}-${index}`}
                 type="button"
-                onClick={() => api?.scrollTo(index)}
+                onClick={() => {
+                  pauseAutoplay()
+                  api?.scrollTo(index)
+                }}
                 className={cn(
                   'h-2 rounded-full transition-all',
                   selectedIndex === index
