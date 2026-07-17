@@ -21,18 +21,17 @@ import { getWhatsAppChatUrl } from '@/lib/whatsapp'
 
 export function useWhatsAppOrderLink(customer?: WhatsAppOrderCustomer) {
   const { items, isHydrated } = useCart()
-  const { formatPrice, location, locationId } = useLocation()
+  const { formatPrice, location } = useLocation()
   const { appliedPromoCode, promotions } = useStorePromotions()
 
   const totals = useMemo(() => {
     if (!isHydrated || items.length === 0) return null
     return calculateCheckoutTotals(items, {
       promoCode: appliedPromoCode,
-      locationId,
       promotions,
       smileRewardFreeShipping: hasSmileRewardFreeShipping(),
     })
-  }, [appliedPromoCode, isHydrated, items, locationId, promotions])
+  }, [appliedPromoCode, isHydrated, items, promotions])
 
   return useMemo(() => {
     const generalHref = getWhatsAppChatUrl()

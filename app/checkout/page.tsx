@@ -12,6 +12,7 @@ import { useLocation } from '@/components/location-provider'
 import { useStorePromotions } from '@/components/store-promotions-provider'
 import { useAffiliate } from '@/components/affiliate-provider'
 import { calculateCheckoutTotals } from '@/lib/checkout'
+import { convertForLocation } from '@/lib/exchange-rates'
 import { hasSmileRewardFreeShipping } from '@/lib/gelos-ai/smile-reward-storage'
 import { trackInitiateCheckout, trackPurchase, trackAddPaymentInfo } from '@/lib/meta-pixel'
 import { isUsInhalerProductId } from '@/lib/us-market'
@@ -51,11 +52,10 @@ export default function CheckoutPage() {
     () =>
       calculateCheckoutTotals(items, {
         promoCode: appliedPromoCode,
-        locationId,
         promotions,
         smileRewardFreeShipping,
       }),
-    [items, locationId, appliedPromoCode, promotions, smileRewardFreeShipping],
+    [items, appliedPromoCode, promotions, smileRewardFreeShipping],
   )
 
   useEffect(() => {
@@ -63,10 +63,10 @@ export default function CheckoutPage() {
     checkoutTracked.current = true
     trackInitiateCheckout(
       items.map((item) => ({ id: item.id, quantity: item.quantity })),
-      totals.total,
+      convertForLocation(totals.total, locationId),
       location.currencyCode,
     )
-  }, [isHydrated, items, totals.total, location.currencyCode])
+  }, [isHydrated, items, totals.total, locationId, location.currencyCode])
 
   const checkoutPayload = {
     name: name.trim(),

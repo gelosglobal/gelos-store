@@ -64,16 +64,12 @@ export default function CartPage() {
     items,
     {
       promoCode: appliedPromoCode,
-      locationId,
       promotions,
       smileRewardFreeShipping,
     },
   )
   const afterDiscount = subtotal - discount
-  const freeShippingThreshold = convertForLocation(
-    promotions.freeShippingThreshold,
-    locationId,
-  )
+  const freeShippingThreshold = promotions.freeShippingThreshold
 
   const amountToFreeShipping = Math.max(0, freeShippingThreshold - afterDiscount)
   const freeShippingProgress =
@@ -88,10 +84,10 @@ export default function CartPage() {
     cartTracked.current = true
     trackViewCart(
       items.map((item) => ({ id: item.id, quantity: item.quantity })),
-      total,
+      convertForLocation(total, locationId),
       location.currencyCode,
     )
-  }, [isHydrated, items, total, location.currencyCode])
+  }, [isHydrated, items, total, locationId, location.currencyCode])
 
   const applyPromo = () => {
     const code = normalizePromoCode(promoCode)

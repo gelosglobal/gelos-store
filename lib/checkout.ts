@@ -1,4 +1,3 @@
-import { convertForLocation } from '@/lib/exchange-rates'
 import type { LocationId } from '@/lib/locations'
 import { getLocationById } from '@/lib/locations'
 import {
@@ -26,30 +25,26 @@ export type CheckoutTotals = {
 
 export type CalculateCheckoutTotalsOptions = {
   promoCode?: string
+  /**
+   * @deprecated Totals are always computed in catalog base currency (GHS).
+   * Location conversion happens at display / payment boundaries via formatPrice
+   * or convertForLocation — do not pass locationId for conversion here.
+   */
   locationId?: LocationId
   promotions?: StorePromotions
   smileRewardFreeShipping?: boolean
 }
 
-function localizeLineItems(
-  items: CheckoutLineItem[],
-  locationId?: LocationId,
-): CheckoutLineItem[] {
-  if (!locationId) return items
-  return items.map((item) => ({
-    ...item,
-    price: convertForLocation(item.price, locationId),
-  }))
-}
-
+/**
+ * Compute cart/checkout money in catalog base currency (GHS).
+ * Pass results through formatPrice() or convertForLocation() for display/payment.
+ */
 export function calculateCheckoutTotals(
   items: CheckoutLineItem[],
   options: CalculateCheckoutTotalsOptions = {},
 ): CheckoutTotals {
   const promotions = options.promotions ?? DEFAULT_STORE_PROMOTIONS
-  const locationId = options.locationId
-  const localizedItems = localizeLineItems(items, locationId)
-  const subtotal = localizedItems.reduce(
+  const subtotal = items.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
   )
@@ -60,26 +55,23 @@ export function calculateCheckoutTotals(
   )
   const afterDiscount = subtotal - discount
 
-  const freeShippingThreshold = locationId
-    ? convertForLocation(promotions.freeShippingThreshold, locationId)
-    : promotions.freeShippingThreshold
-  const shippingFee = locationId
-    ? convertForLocation(promotions.shippingFee, locationId)
-    : promotions.shippingFee
-
   const shipping =
-    localizedItems.length === 0
+    items.length === 0
       ? 0
       : options.smileRewardFreeShipping
         ? 0
         : !promotions.freeShippingEnabled
-          ? shippingFee
-          : afterDiscount >= freeShippingThreshold
+          ? promotions.shippingFee
+          : afterDiscount >= promotions.freeShippingThreshold
             ? 0
-            : shippingFee
-  const total = afterDiscount + shipping
+            : promotions.shippingFee
 
-  return { subtotal, discount, shipping, total }
+  return {
+    subtotal,
+    discount,
+    shipping,
+    total: afterDiscount + shipping,
+  }
 }
 
 export function getCurrencyForLocation(locationId: LocationId): string {

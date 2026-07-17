@@ -76,11 +76,18 @@ export async function buildLocalizedCheckoutOrder(body: CheckoutRequestBody) {
     throw new Error('Invalid or inactive affiliate code')
   }
 
-  const totals = calculateCheckoutTotals(localizedItems, {
+  // Totals are computed in base GHS, then converted for the shopper's currency.
+  const baseTotals = calculateCheckoutTotals(checkoutItems, {
     promoCode,
     promotions,
     smileRewardFreeShipping: body.smileRewardFreeShipping === true,
   })
+  const totals = {
+    subtotal: convertForLocation(baseTotals.subtotal, locationId),
+    discount: convertForLocation(baseTotals.discount, locationId),
+    shipping: convertForLocation(baseTotals.shipping, locationId),
+    total: convertForLocation(baseTotals.total, locationId),
+  }
 
   if (totals.total <= 0) {
     throw new Error('Invalid order total')
