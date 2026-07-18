@@ -43,6 +43,7 @@ export async function createOrder(input: CreateOrderInput) {
 
   if (!isDatabaseConfigured()) {
     return {
+      id: undefined,
       orderNumber,
       paystackReference: input.paystackReference,
       total: input.total,
@@ -102,6 +103,7 @@ export async function createOrder(input: CreateOrderInput) {
   })
 
   return {
+    id: order.id,
     orderNumber: order.orderNumber,
     paystackReference: order.paystackReference,
     total: order.total,

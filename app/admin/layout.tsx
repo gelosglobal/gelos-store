@@ -2,6 +2,7 @@
 
 import type { ComponentType } from 'react'
 import Link from 'next/link'
+import Script from 'next/script'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -84,6 +85,9 @@ const navSections: NavSection[] = [
     ],
   },
 ]
+
+const pushAlertScriptUrl =
+  process.env.NEXT_PUBLIC_PUSHALERT_SCRIPT_URL?.trim()
 
 export default function AdminLayout({
   children,
@@ -229,6 +233,9 @@ export default function AdminLayout({
 
   return (
     <div className="flex min-h-screen bg-neutral-100 text-neutral-950">
+      {pushAlertScriptUrl ? (
+        <Script src={pushAlertScriptUrl} strategy="afterInteractive" />
+      ) : null}
       <aside
         className={cn(
           'hidden flex-col border-r border-neutral-200 bg-white transition-all duration-300 md:flex',

@@ -2,6 +2,7 @@ import type { CheckoutLineItem } from '@/lib/checkout'
 import type { AdminOrderDetail } from '@/lib/types/order'
 
 export type OrderEmailData = {
+  orderId?: string
   orderNumber: string
   customerName: string
   customerEmail: string
@@ -19,6 +20,7 @@ export type OrderEmailData = {
 
 export function adminOrderToEmailData(order: AdminOrderDetail): OrderEmailData {
   return {
+    orderId: order.id,
     orderNumber: order.orderNumber,
     customerName: order.customer,
     customerEmail: order.customerEmail,

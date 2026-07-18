@@ -61,6 +61,7 @@ export async function POST(request: Request) {
     })
 
     await notifyOrderPlaced({
+      orderId: order.id,
       orderNumber: order.orderNumber,
       customerName: name,
       customerEmail: email,

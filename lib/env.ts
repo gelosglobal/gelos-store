@@ -19,6 +19,15 @@ export function isResendConfigured(): boolean {
   return Boolean(getResendApiKey())
 }
 
+export function getPushAlertApiKey(): string | undefined {
+  const key = process.env.PUSHALERT_API_KEY?.trim()
+  return key || undefined
+}
+
+export function isPushAlertConfigured(): boolean {
+  return Boolean(getPushAlertApiKey())
+}
+
 /** Verified sender on gelosglobal.com, e.g. Gelos <orders@gelosglobal.com> */
 export function getResendFromEmail(): string {
   return (

@@ -75,6 +75,7 @@ export async function POST(request: Request) {
 
       const items = orderItemsForEmail(paid.items)
       await notifyOrderPlaced({
+        orderId: paid.id,
         orderNumber: paid.orderNumber,
         customerName: paid.customerName,
         customerEmail: paid.customerEmail,
@@ -149,6 +150,7 @@ export async function POST(request: Request) {
     })
 
     await notifyOrderPlaced({
+      orderId: order.id,
       orderNumber: order.orderNumber,
       customerName: String(metadata.customer_name ?? 'Customer'),
       customerEmail: String(

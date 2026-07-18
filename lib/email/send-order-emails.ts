@@ -8,6 +8,7 @@ import { getResendClient } from '@/lib/email/resend'
 import { buildAdminNewOrderEmail } from '@/lib/email/templates/admin-new-order'
 import { buildOrderConfirmationEmail } from '@/lib/email/templates/order-confirmation'
 import { buildOrderInvoiceEmail } from '@/lib/email/templates/order-invoice'
+import { sendAdminNewOrderPush } from '@/lib/pushalert'
 
 async function sendEmail(input: {
   to: string | string[]
@@ -80,27 +81,36 @@ export async function sendOrderInvoiceEmail(order: OrderEmailData) {
   })
 }
 
-/** Sends customer confirmation + admin alert. Await before returning API responses. */
+/** Sends customer confirmation plus admin email and mobile push alerts. */
 export async function notifyOrderPlaced(order: OrderEmailData) {
-  if (!isResendConfigured()) {
-    console.warn('[email] RESEND_API_KEY not set — skipping order notifications')
-    return
-  }
-
-  const [customer, admin] = await Promise.all([
-    sendOrderConfirmationEmail(order),
-    sendAdminNewOrderEmail(order),
+  const [emailResult, pushResult] = await Promise.all([
+    isResendConfigured()
+      ? Promise.all([
+          sendOrderConfirmationEmail(order),
+          sendAdminNewOrderEmail(order),
+        ])
+      : Promise.resolve(null),
+    sendAdminNewOrderPush(order),
   ])
 
-  if (!customer.sent) {
-    console.warn('[email] Customer confirmation not sent:', customer.reason)
+  if (!emailResult) {
+    console.warn('[email] RESEND_API_KEY not set — skipping email notifications')
+  } else {
+    const [customer, admin] = emailResult
+    if (!customer.sent) {
+      console.warn('[email] Customer confirmation not sent:', customer.reason)
+    }
+    if (!admin.sent) {
+      console.warn(
+        '[email] Admin notification not sent:',
+        admin.reason,
+        '→',
+        getAdminNotificationEmails().join(', '),
+      )
+    }
   }
-  if (!admin.sent) {
-    console.warn(
-      '[email] Admin notification not sent:',
-      admin.reason,
-      '→',
-      getAdminNotificationEmails().join(', '),
-    )
+
+  if (!pushResult.sent && pushResult.reason !== 'not_configured') {
+    console.warn('[pushalert] Admin push notification was not sent')
   }
 }
