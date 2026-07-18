@@ -137,8 +137,13 @@ export function trackLead(contentName?: string) {
   })
 }
 
-export function trackSubscribe() {
-  trackMetaEvent('Subscribe')
+export function trackSubscribe(value = 1, currency = 'GHS') {
+  // Meta requires value > 0 and a plain ISO currency code on Subscribe,
+  // otherwise Events Manager flags the event with a value/currency issue.
+  trackMetaEvent('Subscribe', {
+    value,
+    currency,
+  })
 }
 
 export function trackSchedule(contentName?: string) {
