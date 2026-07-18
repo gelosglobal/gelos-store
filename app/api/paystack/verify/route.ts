@@ -7,6 +7,7 @@ import {
   markOrderPaidByReference,
 } from '@/lib/db/orders'
 import { notifyOrderPlaced } from '@/lib/email/send-order-emails'
+import { sendCapiPurchase } from '@/lib/meta-conversions-api'
 import { parseCheckoutLineItems } from '@/lib/parse-checkout-line-items'
 import { isPaystackConfigured, verifyTransaction } from '@/lib/paystack'
 import type { CheckoutLineItem } from '@/lib/checkout'
@@ -77,6 +78,17 @@ export async function POST(request: Request) {
         channel: paid.channel,
       })
 
+      await sendCapiPurchase({
+        orderNumber: paid.orderNumber,
+        total: paid.total,
+        currency: paid.currency,
+        items,
+        customerName: paid.customerName,
+        customerEmail: paid.customerEmail,
+        customerPhone: paid.customerPhone ?? undefined,
+        request,
+      })
+
       return NextResponse.json({
         ok: true,
         order: {
@@ -141,6 +153,17 @@ export async function POST(request: Request) {
       currency: payment.currency,
       paymentStatus: 'Paid',
       channel,
+    })
+
+    await sendCapiPurchase({
+      orderNumber: order.orderNumber,
+      total,
+      currency: payment.currency,
+      items,
+      customerName,
+      customerEmail,
+      customerPhone,
+      request,
     })
 
     return NextResponse.json({

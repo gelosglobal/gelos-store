@@ -7,6 +7,7 @@ import {
 import { createCodOrder } from '@/lib/db/orders'
 import { getMarketSettings } from '@/lib/db/market-settings'
 import { notifyOrderPlaced } from '@/lib/email/send-order-emails'
+import { sendCapiPurchase } from '@/lib/meta-conversions-api'
 import type { LocationId } from '@/lib/locations'
 
 const codRequestSchema = checkoutRequestSchema.extend({
@@ -73,6 +74,18 @@ export async function POST(request: Request) {
       currency,
       paymentStatus: order.paymentStatus,
       channel: 'Cash on delivery',
+    })
+
+    await sendCapiPurchase({
+      orderNumber: order.orderNumber,
+      total: totals.total,
+      currency,
+      items: localizedItems,
+      customerName: name,
+      customerEmail: email,
+      customerPhone: phone,
+      locationId: parsed.data.locationId,
+      request,
     })
 
     return NextResponse.json({

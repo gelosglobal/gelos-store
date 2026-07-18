@@ -15,6 +15,7 @@ declare global {
       command: string,
       eventOrPixelId: string,
       params?: Record<string, unknown>,
+      options?: { eventID?: string },
     ) => void
     _fbq?: unknown
   }
@@ -23,9 +24,10 @@ declare global {
 export function trackMetaEvent(
   event: string,
   params?: Record<string, unknown>,
+  options?: { eventID?: string },
 ) {
   if (typeof window === 'undefined' || !isMetaPixelEnabled()) return
-  window.fbq?.('track', event, params)
+  window.fbq?.('track', event, params, options)
 }
 
 export function trackMetaCustomEvent(
@@ -169,12 +171,17 @@ export function trackPurchase(input: {
   orderId?: string
   items: MetaPixelLineItem[]
 }) {
-  trackMetaEvent('Purchase', {
-    ...cartEventPayload(
-      input.items,
-      input.value,
-      input.currency ?? 'GHS',
-    ),
-    ...(input.orderId ? { order_id: input.orderId } : {}),
-  })
+  // eventID matches the server Conversions API event so Meta deduplicates.
+  trackMetaEvent(
+    'Purchase',
+    {
+      ...cartEventPayload(
+        input.items,
+        input.value,
+        input.currency ?? 'GHS',
+      ),
+      ...(input.orderId ? { order_id: input.orderId } : {}),
+    },
+    input.orderId ? { eventID: input.orderId } : undefined,
+  )
 }

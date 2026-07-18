@@ -5,6 +5,7 @@ import {
   checkoutLineItemSchema,
 } from '@/lib/build-checkout-order'
 import { upsertAbandonedCheckout } from '@/lib/db/abandoned-checkouts'
+import { sendCapiInitiateCheckout } from '@/lib/meta-conversions-api'
 
 const draftSchema = z.object({
   visitorId: z.string().min(8).max(120),
@@ -56,6 +57,26 @@ export async function POST(request: Request) {
 
     if (!result.ok) {
       return NextResponse.json({ ok: false })
+    }
+
+    // Send checkout leads with contact info to Meta Events Manager (CRM
+    // audience for retargeting). One event per visitor per day via event_id.
+    if (email || parsed.data.phone?.trim()) {
+      const day = new Date().toISOString().slice(0, 10)
+      await sendCapiInitiateCheckout({
+        eventId: `checkout_${parsed.data.visitorId}_${day}`,
+        total: totals.total,
+        currency,
+        items: parsed.data.items.map((item) => ({
+          id: item.id,
+          quantity: item.quantity,
+        })),
+        customerEmail: email,
+        customerName: name,
+        customerPhone: parsed.data.phone?.trim(),
+        locationId: parsed.data.locationId,
+        request,
+      })
     }
 
     return NextResponse.json({ ok: true })

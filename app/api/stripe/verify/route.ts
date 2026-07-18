@@ -7,6 +7,7 @@ import {
   markOrderPaidByReference,
 } from '@/lib/db/orders'
 import { notifyOrderPlaced } from '@/lib/email/send-order-emails'
+import { sendCapiPurchase } from '@/lib/meta-conversions-api'
 import { parseCheckoutLineItems } from '@/lib/parse-checkout-line-items'
 import {
   isStripeConfigured,
@@ -89,6 +90,17 @@ export async function POST(request: Request) {
         channel: 'Stripe',
       })
 
+      await sendCapiPurchase({
+        orderNumber: paid.orderNumber,
+        total: paid.total,
+        currency: paid.currency,
+        items,
+        customerName: paid.customerName,
+        customerEmail: paid.customerEmail,
+        customerPhone: paid.customerPhone ?? undefined,
+        request,
+      })
+
       return NextResponse.json({
         ok: true,
         order: {
@@ -152,6 +164,19 @@ export async function POST(request: Request) {
       currency,
       paymentStatus: 'Paid',
       channel: 'Stripe',
+    })
+
+    await sendCapiPurchase({
+      orderNumber: order.orderNumber,
+      total,
+      currency,
+      items: [],
+      customerName: String(metadata.customer_name ?? 'Customer'),
+      customerEmail: String(
+        metadata.customer_email || session.customer_email || '',
+      ),
+      customerPhone: String(metadata.customer_phone ?? '') || undefined,
+      request,
     })
 
     return NextResponse.json({
