@@ -11,12 +11,27 @@ export type AnalyticsSnapshot = {
   customers: number
   sessions: number
   averageOrderValue: number
+  avgSessionDurationSeconds: number
   salesChange: number
   customersChange: number
   ordersChange: number
   sessionsChange: number
   conversionRate: number
   conversionRateChange: number
+}
+
+export type TrafficTypeRow = {
+  type: 'paid' | 'organic' | 'direct' | 'unknown'
+  label: string
+  sessions: number
+  share: number
+}
+
+export type TrafficChannelRow = {
+  channel: string
+  label: string
+  sessions: number
+  share: number
 }
 
 export type AnalyticsSeriesPoint = {
@@ -61,6 +76,8 @@ export type AnalyticsPayload = {
   snapshot: AnalyticsSnapshot
   series: AnalyticsSeriesPoint[]
   salesChannels: SalesChannelRow[]
+  trafficTypes: TrafficTypeRow[]
+  trafficChannels: TrafficChannelRow[]
   topCategories: CategoryRow[]
   topProducts: ProductRow[]
   paymentBreakdown: PaymentStatusRow[]

@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { formatSessionDuration } from '@/lib/traffic-attribution'
 import { cn } from '@/lib/utils'
 
 const PERIOD_LABELS: Record<AnalyticsPeriod, string> = {
@@ -47,6 +48,33 @@ function formatGhs(amount: number, compact = false) {
 function formatChange(value: number) {
   const rounded = Math.abs(Math.round(value * 10) / 10)
   return `${value >= 0 ? '↗' : '↘'} ${rounded}%`
+}
+
+function dateInputValue(date: Date): string {
+  return date.toISOString().slice(0, 10)
+}
+
+function sessionsHrefForPeriod(
+  period: AnalyticsPeriod,
+  customStartDate?: string,
+  customEndDate?: string,
+): string {
+  const end = new Date()
+  const start = new Date(end)
+
+  if (period === 'today') {
+    // keep start = today
+  } else if (period === 'last7') {
+    start.setDate(start.getDate() - 6)
+  } else if (period === 'last30') {
+    start.setDate(start.getDate() - 29)
+  } else if (period === 'custom' && customStartDate && customEndDate) {
+    return `/admin/sessions?startDate=${encodeURIComponent(customStartDate)}&endDate=${encodeURIComponent(customEndDate)}`
+  } else {
+    start.setDate(start.getDate() - 6)
+  }
+
+  return `/admin/sessions?startDate=${encodeURIComponent(dateInputValue(start))}&endDate=${encodeURIComponent(dateInputValue(end))}`
 }
 
 function WorldMapBackdrop() {
@@ -123,6 +151,13 @@ export function AnalyticsOverviewHeader({
       spark: sessionsSpark,
     },
     {
+      label: 'Avg. session time',
+      value: formatSessionDuration(snapshot.avgSessionDurationSeconds ?? 0),
+      change: 0,
+      spark: sessionsSpark,
+      hideChange: true,
+    },
+    {
       label: 'Total sales',
       value: formatGhs(snapshot.totalSales, true),
       change: snapshot.salesChange,
@@ -148,7 +183,7 @@ export function AnalyticsOverviewHeader({
 
       <div className="relative flex flex-col gap-5 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="shrink-0">
-          <p className="text-xs text-neutral-500">All channels</p>
+          <p className="text-xs text-neutral-500">All traffic</p>
           <Select
             value={period}
             onValueChange={(value) => onPeriodChange(value as AnalyticsPeriod)}
@@ -197,7 +232,7 @@ export function AnalyticsOverviewHeader({
           <p className="sr-only">{PERIOD_LABELS[period]}</p>
         </div>
 
-        <div className="grid flex-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid flex-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
           {metrics.map((metric) => {
             const content = (
               <>
@@ -212,18 +247,24 @@ export function AnalyticsOverviewHeader({
                     {metric.value}
                   </p>
                   <MiniSparkline values={metric.spark} />
-                  <span className="text-xs font-medium text-neutral-500">
-                    {formatChange(metric.change)}
-                  </span>
+                  {!metric.hideChange ? (
+                    <span className="text-xs font-medium text-neutral-500">
+                      {formatChange(metric.change)}
+                    </span>
+                  ) : null}
                 </div>
               </>
             )
 
-            if (metric.label === 'Sessions') {
+            if (metric.label === 'Sessions' || metric.label === 'Avg. session time') {
               return (
                 <Link
                   key={metric.label}
-                  href="/admin/sessions"
+                  href={sessionsHrefForPeriod(
+                    period,
+                    customStartDate,
+                    customEndDate,
+                  )}
                   className="min-w-0 rounded-lg p-1 -m-1 transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300"
                 >
                   {content}

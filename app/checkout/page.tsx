@@ -11,11 +11,14 @@ import { CheckoutUpsells } from '@/components/checkout-upsells'
 import { useLocation } from '@/components/location-provider'
 import { useStorePromotions } from '@/components/store-promotions-provider'
 import { useAffiliate } from '@/components/affiliate-provider'
+import { useMarketSettings } from '@/components/market-settings-provider'
 import { calculateCheckoutTotals } from '@/lib/checkout'
 import { convertForLocation } from '@/lib/exchange-rates'
 import { hasSmileRewardFreeShipping } from '@/lib/gelos-ai/smile-reward-storage'
 import { trackInitiateCheckout, trackPurchase, trackAddPaymentInfo } from '@/lib/meta-pixel'
-import { isUsInhalerProductId } from '@/lib/us-market'
+import { saveCheckoutDraft } from '@/lib/checkout-draft'
+import { trackVisitorFunnelEvent } from '@/lib/visitor-funnel'
+import { getOrCreateVisitorId } from '@/lib/visitor-id'
 import { cn } from '@/lib/utils'
 
 type PaymentMethod = 'paystack' | 'stripe' | 'cod'
@@ -25,6 +28,7 @@ export default function CheckoutPage() {
   const { items, isHydrated, clearCart, setQuantity } = useCart()
   const { location, locationId } = useLocation()
   const { promotions, appliedPromoCode } = useStorePromotions()
+  const { market, applyShipping, isProductAvailable } = useMarketSettings()
   const { affiliateCode, affiliate } = useAffiliate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -34,28 +38,27 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [smileRewardFreeShipping, setSmileRewardFreeShipping] = useState(false)
   const checkoutTracked = useRef(false)
-  const isUsMarket = locationId === 'usa'
-  const usCartHasNonInhalers =
-    isUsMarket && items.some((item) => !isUsInhalerProductId(item.id))
+  const checkoutPromotions = applyShipping(promotions)
+  const cartHasUnavailableItems = items.some(
+    (item) => !isProductAvailable(item.id),
+  )
 
   useEffect(() => {
     setSmileRewardFreeShipping(hasSmileRewardFreeShipping())
   }, [])
 
   useEffect(() => {
-    if (isUsMarket) {
-      setPaymentMethod('stripe')
-    }
-  }, [isUsMarket])
+    setPaymentMethod(market.defaultPaymentMethod)
+  }, [market.defaultPaymentMethod, locationId])
 
   const totals = useMemo(
     () =>
       calculateCheckoutTotals(items, {
         promoCode: appliedPromoCode,
-        promotions,
+        promotions: checkoutPromotions,
         smileRewardFreeShipping,
       }),
-    [items, appliedPromoCode, promotions, smileRewardFreeShipping],
+    [items, appliedPromoCode, checkoutPromotions, smileRewardFreeShipping],
   )
 
   useEffect(() => {
@@ -66,9 +69,43 @@ export default function CheckoutPage() {
       convertForLocation(totals.total, locationId),
       location.currencyCode,
     )
+    trackVisitorFunnelEvent('checkout')
   }, [isHydrated, items, totals.total, locationId, location.currencyCode])
 
+  useEffect(() => {
+    if (!isHydrated || items.length === 0) return
+
+    saveCheckoutDraft({
+      email,
+      name,
+      phone,
+      shippingAddress,
+      locationId,
+      items: items.map((item) => ({
+        id: item.id,
+        quantity: item.quantity,
+        variantImage: item.variantImage,
+        variantLabel: item.variantLabel,
+      })),
+      promoCode: appliedPromoCode || undefined,
+      affiliateCode: affiliateCode || undefined,
+      smileRewardFreeShipping: smileRewardFreeShipping || undefined,
+    })
+  }, [
+    affiliateCode,
+    appliedPromoCode,
+    email,
+    isHydrated,
+    items,
+    locationId,
+    name,
+    phone,
+    shippingAddress,
+    smileRewardFreeShipping,
+  ])
+
   const checkoutPayload = {
+    visitorId: getOrCreateVisitorId() || undefined,
     name: name.trim(),
     email: email.trim(),
     phone: phone.trim() || undefined,
@@ -102,17 +139,22 @@ export default function CheckoutPage() {
       if (!shippingAddress.trim()) {
         toast.error(
           paymentMethod === 'stripe'
-            ? 'Delivery address is required for US orders'
+            ? 'Delivery address is required'
             : 'Delivery address is required for cash on delivery',
         )
         return
       }
     }
 
-    if (paymentMethod === 'stripe' && usCartHasNonInhalers) {
+    if (cartHasUnavailableItems) {
       toast.error(
-        'US checkout is for nasal inhalers only. Remove other products to continue.',
+        'Some items are not available in this market. Remove them to continue.',
       )
+      return
+    }
+
+    if (!market.payments[paymentMethod]) {
+      toast.error('That payment method is not available in this market.')
       return
     }
 
@@ -330,10 +372,10 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {usCartHasNonInhalers ? (
+            {cartHasUnavailableItems ? (
               <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-                US checkout is inhalers only. Remove other products from your
-                cart to continue.
+                Some items in your cart are not available in this market. Remove
+                them or switch region to continue.
               </div>
             ) : null}
 
@@ -341,18 +383,8 @@ export default function CheckoutPage() {
               <h2 className="text-lg font-semibold text-neutral-950">
                 Payment method
               </h2>
-              {isUsMarket ? (
-                <div className="mt-4 rounded-2xl border border-neutral-950 bg-neutral-50 px-4 py-4 text-left">
-                  <div className="flex items-center gap-2">
-                    <Lock className="size-4" />
-                    <span className="text-sm font-semibold">Pay with Stripe</span>
-                  </div>
-                  <p className="mt-1 text-xs text-neutral-500">
-                    Secure card checkout in USD for US inhaler orders
-                  </p>
-                </div>
-              ) : (
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {market.payments.paystack ? (
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('paystack')}
@@ -371,7 +403,30 @@ export default function CheckoutPage() {
                       Card, mobile money & bank via Paystack
                     </p>
                   </button>
+                ) : null}
 
+                {market.payments.stripe ? (
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('stripe')}
+                    className={cn(
+                      'rounded-2xl border px-4 py-4 text-left transition-colors',
+                      paymentMethod === 'stripe'
+                        ? 'border-neutral-950 bg-neutral-50'
+                        : 'border-neutral-200 hover:border-neutral-400',
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Lock className="size-4" />
+                      <span className="text-sm font-semibold">Pay with Stripe</span>
+                    </div>
+                    <p className="mt-1 text-xs text-neutral-500">
+                      Secure card checkout
+                    </p>
+                  </button>
+                ) : null}
+
+                {market.payments.cod ? (
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('cod')}
@@ -392,13 +447,13 @@ export default function CheckoutPage() {
                       Pay with cash when your order arrives
                     </p>
                   </button>
-                </div>
-              )}
+                ) : null}
+              </div>
             </div>
 
             <button
               type="submit"
-              disabled={isSubmitting || usCartHasNonInhalers}
+              disabled={isSubmitting || cartHasUnavailableItems}
               className="mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-neutral-950 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isSubmitting ? (
@@ -434,14 +489,16 @@ export default function CheckoutPage() {
               ) : paymentMethod === 'stripe' ? (
                 <>
                   You&apos;ll be charged in{' '}
-                  <span className="font-medium text-neutral-700">USD</span> via
-                  Stripe for US inhaler delivery.
+                  <span className="font-medium text-neutral-700">
+                    {market.currencyCode}
+                  </span>{' '}
+                  via Stripe ({location.label}).
                 </>
               ) : (
                 <>
                   You&apos;ll be charged in{' '}
                   <span className="font-medium text-neutral-700">
-                    {location.currencyCode}
+                    {market.currencyCode}
                   </span>{' '}
                   via Paystack ({location.label}).
                 </>
@@ -459,7 +516,9 @@ export default function CheckoutPage() {
         </div>
 
         <div className="mt-8 lg:mt-10">
-          {isUsMarket ? null : <CheckoutUpsells cartItems={items} />}
+          {market.payments.stripe && !market.payments.paystack ? null : (
+            <CheckoutUpsells cartItems={items} />
+          )}
         </div>
       </div>
     </div>

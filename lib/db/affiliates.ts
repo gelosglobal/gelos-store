@@ -276,6 +276,64 @@ export async function recordAffiliateConversion(input: {
   })
 }
 
+/**
+ * Roll back affiliate balance for orders credited before payment cleared.
+ * Safe to call repeatedly.
+ */
+export async function revokeUnpaidAffiliateCommissions(
+  affiliateId?: string,
+): Promise<number> {
+  if (!isDatabaseConfigured()) return 0
+
+  const unpaidCredited = await prisma.order.findMany({
+    where: {
+      commissionStatus: 'pending',
+      paymentStatus: { not: 'Paid' },
+      commissionAmount: { gt: 0 },
+      ...(affiliateId
+        ? { affiliateId }
+        : { affiliateId: { not: null } }),
+    },
+  })
+
+  let revoked = 0
+  for (const order of unpaidCredited) {
+    if (!order.affiliateId) continue
+
+    await prisma.$transaction([
+      prisma.order.update({
+        where: { id: order.id },
+        data: { commissionStatus: 'none' },
+      }),
+      prisma.affiliate.update({
+        where: { affiliateId: order.affiliateId },
+        data: {
+          totalOrders: { decrement: 1 },
+          totalRevenue: { decrement: order.total },
+          totalCommission: { decrement: order.commissionAmount },
+          pendingCommission: { decrement: order.commissionAmount },
+        },
+      }),
+    ])
+    revoked += 1
+  }
+
+  // Clamp negative pending after historical drift.
+  if (affiliateId) {
+    const affiliate = await prisma.affiliate.findUnique({
+      where: { affiliateId },
+    })
+    if (affiliate && affiliate.pendingCommission < 0) {
+      await prisma.affiliate.update({
+        where: { affiliateId },
+        data: { pendingCommission: 0 },
+      })
+    }
+  }
+
+  return revoked
+}
+
 export async function markAffiliateCommissionPaid(
   affiliateId: string,
 ): Promise<StoredAffiliate> {
@@ -288,25 +346,52 @@ export async function markAffiliateCommissionPaid(
   })
   if (!affiliate) throw new Error('AFFILIATE_NOT_FOUND')
 
-  const payoutAmount = affiliate.pendingCommission
+  // Drop any revenue that was credited before payment cleared.
+  await revokeUnpaidAffiliateCommissions(affiliateId)
+
+  const payableOrders = await prisma.order.findMany({
+    where: {
+      affiliateId,
+      commissionStatus: 'pending',
+      paymentStatus: 'Paid',
+    },
+  })
+
+  const payoutAmount = payableOrders.reduce(
+    (sum, order) => sum + Math.max(0, order.commissionAmount),
+    0,
+  )
   if (payoutAmount <= 0) throw new Error('NO_PENDING_COMMISSION')
+
+  const payableIds = payableOrders.map((order) => order.id)
 
   const [updated] = await prisma.$transaction([
     prisma.affiliate.update({
       where: { affiliateId },
       data: {
-        pendingCommission: 0,
+        pendingCommission: { decrement: payoutAmount },
         paidCommission: { increment: payoutAmount },
       },
     }),
     prisma.order.updateMany({
       where: {
+        id: { in: payableIds },
         affiliateId,
         commissionStatus: 'pending',
+        paymentStatus: 'Paid',
       },
       data: { commissionStatus: 'paid' },
     }),
   ])
+
+  if (updated.pendingCommission < 0) {
+    return prismaToStoredAffiliate(
+      await prisma.affiliate.update({
+        where: { affiliateId },
+        data: { pendingCommission: 0 },
+      }),
+    )
+  }
 
   return prismaToStoredAffiliate(updated)
 }

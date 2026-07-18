@@ -1,7 +1,11 @@
 import type { CartLineItem } from '@/components/cart-provider'
 import type { CartUpsellSettings } from '@/lib/cart-upsell-settings'
 import { DEFAULT_CART_UPSELL_SETTINGS } from '@/lib/cart-upsell-settings'
-import { getCheckoutCrossSells } from '@/lib/checkout-recommendations'
+import {
+  getCheckoutCrossSells,
+  isProductInStock,
+} from '@/lib/checkout-recommendations'
+import { getAvailableStockForVariant } from '@/lib/product-variant-images'
 import type { Product } from '@/lib/types/product'
 
 export const CART_UPSELL_DISMISSED_KEY = 'gelos-dismissed-cart-upsells'
@@ -123,6 +127,7 @@ function getConfiguredCrossSells(
       .map((id) => byId.get(id))
       .filter((product): product is Product => {
         if (!product) return false
+        if (!isProductInStock(product)) return false
         return !inCart.has(product.id)
       })
   }
@@ -199,17 +204,20 @@ export function getActiveCartUpsell(
   for (const item of orderedItems) {
     const product = productById.get(item.id)
     if (!isQuantityUpsellEligible(product, settings)) continue
+    if (!product || !isProductInStock(product)) continue
+
+    const available = getAvailableStockForVariant(product, item.variantImage)
 
     if (item.quantity === 1) {
       const id = quantityOfferId(item.lineKey, 2)
-      if (!dismissed.has(id)) {
+      if (!dismissed.has(id) && 2 <= available) {
         return buildQuantityOffer(item, 2, settings)
       }
     }
 
     if (item.quantity === 2) {
       const id = quantityOfferId(item.lineKey, 3)
-      if (!dismissed.has(id)) {
+      if (!dismissed.has(id) && 3 <= available) {
         return buildQuantityOffer(item, 3, settings)
       }
     }

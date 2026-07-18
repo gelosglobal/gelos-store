@@ -1,5 +1,6 @@
 import { getAppUrl, isDatabaseConfigured } from '@/lib/env'
 import { formatOrderDateLabel } from '@/lib/admin/order-format'
+import { revokeUnpaidAffiliateCommissions } from '@/lib/db/affiliates'
 import { prisma } from '@/lib/prisma'
 
 export type AffiliateDashboardPayload = {
@@ -41,8 +42,15 @@ export async function getAffiliateDashboardPayload(
 
   if (!affiliate || !affiliate.enabled) return null
 
+  await revokeUnpaidAffiliateCommissions(affiliate.affiliateId)
+
+  const refreshed = await prisma.affiliate.findUnique({
+    where: { affiliateId },
+  })
+  if (!refreshed) return null
+
   const orders = await prisma.order.findMany({
-    where: { affiliateId: affiliate.affiliateId },
+    where: { affiliateId: refreshed.affiliateId },
     orderBy: { createdAt: 'desc' },
     take: 50,
     select: {
@@ -58,19 +66,19 @@ export async function getAffiliateDashboardPayload(
 
   return {
     affiliate: {
-      id: affiliate.affiliateId,
-      code: affiliate.code,
-      name: affiliate.name,
-      commissionPercent: affiliate.commissionPercent,
-      enabled: affiliate.enabled,
-      referralUrl: `${getAppUrl()}/?ref=${encodeURIComponent(affiliate.code)}`,
+      id: refreshed.affiliateId,
+      code: refreshed.code,
+      name: refreshed.name,
+      commissionPercent: refreshed.commissionPercent,
+      enabled: refreshed.enabled,
+      referralUrl: `${getAppUrl()}/?ref=${encodeURIComponent(refreshed.code)}`,
     },
     stats: {
-      totalOrders: affiliate.totalOrders ?? 0,
-      totalRevenue: affiliate.totalRevenue ?? 0,
-      totalCommission: affiliate.totalCommission ?? 0,
-      pendingCommission: affiliate.pendingCommission ?? 0,
-      paidCommission: affiliate.paidCommission ?? 0,
+      totalOrders: refreshed.totalOrders ?? 0,
+      totalRevenue: refreshed.totalRevenue ?? 0,
+      totalCommission: refreshed.totalCommission ?? 0,
+      pendingCommission: refreshed.pendingCommission ?? 0,
+      paidCommission: refreshed.paidCommission ?? 0,
     },
     recentOrders: orders.map((order) => ({
       orderNumber: order.orderNumber,

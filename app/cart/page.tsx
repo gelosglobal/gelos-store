@@ -10,6 +10,7 @@ import { CartSummaryPanel } from '@/components/cart-summary-panel'
 import { CartUpsellBanner } from '@/components/cart-upsell-banner'
 import { useCartUpsellSettings } from '@/components/cart-upsell-settings-provider'
 import { useLocation } from '@/components/location-provider'
+import { useMarketSettings } from '@/components/market-settings-provider'
 import { trackViewCart } from '@/lib/meta-pixel'
 import { useStorePromotions } from '@/components/store-promotions-provider'
 import { useProducts } from '@/components/products-provider'
@@ -36,6 +37,8 @@ export default function CartPage() {
     setAppliedPromoCode,
     loading: promotionsLoading,
   } = useStorePromotions()
+  const { applyShipping } = useMarketSettings()
+  const checkoutPromotions = applyShipping(promotions)
   const { settings: cartUpsellSettings, loading: cartUpsellsLoading } =
     useCartUpsellSettings()
   const [promoCode, setPromoCode] = useState(appliedPromoCode)
@@ -58,22 +61,22 @@ export default function CartPage() {
     setSmileRewardFreeShipping(hasSmileRewardFreeShipping())
   }, [])
 
-  const appliedPromo = findActivePromo(appliedPromoCode, promotions.promos)
+  const appliedPromo = findActivePromo(appliedPromoCode, checkoutPromotions.promos)
 
   const { subtotal, discount, shipping, total } = calculateCheckoutTotals(
     items,
     {
       promoCode: appliedPromoCode,
-      promotions,
+      promotions: checkoutPromotions,
       smileRewardFreeShipping,
     },
   )
   const afterDiscount = subtotal - discount
-  const freeShippingThreshold = promotions.freeShippingThreshold
+  const freeShippingThreshold = checkoutPromotions.freeShippingThreshold
 
   const amountToFreeShipping = Math.max(0, freeShippingThreshold - afterDiscount)
   const freeShippingProgress =
-    promotions.freeShippingEnabled && freeShippingThreshold > 0
+    checkoutPromotions.freeShippingEnabled && freeShippingThreshold > 0
       ? Math.min(100, (afterDiscount / freeShippingThreshold) * 100)
       : 0
 
@@ -155,17 +158,17 @@ export default function CartPage() {
         {items.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_28rem] lg:items-start lg:gap-8">
             <div className="space-y-4">
-              {promotions.freeShippingEnabled ? (
+              {checkoutPromotions.freeShippingEnabled ? (
                 shipping === 0 ? (
                   <p className="rounded-xl bg-[#D4FF59]/30 px-4 py-3 text-sm font-medium text-[#1a2e05]">
-                    {promotions.freeShippingUnlockedLabel}
+                    {checkoutPromotions.freeShippingUnlockedLabel}
                   </p>
                 ) : (
                   <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3">
                     <div className="mb-2 flex justify-between text-sm">
                       <span className="text-neutral-600">
                         {interpolatePromoLabel(
-                          promotions.freeShippingProgressLabel,
+                          checkoutPromotions.freeShippingProgressLabel,
                           {
                             amount: formatPrice(amountToFreeShipping),
                           },

@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useLocation } from '@/components/location-provider'
+import { useMarketSettings } from '@/components/market-settings-provider'
 import { locations } from '@/lib/locations'
 import { cn } from '@/lib/utils'
 
@@ -22,6 +23,11 @@ export function LocationSelector({
   showFullLabel = false,
 }: LocationSelectorProps) {
   const { locationId, setLocationId, isHydrated, location } = useLocation()
+  const { markets } = useMarketSettings()
+
+  const availableLocations = locations.filter(
+    (loc) => markets[loc.id]?.enabled !== false,
+  )
 
   if (!isHydrated) {
     return (
@@ -65,7 +71,7 @@ export function LocationSelector({
         </SelectValue>
       </SelectTrigger>
       <SelectContent align="end" className="font-nav min-w-[12rem]">
-        {locations.map((loc) => (
+        {availableLocations.map((loc) => (
           <SelectItem key={loc.id} value={loc.id} className="py-2.5">
             <span className="flex items-center gap-2.5">
               <span className="text-base leading-none" aria-hidden>
@@ -74,7 +80,8 @@ export function LocationSelector({
               <span className="flex flex-col items-start gap-0.5">
                 <span className="font-medium text-neutral-950">{loc.label}</span>
                 <span className="text-xs text-neutral-500">
-                  {loc.currencyCode} · {loc.currency}
+                  {markets[loc.id]?.currencyCode ?? loc.currencyCode} ·{' '}
+                  {loc.currency}
                 </span>
               </span>
             </span>

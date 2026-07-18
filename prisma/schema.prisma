@@ -73,6 +73,8 @@ model StoreSettings {
   freeShippingUnlockedLabel String   @default("You've unlocked free shipping on this order.")
   promos                    Json     @default("[]")
   cartUpsells               Json     @default("{}")
+  /** Per-market config keyed by locationId. */
+  markets                   Json     @default("{}")
   updatedAt                 DateTime @updatedAt
 
   @@map("store_settings")
@@ -211,36 +213,97 @@ model InboxMessage {
 
 /** Anonymous storefront presence for live analytics (heartbeat updates lastSeenAt). */
 model VisitorSession {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  visitorId     String   @unique
-  path          String   @default("/")
-  referrer      String   @default("")
-  locationId    String   @default("")
-  city          String   @default("")
-  country       String   @default("")
-  locationLabel String   @default("")
-  lastSeenAt    DateTime @default(now())
-  firstSeenAt   DateTime @default(now())
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  visitorId       String   @unique
+  path            String   @default("/")
+  referrer        String   @default("")
+  landingPath     String?
+  landingReferrer String?
+  utmSource       String?
+  utmMedium       String?
+  utmCampaign     String?
+  trafficType     String?
+  channel         String?
+  locationId      String   @default("")
+  city            String   @default("")
+  country         String   @default("")
+  locationLabel   String   @default("")
+  lastSeenAt      DateTime @default(now())
+  firstSeenAt     DateTime @default(now())
 
+  @@index([lastSeenAt])
+  @@index([trafficType])
+  @@index([channel])
   @@map("visitor_sessions")
 }
 
 /** Hourly unique visitor presence for stored traffic charts (survives live-session cleanup). */
 model VisitorHourlyPresence {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  hourStart     DateTime
-  visitorId     String
-  path          String   @default("/")
-  locationId    String   @default("")
-  city          String   @default("")
-  country       String   @default("")
-  locationLabel String   @default("")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  hourStart       DateTime
+  visitorId       String
+  path            String   @default("/")
+  landingPath     String?
+  landingReferrer String?
+  utmSource       String?
+  utmMedium       String?
+  utmCampaign     String?
+  trafficType     String?
+  channel         String?
+  locationId      String   @default("")
+  city            String   @default("")
+  country         String   @default("")
+  locationLabel   String   @default("")
+  firstSeenAt     DateTime?
+  lastSeenAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@unique([hourStart, visitorId])
   @@index([hourStart])
+  @@index([trafficType])
+  @@index([channel])
   @@map("visitor_hourly_presence")
+}
+
+/** Storefront funnel actions for live analytics (add to cart, checkout, purchase). */
+model VisitorFunnelEvent {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  visitorId String
+  event     String // add_to_cart | checkout | purchase
+  createdAt DateTime @default(now())
+
+  @@index([createdAt, event])
+  @@index([visitorId, event])
+  @@map("visitor_funnel_events")
+}
+
+/** Checkout started but not completed — updated while the customer is on checkout. */
+model AbandonedCheckout {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  visitorId       String   @unique
+  customerName    String   @default("")
+  customerEmail   String   @default("")
+  customerPhone   String   @default("")
+  shippingAddress String   @default("")
+  locationId      String   @default("")
+  items           Json
+  itemCount       Int      @default(0)
+  subtotal        Float    @default(0)
+  shipping        Float    @default(0)
+  discount        Float    @default(0)
+  total           Float    @default(0)
+  currency        String   @default("GHS")
+  promoCode       String?
+  affiliateCode   String?
+  status          String   @default("active") // active | recovered | expired
+  startedAt       DateTime @default(now())
+  lastSeenAt      DateTime @default(now())
+  recoveredAt     DateTime?
+
+  @@index([status, lastSeenAt])
+  @@index([customerEmail])
+  @@map("abandoned_checkouts")
 }
 
 /** Gelos AI dentist booking requests from the storefront. */

@@ -15,7 +15,7 @@ import type {
 import { isDatabaseConfigured } from '@/lib/env'
 import { prisma } from '@/lib/prisma'
 import { getAllProducts } from '@/lib/db/products'
-import { countSessionsInRange } from '@/lib/db/visitor-sessions'
+import { countSessionsInRange, getSessionTrafficBreakdown } from '@/lib/db/visitor-sessions'
 
 const DEFAULT_RATES: Record<string, number> = {
   GHS: 1,
@@ -106,6 +106,7 @@ function emptyPayload(period: AnalyticsPeriod): AnalyticsPayload {
       customers: 0,
       sessions: 0,
       averageOrderValue: 0,
+      avgSessionDurationSeconds: 0,
       salesChange: 0,
       customersChange: 0,
       ordersChange: 0,
@@ -115,6 +116,8 @@ function emptyPayload(period: AnalyticsPeriod): AnalyticsPayload {
     },
     series: buildEmptySeries(period),
     salesChannels: [],
+    trafficTypes: [],
+    trafficChannels: [],
     topCategories: [],
     topProducts: [],
     paymentBreakdown: [],
@@ -171,6 +174,7 @@ function buildSnapshot(
   previous: PrismaOrder[],
   currentSessions: number,
   previousSessions: number,
+  avgSessionDurationSeconds = 0,
 ): AnalyticsSnapshot {
   const totalSales = sumSales(current)
   const orders = current.length
@@ -193,6 +197,7 @@ function buildSnapshot(
     customers,
     sessions: currentSessions,
     averageOrderValue: orders > 0 ? Math.round((totalSales / orders) * 100) / 100 : 0,
+    avgSessionDurationSeconds,
     salesChange: percentChange(totalSales, previousSales),
     customersChange: percentChange(customers, previousCustomers),
     ordersChange: percentChange(orders, previousOrders),
@@ -506,12 +511,14 @@ export async function getAdminAnalytics(
     customRange,
   )
 
-  const [orders, products, currentSessions, previousSessions] = await Promise.all([
-    prisma.order.findMany({ orderBy: { createdAt: 'desc' } }),
-    getAllProducts(),
-    countSessionsInRange(start, end),
-    countSessionsInRange(previousStart, previousEnd),
-  ])
+  const [orders, products, currentSessions, previousSessions, traffic] =
+    await Promise.all([
+      prisma.order.findMany({ orderBy: { createdAt: 'desc' } }),
+      getAllProducts(),
+      countSessionsInRange(start, end),
+      countSessionsInRange(previousStart, previousEnd),
+      getSessionTrafficBreakdown(start, end),
+    ])
 
   const categoryByProductId = new Map(products.map((product) => [product.id, product.category]))
 
@@ -525,6 +532,7 @@ export async function getAdminAnalytics(
     previous,
     currentSessions,
     previousSessions,
+    traffic.avgSessionDurationSeconds,
   )
   const salesChannels = buildSalesChannels(current)
   const topCategories = buildTopCategories(current, categoryByProductId)
@@ -535,6 +543,8 @@ export async function getAdminAnalytics(
     snapshot,
     series: buildSeries(period, current, previous, start, end),
     salesChannels,
+    trafficTypes: traffic.trafficTypes,
+    trafficChannels: traffic.channels,
     topCategories,
     topProducts,
     paymentBreakdown,

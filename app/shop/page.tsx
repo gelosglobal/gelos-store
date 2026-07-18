@@ -20,6 +20,7 @@ import {
   orderProductsForTagCollection,
 } from '@/lib/product-tags'
 import { useProducts } from '@/components/products-provider'
+import { useMarketSettings } from '@/components/market-settings-provider'
 import { getProductHref } from '@/lib/product-utils'
 import { expandProductsForShopCatalog } from '@/lib/shop-catalog-items'
 import { cn } from '@/lib/utils'
@@ -45,6 +46,7 @@ type SortOption = 'recommended' | 'price-low' | 'price-high' | 'rating'
 
 function ShopPageContent() {
   const { products, getTagCollectionOrder } = useProducts()
+  const { isProductAvailable } = useMarketSettings()
   const searchParams = useSearchParams()
   const [collectionFilter, setCollectionFilter] = useState<CollectionFilter>('all')
   const [sortBy, setSortBy] = useState<SortOption>('recommended')
@@ -156,7 +158,7 @@ function ShopPageContent() {
   }, [bundlesMode, newArrivalsMode, bestSellersMode, categoryParam])
 
   const filteredProducts = useMemo(() => {
-    let list = [...products]
+    let list = products.filter((product) => isProductAvailable(product.id))
 
     if (bundlesMode) {
       list = orderProductsForTagCollection(
@@ -200,6 +202,7 @@ function ShopPageContent() {
     return list
   }, [
     products,
+    isProductAvailable,
     bundlesMode,
     newArrivalsMode,
     bestSellersMode,

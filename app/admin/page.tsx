@@ -41,6 +41,7 @@ const emptyAnalytics: AnalyticsPayload = {
     customers: 0,
     sessions: 0,
     averageOrderValue: 0,
+    avgSessionDurationSeconds: 0,
     salesChange: 0,
     customersChange: 0,
     ordersChange: 0,
@@ -50,6 +51,8 @@ const emptyAnalytics: AnalyticsPayload = {
   },
   series: [],
   salesChannels: [],
+  trafficTypes: [],
+  trafficChannels: [],
   topCategories: [],
   topProducts: [],
   paymentBreakdown: [],
@@ -96,13 +99,18 @@ export default function AdminDashboard() {
       if (!res.ok) return
 
       setAnalytics({
-        snapshot: json.snapshot,
-        series: json.series,
-        salesChannels: json.salesChannels,
-        topCategories: json.topCategories,
-        topProducts: json.topProducts,
-        paymentBreakdown: json.paymentBreakdown,
-        insight: json.insight,
+        snapshot: {
+          ...emptyAnalytics.snapshot,
+          ...json.snapshot,
+        },
+        series: json.series ?? [],
+        salesChannels: json.salesChannels ?? [],
+        trafficTypes: json.trafficTypes ?? [],
+        trafficChannels: json.trafficChannels ?? [],
+        topCategories: json.topCategories ?? [],
+        topProducts: json.topProducts ?? [],
+        paymentBreakdown: json.paymentBreakdown ?? [],
+        insight: json.insight ?? emptyAnalytics.insight,
       })
     } catch {
       // ignore

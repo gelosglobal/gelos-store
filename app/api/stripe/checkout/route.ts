@@ -8,7 +8,8 @@ import {
   generateOrderNumber,
 } from '@/lib/db/orders'
 import { createStripeCheckoutSession, isStripeConfigured } from '@/lib/stripe'
-import { assertUsInhalerCartItems } from '@/lib/us-market'
+import { getMarketSettings } from '@/lib/db/market-settings'
+import type { LocationId } from '@/lib/locations'
 
 function getAppOrigin(request: Request): string {
   // Prefer the live request host in local/dev so Stripe redirects don't
@@ -51,18 +52,19 @@ export async function POST(request: Request) {
       )
     }
 
-    if (parsed.data.locationId !== 'usa') {
+    const locationId = parsed.data.locationId as LocationId
+    const market = await getMarketSettings(locationId)
+
+    if (!market.payments.stripe) {
       return NextResponse.json(
-        { error: 'Stripe checkout is only available for the USA market.' },
+        { error: 'Stripe checkout is not enabled for this market.' },
         { status: 400 },
       )
     }
 
-    assertUsInhalerCartItems(parsed.data.items)
-
     if (!parsed.data.shippingAddress?.trim()) {
       return NextResponse.json(
-        { error: 'Delivery address is required for US orders.' },
+        { error: 'Delivery address is required for Stripe checkout.' },
         { status: 400 },
       )
     }
@@ -92,6 +94,7 @@ export async function POST(request: Request) {
       await createPendingPaystackOrder({
         orderNumber: generateOrderNumber(),
         paystackReference: payment.sessionId,
+        visitorId: parsed.data.visitorId,
         customerName: name,
         customerEmail: email,
         customerPhone: phone,

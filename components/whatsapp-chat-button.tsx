@@ -34,6 +34,7 @@ export function WhatsAppChatButton() {
         {
           promoCode: order.promoCode,
           locationLabel: order.locationLabel,
+          chatUrl: order.href,
         },
       )
     } catch (error) {

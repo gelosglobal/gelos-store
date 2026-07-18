@@ -6,6 +6,7 @@ import { isDatabaseConfigured } from '@/lib/env'
 import { normalizeImageUrl } from '@/lib/image-url'
 import { parseCheckoutLineItems } from '@/lib/parse-checkout-line-items'
 import { prisma } from '@/lib/prisma'
+import { creditAffiliateCommissionForPaidOrder } from '@/lib/db/orders'
 import type {
   AdminOrderDetail,
   FulfillmentStatus,
@@ -236,6 +237,9 @@ export async function updateAdminOrder(
   const existing = await prisma.order.findUnique({ where: { id } })
   if (!existing) return null
 
+  const becomingPaid =
+    input.paymentStatus === 'Paid' && existing.paymentStatus !== 'Paid'
+
   await prisma.order.update({
     where: { id },
     data: {
@@ -247,6 +251,13 @@ export async function updateAdminOrder(
         : {}),
     },
   })
+
+  if (becomingPaid) {
+    const paidOrder = await prisma.order.findUnique({ where: { id } })
+    if (paidOrder) {
+      await creditAffiliateCommissionForPaidOrder(paidOrder)
+    }
+  }
 
   return getAdminOrderById(id)
 }

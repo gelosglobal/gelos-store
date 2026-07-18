@@ -8,6 +8,7 @@ import {
   Package,
   LayoutGrid,
   ShoppingCart,
+  ShoppingBasket,
   Users,
   Activity,
   BadgePercent,
@@ -17,6 +18,7 @@ import {
   Inbox,
   Mail,
   Settings,
+  Globe2,
   ExternalLink,
   Menu,
   X,
@@ -63,6 +65,7 @@ const navSections: NavSection[] = [
     title: 'Store',
     items: [
       { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
+      { href: '/admin/abandoned-carts', label: 'Abandoned carts', icon: ShoppingBasket },
       { href: '/admin/checkouts', label: 'Checkouts', icon: BadgePercent },
       { href: '/admin/customers', label: 'Customers', icon: Users },
       { href: '/admin/sessions', label: 'Sessions', icon: Activity },
@@ -76,6 +79,7 @@ const navSections: NavSection[] = [
     title: 'System',
     items: [
       { href: '/admin/email', label: 'Email', icon: Mail },
+      { href: '/admin/markets', label: 'Markets', icon: Globe2 },
       { href: '/admin/settings', label: 'Settings', icon: Settings },
     ],
   },

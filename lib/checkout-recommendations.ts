@@ -11,6 +11,18 @@ import {
   resolveBundlePrice,
   sumProductPrices,
 } from '@/lib/product-bundle-pricing'
+import {
+  hasVariantLevelInventory,
+  sumVariantInventory,
+} from '@/lib/product-variant-images'
+
+/** True when the product (or any flavour/style) can be sold. */
+export function isProductInStock(product: Product): boolean {
+  if (hasVariantLevelInventory(product.variantImageOptions)) {
+    return sumVariantInventory(product.variantImageOptions) > 0
+  }
+  return product.stock > 0
+}
 
 /**
  * Curated bundle upsells shown at checkout.
@@ -140,7 +152,12 @@ export function getCheckoutCrossSells(
   )
 
   const scored = products
-    .filter((product) => !inCart.has(product.id) && !bundleIds.has(product.id))
+    .filter(
+      (product) =>
+        !inCart.has(product.id) &&
+        !bundleIds.has(product.id) &&
+        isProductInStock(product),
+    )
     .map((product) => {
       let score = 0
       if (targetCategories.has(product.category)) score += 10

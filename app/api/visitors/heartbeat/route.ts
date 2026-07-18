@@ -7,6 +7,11 @@ const bodySchema = z.object({
   visitorId: z.string().min(8).max(120),
   path: z.string().max(500),
   referrer: z.string().max(500).optional(),
+  landingPath: z.string().max(500).optional(),
+  landingReferrer: z.string().max(500).optional(),
+  utmSource: z.string().max(120).optional(),
+  utmMedium: z.string().max(120).optional(),
+  utmCampaign: z.string().max(120).optional(),
   locationId: z
     .enum(['international', 'nigeria', 'ghana', 'usa'])
     .optional(),

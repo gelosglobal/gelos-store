@@ -5,28 +5,53 @@ import { useEffect, useRef } from 'react'
 import { useLocation } from '@/components/location-provider'
 import { isStorefrontChromeHidden } from '@/lib/dentist/portal'
 import type { LocationId } from '@/lib/locations'
+import { getOrCreateVisitorId } from '@/lib/visitor-id'
 
-const VISITOR_STORAGE_KEY = 'gelos:visitor-id'
+const LANDING_STORAGE_KEY = 'gelos:landing-attribution'
 const HEARTBEAT_INTERVAL_MS = 30_000
 
-function getOrCreateVisitorId(): string {
-  if (typeof window === 'undefined') return ''
+type LandingAttribution = {
+  landingPath: string
+  landingReferrer: string
+  utmSource: string
+  utmMedium: string
+  utmCampaign: string
+}
 
-  const existing = window.localStorage.getItem(VISITOR_STORAGE_KEY)?.trim()
-  if (existing) return existing
+function readLandingAttribution(path: string): LandingAttribution {
+  try {
+    const raw = window.sessionStorage.getItem(LANDING_STORAGE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as LandingAttribution
+      if (parsed?.landingPath) return parsed
+    }
+  } catch {
+    // ignore
+  }
 
-  const id =
-    typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `v_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+  const params = new URLSearchParams(window.location.search)
+  const attribution: LandingAttribution = {
+    landingPath: path,
+    landingReferrer: document.referrer || '',
+    utmSource: params.get('utm_source')?.trim() || '',
+    utmMedium: params.get('utm_medium')?.trim() || '',
+    utmCampaign: params.get('utm_campaign')?.trim() || '',
+  }
 
-  window.localStorage.setItem(VISITOR_STORAGE_KEY, id)
-  return id
+  try {
+    window.sessionStorage.setItem(LANDING_STORAGE_KEY, JSON.stringify(attribution))
+  } catch {
+    // ignore
+  }
+
+  return attribution
 }
 
 async function sendHeartbeat(path: string, locationId: LocationId) {
   const visitorId = getOrCreateVisitorId()
   if (!visitorId) return
+
+  const landing = readLandingAttribution(path)
 
   await fetch('/api/visitors/heartbeat', {
     method: 'POST',
@@ -35,6 +60,11 @@ async function sendHeartbeat(path: string, locationId: LocationId) {
       visitorId,
       path,
       referrer: document.referrer || undefined,
+      landingPath: landing.landingPath,
+      landingReferrer: landing.landingReferrer || undefined,
+      utmSource: landing.utmSource || undefined,
+      utmMedium: landing.utmMedium || undefined,
+      utmCampaign: landing.utmCampaign || undefined,
       locationId,
     }),
     keepalive: true,

@@ -28,6 +28,7 @@ import {
 import { useProducts } from '@/components/products-provider'
 import type { Product } from '@/lib/types/product'
 import { trackAddToCart } from '@/lib/meta-pixel'
+import { trackVisitorFunnelEvent } from '@/lib/visitor-funnel'
 
 const CART_STORAGE_KEY = 'gelos-cart'
 
@@ -179,6 +180,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
         return { added: result.added, skipped: result.skipped }
       }
+
+      trackVisitorFunnelEvent('add_to_cart')
 
       if (!options?.silent) {
         if (result.added === 1) {

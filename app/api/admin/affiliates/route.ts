@@ -4,7 +4,10 @@ import {
   getAffiliateDashboardStats,
   listAdminAffiliates,
 } from '@/lib/db/admin-affiliates'
-import { createStoredAffiliate } from '@/lib/db/affiliates'
+import {
+  createStoredAffiliate,
+  revokeUnpaidAffiliateCommissions,
+} from '@/lib/db/affiliates'
 import { isAdminDatabaseReady } from '@/lib/db/admin-products'
 import { sendAffiliateWelcomeEmail } from '@/lib/email/send-affiliate-welcome-email'
 
@@ -12,6 +15,9 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
+    // Clean historical unpaid COD commissions that were credited too early.
+    await revokeUnpaidAffiliateCommissions()
+
     const [affiliates, stats] = await Promise.all([
       listAdminAffiliates(),
       getAffiliateDashboardStats(),

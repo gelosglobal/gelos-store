@@ -5,6 +5,7 @@ import { isAffiliatePayoutConfigured } from '@/lib/affiliate/payout'
 import {
   findStoredAffiliateById,
   listStoredAffiliates,
+  revokeUnpaidAffiliateCommissions,
   type StoredAffiliate,
 } from '@/lib/db/affiliates'
 import { prisma } from '@/lib/prisma'
@@ -64,6 +65,8 @@ export async function getAdminAffiliateDetail(
   affiliateId: string,
 ): Promise<AdminAffiliateDetail | null> {
   if (!isDatabaseConfigured()) return null
+
+  await revokeUnpaidAffiliateCommissions(affiliateId)
 
   const stored = await findStoredAffiliateById(affiliateId)
   if (!stored) return null

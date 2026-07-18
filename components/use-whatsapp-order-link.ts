@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import type { CartLineItem } from '@/components/cart-provider'
 import { useCart } from '@/components/cart-provider'
 import { useLocation } from '@/components/location-provider'
+import { useMarketSettings } from '@/components/market-settings-provider'
 import { useStorePromotions } from '@/components/store-promotions-provider'
 import { buildWhatsappOrderSnapshot } from '@/lib/build-whatsapp-order-snapshot'
 import { calculateCheckoutTotals } from '@/lib/checkout'
@@ -17,24 +18,25 @@ import {
   type WhatsAppOrderCustomer,
   type WhatsAppOrderLine,
 } from '@/lib/whatsapp-order'
-import { getWhatsAppChatUrl } from '@/lib/whatsapp'
 
 export function useWhatsAppOrderLink(customer?: WhatsAppOrderCustomer) {
   const { items, isHydrated } = useCart()
   const { formatPrice, location } = useLocation()
   const { appliedPromoCode, promotions } = useStorePromotions()
+  const { applyShipping, whatsappChatUrl } = useMarketSettings()
+  const checkoutPromotions = applyShipping(promotions)
 
   const totals = useMemo(() => {
     if (!isHydrated || items.length === 0) return null
     return calculateCheckoutTotals(items, {
       promoCode: appliedPromoCode,
-      promotions,
+      promotions: checkoutPromotions,
       smileRewardFreeShipping: hasSmileRewardFreeShipping(),
     })
-  }, [appliedPromoCode, isHydrated, items, promotions])
+  }, [appliedPromoCode, checkoutPromotions, isHydrated, items])
 
   return useMemo(() => {
-    const generalHref = getWhatsAppChatUrl()
+    const generalHref = whatsappChatUrl()
     const hasItems = isHydrated && items.length > 0
 
     if (!hasItems || !totals) {
@@ -71,6 +73,7 @@ export function useWhatsAppOrderLink(customer?: WhatsAppOrderCustomer) {
     items,
     location.label,
     totals,
+    whatsappChatUrl,
   ])
 }
 
@@ -106,6 +109,7 @@ export async function submitWhatsappOrder(
     promoCode?: string
     locationLabel?: string
     customer?: WhatsAppOrderCustomer
+    chatUrl?: string | null
   },
 ) {
   const snapshot = buildWhatsappOrderSnapshot(items, formatPrice, totals, options)
@@ -137,7 +141,7 @@ export async function submitWhatsappOrder(
     shareUrl: data.shareUrl,
   })
 
-  openWhatsAppOrderUrl(message)
+  openWhatsAppOrderUrl(message, options?.chatUrl)
 }
 
 export function buildWhatsAppOrderLinkFromCart(

@@ -1,8 +1,21 @@
 import { z } from 'zod'
 import { calculateCheckoutTotals } from '@/lib/checkout'
-import { convertForLocation, getPaystackCurrencyForLocation } from '@/lib/exchange-rates'
+import {
+  convertFromBase,
+  getPaystackCurrencyForLocation,
+  setRuntimeExchangeRates,
+} from '@/lib/exchange-rates'
 import { getAllProducts } from '@/lib/db/products'
 import { getStorePromotions } from '@/lib/db/store-settings'
+import {
+  getAllMarketSettings,
+  getMarketSettings,
+} from '@/lib/db/market-settings'
+import {
+  applyMarketShipping,
+  assertMarketCartItems,
+  marketRatesToCurrencyMap,
+} from '@/lib/market-settings'
 import { findAffiliateByCode } from '@/lib/db/affiliates'
 import { calculateAffiliateCommission } from '@/lib/affiliates'
 import { findActivePromo } from '@/lib/store-promotions'
@@ -17,6 +30,7 @@ export const checkoutLineItemSchema = z.object({
 })
 
 export const checkoutRequestSchema = z.object({
+  visitorId: z.string().min(8).max(120).optional(),
   email: z.string().email(),
   name: z.string().min(2).max(120),
   phone: z.string().max(30).optional(),
@@ -34,6 +48,12 @@ export type CheckoutRequestBody = z.infer<typeof checkoutRequestSchema>
 
 export async function buildLocalizedCheckoutOrder(body: CheckoutRequestBody) {
   const locationId = body.locationId as LocationId
+  const markets = await getAllMarketSettings()
+  const market = markets[locationId] ?? (await getMarketSettings(locationId))
+  setRuntimeExchangeRates(marketRatesToCurrencyMap(markets))
+
+  assertMarketCartItems(body.items, market)
+
   const products = await getAllProducts()
   const productMap = new Map(products.map((product) => [product.id, product]))
 
@@ -54,14 +74,20 @@ export async function buildLocalizedCheckoutOrder(body: CheckoutRequestBody) {
     }
   })
 
+  const currency =
+    market.currencyCode || getPaystackCurrencyForLocation(locationId)
+
   const localizedItems = checkoutItems.map((item) => ({
     ...item,
-    price: convertForLocation(item.price, locationId),
+    price: convertFromBase(item.price, currency),
   }))
-  const promotions = await getStorePromotions()
+  const storePromotions = await getStorePromotions()
+  const promotions = applyMarketShipping(storePromotions, market)
   const promoCode =
     body.promoCode?.trim() ||
-    (body.promoApplied ? promotions.promos.find((p) => p.enabled)?.code : undefined)
+    (body.promoApplied
+      ? promotions.promos.find((p) => p.enabled)?.code
+      : undefined)
 
   if (promoCode && !findActivePromo(promoCode, promotions.promos)) {
     throw new Error('Invalid or expired promo code')
@@ -83,10 +109,10 @@ export async function buildLocalizedCheckoutOrder(body: CheckoutRequestBody) {
     smileRewardFreeShipping: body.smileRewardFreeShipping === true,
   })
   const totals = {
-    subtotal: convertForLocation(baseTotals.subtotal, locationId),
-    discount: convertForLocation(baseTotals.discount, locationId),
-    shipping: convertForLocation(baseTotals.shipping, locationId),
-    total: convertForLocation(baseTotals.total, locationId),
+    subtotal: convertFromBase(baseTotals.subtotal, currency),
+    discount: convertFromBase(baseTotals.discount, currency),
+    shipping: convertFromBase(baseTotals.shipping, currency),
+    total: convertFromBase(baseTotals.total, currency),
   }
 
   if (totals.total <= 0) {
@@ -95,9 +121,10 @@ export async function buildLocalizedCheckoutOrder(body: CheckoutRequestBody) {
 
   return {
     locationId,
+    market,
     localizedItems,
     totals,
-    currency: getPaystackCurrencyForLocation(locationId),
+    currency,
     promoCode: promoCode || undefined,
     affiliate: affiliate
       ? {

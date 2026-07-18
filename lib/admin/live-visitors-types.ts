@@ -46,6 +46,19 @@ export type LiveVisitorsPayload = {
     visitors: number
     share: number
   }[]
+  funnelShare: {
+    key: 'add_to_cart' | 'checkout' | 'purchase'
+    label: string
+    count: number
+    share: number
+  }[]
+  funnelTrend: {
+    minute: string
+    minuteLabel: string
+    addToCart: number
+    checkout: number
+    purchase: number
+  }[]
   locationShare: {
     key: string
     label: string

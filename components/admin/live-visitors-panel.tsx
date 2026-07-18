@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Area, AreaChart, Bar, BarChart, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, XAxis, YAxis } from 'recharts'
 import { MapPin, RefreshCw, Users } from 'lucide-react'
 import type { LiveVisitorsPayload } from '@/lib/admin/live-visitors-types'
 import {
@@ -22,6 +22,8 @@ const emptyLive: LiveVisitorsPayload = {
   refreshedAt: '',
   trafficTrend: [],
   pageShare: [],
+  funnelShare: [],
+  funnelTrend: [],
   locationShare: [],
 }
 
@@ -29,8 +31,10 @@ const trafficChartConfig = {
   visitors: { label: 'Visitors', color: '#10b981' },
 } satisfies ChartConfig
 
-const pageChartConfig = {
-  visitors: { label: 'Visitors', color: '#171717' },
+const funnelTrendChartConfig = {
+  addToCart: { label: 'Add to cart', color: '#171717' },
+  checkout: { label: 'Checkout', color: '#0ea5e9' },
+  purchase: { label: 'Purchased', color: '#10b981' },
 } satisfies ChartConfig
 
 type LiveVisitorsPanelProps = {
@@ -57,6 +61,8 @@ export function LiveVisitorsPanel({
         ...json,
         trafficTrend: json.trafficTrend ?? [],
         pageShare: json.pageShare ?? [],
+        funnelShare: json.funnelShare ?? [],
+        funnelTrend: json.funnelTrend ?? [],
         locationShare: json.locationShare ?? [],
       })
     } catch {
@@ -196,37 +202,89 @@ export function LiveVisitorsPanel({
           )}
         </div>
 
-        <div className="rounded-xl border border-neutral-100 p-4">
-          <h3 className="mb-3 text-sm font-semibold text-neutral-950">
-            Pages today
-          </h3>
-          {data.pageShare.length > 0 ? (
-            <ChartContainer config={pageChartConfig} className="h-[180px] w-full">
-              <BarChart
-                data={data.pageShare}
-                layout="vertical"
-                margin={{ left: 0, right: 8, top: 4, bottom: 0 }}
+        <div className="rounded-xl border border-neutral-100 p-4 lg:col-span-3">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-semibold text-neutral-950">
+                Funnel today
+              </h3>
+              <p className="mt-0.5 text-xs text-neutral-500">
+                Customer actions every 5 minutes
+              </p>
+            </div>
+            {data.funnelShare.length > 0 ? (
+              <div className="flex flex-wrap gap-3 text-xs text-neutral-600">
+                {data.funnelShare.map((row) => (
+                  <span key={row.key} className="font-medium">
+                    {row.label}{' '}
+                    <span className="text-neutral-950">{row.count}</span>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          {data.funnelTrend.some(
+            (point) =>
+              point.addToCart > 0 || point.checkout > 0 || point.purchase > 0,
+          ) ? (
+            <ChartContainer
+              config={funnelTrendChartConfig}
+              className="h-[200px] w-full"
+            >
+              <AreaChart
+                data={data.funnelTrend}
+                margin={{ left: 0, right: 8, top: 8, bottom: 0 }}
               >
-                <XAxis type="number" hide allowDecimals={false} />
-                <YAxis
-                  type="category"
-                  dataKey="pathLabel"
-                  width={88}
+                <XAxis
+                  dataKey="minuteLabel"
                   tickLine={false}
                   axisLine={false}
+                  tickMargin={8}
+                  fontSize={10}
+                  interval="preserveStartEnd"
+                  minTickGap={28}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tickLine={false}
+                  axisLine={false}
+                  width={28}
                   fontSize={10}
                 />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar
-                  dataKey="visitors"
-                  fill="var(--color-visitors)"
-                  radius={[0, 6, 6, 0]}
+                <Area
+                  type="monotone"
+                  dataKey="addToCart"
+                  stroke="var(--color-addToCart)"
+                  fill="var(--color-addToCart)"
+                  fillOpacity={0.12}
+                  strokeWidth={2}
+                  stackId="funnel"
                 />
-              </BarChart>
+                <Area
+                  type="monotone"
+                  dataKey="checkout"
+                  stroke="var(--color-checkout)"
+                  fill="var(--color-checkout)"
+                  fillOpacity={0.12}
+                  strokeWidth={2}
+                  stackId="funnel"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="purchase"
+                  stroke="var(--color-purchase)"
+                  fill="var(--color-purchase)"
+                  fillOpacity={0.18}
+                  strokeWidth={2}
+                  stackId="funnel"
+                />
+              </AreaChart>
             </ChartContainer>
           ) : (
             <p className="py-10 text-center text-sm text-neutral-500">
-              No page analytics yet today.
+              Add to cart, checkout, and purchases will appear here every 5
+              minutes.
             </p>
           )}
         </div>

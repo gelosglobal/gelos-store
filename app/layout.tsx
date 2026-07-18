@@ -6,6 +6,7 @@ import { StorePromotionsProvider } from '@/components/store-promotions-provider'
 import { CartUpsellSettingsProvider } from '@/components/cart-upsell-settings-provider'
 import { AffiliateProvider } from '@/components/affiliate-provider'
 import { LocationProvider } from '@/components/location-provider'
+import { MarketSettingsProvider } from '@/components/market-settings-provider'
 import { ProductsProvider } from '@/components/products-provider'
 import { StorefrontChatDock } from '@/components/storefront-chat-dock'
 import { LiveVisitorsTracker } from '@/components/live-visitors-tracker'
@@ -60,6 +61,7 @@ export default function RootLayout({
         <UploadThingSSRPlugin />
         <ProductsProvider>
         <LocationProvider>
+          <MarketSettingsProvider>
           <StorePromotionsProvider>
             <CartUpsellSettingsProvider>
             <AffiliateProvider>
@@ -76,6 +78,7 @@ export default function RootLayout({
             </AffiliateProvider>
             </CartUpsellSettingsProvider>
           </StorePromotionsProvider>
+          </MarketSettingsProvider>
         </LocationProvider>
         </ProductsProvider>
       </body>

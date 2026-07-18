@@ -5,7 +5,9 @@ import {
   checkoutRequestSchema,
 } from '@/lib/build-checkout-order'
 import { createCodOrder } from '@/lib/db/orders'
+import { getMarketSettings } from '@/lib/db/market-settings'
 import { notifyOrderPlaced } from '@/lib/email/send-order-emails'
+import type { LocationId } from '@/lib/locations'
 
 const codRequestSchema = checkoutRequestSchema.extend({
   phone: z.string().min(6).max(30),
@@ -28,10 +30,19 @@ export async function POST(request: Request) {
     }
 
     const { email, name, phone, shippingAddress } = parsed.data
+    const market = await getMarketSettings(parsed.data.locationId as LocationId)
+    if (!market.payments.cod) {
+      return NextResponse.json(
+        { error: 'Cash on delivery is not enabled for this market.' },
+        { status: 400 },
+      )
+    }
+
     const { localizedItems, totals, currency, affiliate } =
       await buildLocalizedCheckoutOrder(parsed.data)
 
     const order = await createCodOrder({
+      visitorId: parsed.data.visitorId,
       customerName: name,
       customerEmail: email,
       customerPhone: phone,
@@ -45,7 +56,7 @@ export async function POST(request: Request) {
       affiliateCode: affiliate?.code,
       affiliateId: affiliate?.affiliateId,
       commissionAmount: affiliate?.commissionAmount,
-      commissionStatus: affiliate ? 'pending' : 'none',
+      commissionStatus: 'none',
     })
 
     await notifyOrderPlaced({

@@ -5,8 +5,8 @@ import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { CartLineItem } from '@/components/cart-provider'
 import { submitWhatsappOrder } from '@/components/use-whatsapp-order-link'
+import { useMarketSettings } from '@/components/market-settings-provider'
 import { WhatsAppIcon } from '@/components/whatsapp-icon'
-import { getWhatsAppNumber } from '@/lib/whatsapp'
 import { cn } from '@/lib/utils'
 
 type WhatsAppOrderButtonProps = {
@@ -33,8 +33,9 @@ export function WhatsAppOrderButton({
   className,
 }: WhatsAppOrderButtonProps) {
   const [loading, setLoading] = useState(false)
+  const { hasWhatsApp, whatsappChatUrl } = useMarketSettings()
 
-  if (items.length === 0 || !getWhatsAppNumber()) return null
+  if (items.length === 0 || !hasWhatsApp) return null
 
   const handleOrder = async () => {
     if (loading) return
@@ -45,7 +46,7 @@ export function WhatsAppOrderButton({
         items,
         formatPrice,
         { subtotal, discount, shipping, total },
-        { promoCode, locationLabel },
+        { promoCode, locationLabel, chatUrl: whatsappChatUrl() },
       )
     } catch (error) {
       toast.error(

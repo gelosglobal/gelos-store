@@ -1,15 +1,18 @@
-/** US market sells nasal inhalers only (Wellness flavour line). */
+import {
+  DEFAULT_ALL_MARKET_SETTINGS,
+  isProductAvailableInMarket,
+} from '@/lib/market-settings'
+
+/** @deprecated Prefer market settings `restrictCatalog` / `productIds`. */
 export const US_INHALER_PRODUCT_IDS = ['9', '5'] as const
 
 export type UsInhalerProductId = (typeof US_INHALER_PRODUCT_IDS)[number]
 
 export function isUsInhalerProductId(id: string): boolean {
-  return (US_INHALER_PRODUCT_IDS as readonly string[]).includes(id)
+  return isProductAvailableInMarket(id, DEFAULT_ALL_MARKET_SETTINGS.usa)
 }
 
-export function assertUsInhalerCartItems(
-  items: { id: string }[],
-): void {
+export function assertUsInhalerCartItems(items: { id: string }[]): void {
   if (items.length === 0) {
     throw new Error('Your cart is empty')
   }

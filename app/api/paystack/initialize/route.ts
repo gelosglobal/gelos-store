@@ -8,6 +8,7 @@ import {
   generateOrderNumber,
 } from '@/lib/db/orders'
 import { initializeTransaction, isPaystackConfigured } from '@/lib/paystack'
+import { getMarketSettings } from '@/lib/db/market-settings'
 import type { LocationId } from '@/lib/locations'
 
 function getAppOrigin(request: Request): string {
@@ -44,6 +45,14 @@ export async function POST(request: Request) {
 
     checkoutLocationId = parsed.data.locationId as LocationId
 
+    const market = await getMarketSettings(checkoutLocationId)
+    if (!market.payments.paystack) {
+      return NextResponse.json(
+        { error: 'Paystack is not enabled for this market.' },
+        { status: 400 },
+      )
+    }
+
     const { localizedItems, totals, promoCode, affiliate, currency } =
       await buildLocalizedCheckoutOrder(parsed.data)
     const { email, name, phone, shippingAddress } = parsed.data
@@ -71,6 +80,7 @@ export async function POST(request: Request) {
       await createPendingPaystackOrder({
         orderNumber: generateOrderNumber(),
         paystackReference: payment.reference,
+        visitorId: parsed.data.visitorId,
         customerName: name,
         customerEmail: email,
         customerPhone: phone,

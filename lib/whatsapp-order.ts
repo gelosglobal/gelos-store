@@ -114,12 +114,27 @@ function buildTextOrderMessage(input: WhatsAppOrderInput): string {
   return lines.join('\n')
 }
 
-export function getWhatsAppOrderUrl(message: string): string | null {
+export function getWhatsAppOrderUrl(
+  message: string,
+  chatUrl?: string | null,
+): string | null {
+  if (chatUrl) {
+    try {
+      const url = new URL(chatUrl)
+      url.searchParams.set('text', message)
+      return url.toString()
+    } catch {
+      // fall through
+    }
+  }
   return getWhatsAppChatUrl(message)
 }
 
-export function openWhatsAppOrderUrl(message: string): void {
-  const href = getWhatsAppOrderUrl(message)
+export function openWhatsAppOrderUrl(
+  message: string,
+  chatUrl?: string | null,
+): void {
+  const href = getWhatsAppOrderUrl(message, chatUrl)
   if (!href) return
   window.open(href, '_blank', 'noopener,noreferrer')
 }
