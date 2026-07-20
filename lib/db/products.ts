@@ -96,24 +96,35 @@ export async function getProductBySlugOrId(
       },
     })
 
-    if (!doc || doc.active === false) {
-      const found = mockProducts.find(
-        (p) => p.id === slugOrId || getProductSlug(p) === slugOrId,
-      )
-      if (!found) return null
-      return {
-        ...found,
-        image: normalizeImageUrl(found.image),
-        tags: [],
-        variantImages: [],
-        variantImageOptions: [],
-        galleryImages: [],
-      carouselImages: [],
-        active: true,
-      }
+    if (doc && doc.active !== false) {
+      return prismaToProduct(doc)
     }
 
-    return prismaToProduct(doc)
+    // After a rename the live slug changes (e.g. watermelon-toothpaste →
+    // flavored-toothpaste). Resolve old mock slugs to the DB product by id
+    // so the storefront does not fall back to stale mock titles.
+    const mockMatch = mockProducts.find(
+      (p) => p.id === slugOrId || getProductSlug(p) === slugOrId,
+    )
+    if (mockMatch) {
+      const renamed = await prisma.product.findFirst({
+        where: { productId: mockMatch.id, active: { not: false } },
+      })
+      if (renamed) return prismaToProduct(renamed)
+    }
+
+    if (!mockMatch) return null
+
+    return {
+      ...mockMatch,
+      image: normalizeImageUrl(mockMatch.image),
+      tags: [],
+      variantImages: [],
+      variantImageOptions: [],
+      galleryImages: [],
+      carouselImages: [],
+      active: true,
+    }
   } catch (error) {
     console.error('[getProductBySlugOrId]', error)
     return null

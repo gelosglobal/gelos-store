@@ -91,6 +91,24 @@ export function getVariantDisplayName(
   // keep the catalogue name instead of replacing it with "Pink" / "Black".
   if (nameLabel.length >= product.name.length) return product.name
 
+  // Admin multi-flavour products with a generic title (e.g. "Flavored Toothpaste")
+  // must keep that title. Only rewrite when the catalogue name is itself a
+  // flavour-named SKU whose token matches one of the variant labels.
+  if (hasAdminVariantPicker(product)) {
+    const nameIsFlavourSku = (product.variantImageOptions ?? []).some(
+      (option) => {
+        const optionLabel = option.label.trim()
+        return (
+          Boolean(optionLabel) &&
+          nameLabel.localeCompare(optionLabel, undefined, {
+            sensitivity: 'accent',
+          }) === 0
+        )
+      },
+    )
+    if (!nameIsFlavourSku) return product.name
+  }
+
   const pattern = new RegExp(escapeRegExp(nameLabel), 'i')
   if (pattern.test(product.name)) {
     return product.name.replace(pattern, imageLabel)
