@@ -140,15 +140,36 @@ export async function upsertAbandonedCheckout(
 
   const now = new Date()
   const itemCount = input.items.reduce((sum, item) => sum + item.quantity, 0)
+  const customerName = normalizeContact(input.customerName)
+  const customerEmail = normalizeEmail(input.customerEmail)
+  const customerPhone = normalizeContact(input.customerPhone)
+  const shippingAddress = normalizeContact(input.shippingAddress)
+
+  const existing = await prisma.abandonedCheckout.findUnique({
+    where: { visitorId },
+    select: {
+      customerName: true,
+      customerEmail: true,
+      customerPhone: true,
+      shippingAddress: true,
+    },
+  })
+
+  // Keep previously captured contact if a later draft arrives before the
+  // shopper re-types the fields (or with blank inputs).
+  const nextName = customerName || existing?.customerName || ''
+  const nextEmail = customerEmail || existing?.customerEmail || ''
+  const nextPhone = customerPhone || existing?.customerPhone || ''
+  const nextAddress = shippingAddress || existing?.shippingAddress || ''
 
   await prisma.abandonedCheckout.upsert({
     where: { visitorId },
     create: {
       visitorId,
-      customerName: normalizeContact(input.customerName),
-      customerEmail: normalizeEmail(input.customerEmail),
-      customerPhone: normalizeContact(input.customerPhone),
-      shippingAddress: normalizeContact(input.shippingAddress),
+      customerName: nextName,
+      customerEmail: nextEmail,
+      customerPhone: nextPhone,
+      shippingAddress: nextAddress,
       locationId: input.locationId,
       items: input.items as Prisma.InputJsonValue,
       itemCount,
@@ -164,10 +185,10 @@ export async function upsertAbandonedCheckout(
       lastSeenAt: now,
     },
     update: {
-      customerName: normalizeContact(input.customerName),
-      customerEmail: normalizeEmail(input.customerEmail),
-      customerPhone: normalizeContact(input.customerPhone),
-      shippingAddress: normalizeContact(input.shippingAddress),
+      customerName: nextName,
+      customerEmail: nextEmail,
+      customerPhone: nextPhone,
+      shippingAddress: nextAddress,
       locationId: input.locationId,
       items: input.items as Prisma.InputJsonValue,
       itemCount,

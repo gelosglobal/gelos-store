@@ -66,7 +66,7 @@ const navSections: NavSection[] = [
     title: 'Store',
     items: [
       { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
-      { href: '/admin/abandoned-carts', label: 'Abandoned carts', icon: ShoppingBasket },
+      { href: '/admin/abandoned-carts', label: 'Abandoned checkouts', icon: ShoppingBasket },
       { href: '/admin/checkouts', label: 'Checkouts', icon: BadgePercent },
       { href: '/admin/customers', label: 'Customers', icon: Users },
       { href: '/admin/sessions', label: 'Sessions', icon: Activity },

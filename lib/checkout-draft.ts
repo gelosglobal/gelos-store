@@ -20,7 +20,7 @@ export type CheckoutDraftPayload = {
 let draftTimer: ReturnType<typeof setTimeout> | null = null
 let lastPayloadKey = ''
 
-/** Debounced save of checkout progress for abandoned-cart recovery. */
+/** Debounced save of checkout progress for abandoned-checkout recovery. */
 export function saveCheckoutDraft(payload: CheckoutDraftPayload, delayMs = 1500) {
   if (typeof window === 'undefined') return
 

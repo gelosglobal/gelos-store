@@ -101,7 +101,7 @@ export default function AdminAbandonedCartsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-950">
-            Abandoned carts
+            Abandoned checkouts
           </h1>
           <p className="mt-1 text-sm text-neutral-500">
             Shoppers who started checkout but did not complete an order.
@@ -140,7 +140,7 @@ export default function AdminAbandonedCartsPage() {
         </div>
         <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-            Cart value
+            Checkout value
           </p>
           <p className="mt-1 text-2xl font-bold text-neutral-950">
             {data.summary.totalValueCurrency
@@ -192,7 +192,7 @@ export default function AdminAbandonedCartsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Customer</TableHead>
-                <TableHead>Cart</TableHead>
+                <TableHead>Items</TableHead>
                 <TableHead>Value</TableHead>
                 <TableHead>Market</TableHead>
                 <TableHead>Last active</TableHead>
@@ -212,7 +212,9 @@ export default function AdminAbandonedCartsPage() {
                           {row.customerEmail}
                         </p>
                       ) : (
-                        <p className="text-xs text-neutral-400">No email yet</p>
+                        <p className="text-xs text-neutral-400">
+                          Left before entering email
+                        </p>
                       )}
                       {row.customerPhone ? (
                         <p className="text-xs text-neutral-500">{row.customerPhone}</p>
