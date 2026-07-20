@@ -4,6 +4,7 @@ import {
   productNeedsVariantChoice,
 } from '@/lib/product-variant-images'
 import { getProductHref } from '@/lib/product-utils'
+import { isGenericMultiFlavourProduct } from '@/lib/variant-display'
 import type { Product } from '@/lib/types/product'
 import type { ProductVariantOption } from '@/lib/types/product-variant'
 
@@ -73,14 +74,23 @@ function buildVariantDisplayName(
   return `${label} ${suffix}`
 }
 
+/** True when the catalogue title is itself a flavour SKU (e.g. "Watermelon Toothpaste"). */
+function isFlavourNamedSku(product: Product): boolean {
+  return !isGenericMultiFlavourProduct(product) && productNeedsVariantChoice(product)
+}
+
 function shouldExpandProductVariants(product: Product): boolean {
   if (!EXPAND_VARIANT_CATEGORIES.has(product.category)) return false
-  return productNeedsVariantChoice(product)
+  if (!productNeedsVariantChoice(product)) return false
+  // Generic parents like "Flavored Toothpaste" stay one storefront card.
+  // Only expand when the product title is a specific flavour name.
+  return isFlavourNamedSku(product)
 }
 
 /**
  * Expand multi-flavour admin variants into one catalog card per flavour.
  * Single-SKU products without a flavour picker stay as one card.
+ * Generic multi-flavour parents (e.g. Flavored Toothpaste) also stay one card.
  */
 export function expandProductsForShopCatalog(
   products: Product[],

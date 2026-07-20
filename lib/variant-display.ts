@@ -62,6 +62,56 @@ export function getCartDisplayName(
   return productName
 }
 
+const CATEGORY_TITLE_SUFFIX: Record<string, string> = {
+  Toothpaste: 'Toothpaste',
+  Mouthwash: 'Mouthwash',
+  'Tongue Scraper': 'Tongue Scraper',
+  Toothbrushes: 'Toothbrush',
+}
+
+/** Build "Strawberry Toothpaste" from a flavour label + category. */
+function buildFlavourProductTitle(
+  product: VariantLabelProduct,
+  flavourLabel: string,
+): string {
+  const label = flavourLabel.trim()
+  if (!label) return product.name
+
+  const suffix = CATEGORY_TITLE_SUFFIX[product.category]
+  if (!suffix) return label
+
+  if (new RegExp(`\\b${escapeRegExp(suffix)}$`, 'i').test(label)) return label
+  return `${label} ${suffix}`
+}
+
+function isNameTokenAVariantLabel(
+  product: VariantLabelProduct,
+  nameLabel: string,
+): boolean {
+  return (product.variantImageOptions ?? []).some((option) => {
+    const optionLabel = option.label.trim()
+    return (
+      Boolean(optionLabel) &&
+      nameLabel.localeCompare(optionLabel, undefined, {
+        sensitivity: 'accent',
+      }) === 0
+    )
+  })
+}
+
+/**
+ * True for catalogue parents like "Flavored Toothpaste" that own many flavour
+ * tiles. Storefront should keep the parent name; PDP swaps after a choice.
+ */
+export function isGenericMultiFlavourProduct(
+  product: VariantLabelProduct,
+): boolean {
+  if (!hasAdminVariantPicker(product)) return false
+  const nameLabel = getProductLineVariantLabel(product as Product)
+  if (!nameLabel) return true
+  return !isNameTokenAVariantLabel(product, nameLabel)
+}
+
 /** Product title reflecting the currently selected flavour/style tile. */
 export function getVariantDisplayName(
   product: VariantLabelProduct,
@@ -84,30 +134,22 @@ export function getVariantDisplayName(
       0
 
   if (selectedImage === mainImage && labelsMatch) return product.name
-  if (!imageLabel?.trim() || !nameLabel) return product.name
+  if (!imageLabel?.trim()) return product.name
+
+  // Generic multi-flavour catalogue titles (e.g. "Flavored Toothpaste") should
+  // update the H1 to the selected flavour: "Strawberry Toothpaste".
+  if (hasAdminVariantPicker(product)) {
+    if (!nameLabel || !isNameTokenAVariantLabel(product, nameLabel)) {
+      return buildFlavourProductTitle(product, imageLabel)
+    }
+  }
+
+  if (!nameLabel) return product.name
 
   // Only swap an embedded variant token (e.g. flavour in the title). When the line
   // label is the whole product name — common for toothbrush SKUs with colour tiles —
   // keep the catalogue name instead of replacing it with "Pink" / "Black".
   if (nameLabel.length >= product.name.length) return product.name
-
-  // Admin multi-flavour products with a generic title (e.g. "Flavored Toothpaste")
-  // must keep that title. Only rewrite when the catalogue name is itself a
-  // flavour-named SKU whose token matches one of the variant labels.
-  if (hasAdminVariantPicker(product)) {
-    const nameIsFlavourSku = (product.variantImageOptions ?? []).some(
-      (option) => {
-        const optionLabel = option.label.trim()
-        return (
-          Boolean(optionLabel) &&
-          nameLabel.localeCompare(optionLabel, undefined, {
-            sensitivity: 'accent',
-          }) === 0
-        )
-      },
-    )
-    if (!nameIsFlavourSku) return product.name
-  }
 
   const pattern = new RegExp(escapeRegExp(nameLabel), 'i')
   if (pattern.test(product.name)) {

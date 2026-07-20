@@ -36,6 +36,7 @@ import {
 import {
   getVariantDisplayName,
   getVariantSelectionForCart,
+  isGenericMultiFlavourProduct,
 } from '@/lib/variant-display'
 import { findVariantOptionByFlavourSlug } from '@/lib/shop-catalog-items'
 import type { Product } from '@/lib/types/product'
@@ -70,6 +71,7 @@ export function ProductEnhancedPdp({
   const flavourParam = searchParams.get('flavour')
   const [quantity, setQuantity] = useState(1)
   const [variantDialogOpen, setVariantDialogOpen] = useState(false)
+  const [flavourChosen, setFlavourChosen] = useState(() => Boolean(flavourParam))
 
   const adminVariantImages = getAdminVariantImages(product)
   const hasAdminVariants = adminVariantImages.length > 0
@@ -80,6 +82,7 @@ export function ProductEnhancedPdp({
     [product],
   )
   const pickerLabel = getVariantPickerLabel(product.category)
+  const genericMultiFlavour = isGenericMultiFlavourProduct(product)
 
   const initialImage = useMemo(() => {
     if (flavourParam) {
@@ -91,14 +94,21 @@ export function ProductEnhancedPdp({
 
   const [activeImage, setActiveImage] = useState(initialImage)
 
+  const selectFlavourImage = (url: string) => {
+    setFlavourChosen(true)
+    setActiveImage(url)
+  }
+
   useEffect(() => {
     if (flavourParam) {
       const match = findVariantOptionByFlavourSlug(product, flavourParam)
       if (match?.url) {
+        setFlavourChosen(true)
         setActiveImage(match.url)
         return
       }
     }
+    setFlavourChosen(false)
     const custom = getAdminCarouselImages(product)
     if (custom.length > 0) {
       setActiveImage(custom[0])
@@ -162,7 +172,10 @@ export function ProductEnhancedPdp({
     customCarousel.length > 0 ||
     hasAdminVariants
 
-  const displayName = getVariantDisplayName(product, activeImage)
+  const displayName =
+    genericMultiFlavour && !flavourChosen
+      ? product.name
+      : getVariantDisplayName(product, activeImage)
   const usageSection = getUsageStepsSectionMeta(product.category, content)
   const availableStock = getAvailableStockForVariant(product, activeImage)
   const isOutOfStock = availableStock <= 0
@@ -177,7 +190,7 @@ export function ProductEnhancedPdp({
     <ProductAdminVariantPicker
       options={variantPickerOptions}
       activeImage={activeImage}
-      onSelect={setActiveImage}
+      onSelect={selectFlavourImage}
       label={pickerLabel}
       isOptionDisabled={(option) =>
         getAvailableStockForVariant(product, option.url) <= 0
@@ -232,7 +245,9 @@ export function ProductEnhancedPdp({
             alt={displayName}
             badge={content.imageBadge}
             activeSrc={galleryControlled ? activeImage : undefined}
-            onActiveSrcChange={galleryControlled ? setActiveImage : undefined}
+            onActiveSrcChange={
+              galleryControlled ? selectFlavourImage : undefined
+            }
           />
 
           <div className="space-y-6">
@@ -432,7 +447,7 @@ export function ProductEnhancedPdp({
           quantity={quantity}
           onConfirm={({ variantImage, variantLabel }) => {
             addItem(product.id, quantity, { variantImage, variantLabel })
-            if (variantImage) setActiveImage(variantImage)
+            if (variantImage) selectFlavourImage(variantImage)
           }}
         />
       ) : null}

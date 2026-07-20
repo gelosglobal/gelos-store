@@ -21,10 +21,7 @@ import { getProductDisplayBadge } from '@/lib/product-tags'
 import type { ProductTagId } from '@/lib/product-tags'
 import { isExternalImageUrl, normalizeImageUrl } from '@/lib/image-url'
 import { getProductHref } from '@/lib/product-utils'
-import {
-  getVariantDisplayName,
-  getVariantSelectionForCart,
-} from '@/lib/variant-display'
+import { getVariantSelectionForCart } from '@/lib/variant-display'
 
 type BestSellerCardProduct = {
   id: string
@@ -63,7 +60,8 @@ export function BestSellerCard({ product }: BestSellerCardProps) {
     meta?.badge
 
   const displayImage = activeImage || normalizeImageUrl(product.image)
-  const displayName = getVariantDisplayName(product, displayImage)
+  // Keep catalogue name on storefront cards; PDP handles flavour title swaps.
+  const displayName = product.name
   const variantSelection = getVariantSelectionForCart(product, displayImage)
   const selectedOutOfStock =
     getAvailableStockForVariant(

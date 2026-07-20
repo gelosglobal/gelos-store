@@ -18,10 +18,7 @@ import {
 import { isExternalImageUrl, normalizeImageUrl } from '@/lib/image-url'
 import { getProductImageDisplayClass } from '@/lib/product-image-display'
 import { getProductHref } from '@/lib/product-utils'
-import {
-  getVariantDisplayName,
-  getVariantSelectionForCart,
-} from '@/lib/variant-display'
+import { getVariantSelectionForCart } from '@/lib/variant-display'
 
 type ShopCollectionCardProps = {
   product: {
@@ -80,11 +77,9 @@ export function ShopCollectionCard({
     displayImageOverride ||
     activeImage ||
     normalizeImageUrl(product.image)
-  const displayName =
-    displayNameOverride ||
-    (flavourLocked && lockedVariantLabel
-      ? lockedVariantLabel
-      : getVariantDisplayName(product, displayImage))
+  // Storefront always uses the catalogue product name. Flavour-specific titles
+  // are reserved for the product page after the shopper picks a flavour.
+  const displayName = displayNameOverride || product.name
   const variantSelection = flavourLocked
     ? {
         variantImage: lockedVariantImage,
