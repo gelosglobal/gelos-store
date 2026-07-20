@@ -18,6 +18,7 @@ import type { ParsedCustomerImportRow } from '@/lib/admin/customer-import'
 import type { AdminCustomerInput } from '@/lib/admin/customer-input'
 import { formatOrderTotal } from '@/lib/admin/order-format'
 import { formatCustomerCount } from '@/lib/admin/customers-data'
+import { downloadCustomersCsv } from '@/lib/admin/customers-csv'
 import type { StoreCustomer } from '@/lib/types/customer'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -231,6 +232,40 @@ export default function AdminCustomersPage() {
     }
   }
 
+  const handleExportCsv = () => {
+    const selectedCustomers = customers.filter((customer) =>
+      selected.has(customer.id),
+    )
+    const exportRows =
+      selectedCustomers.length > 0
+        ? selectedCustomers
+        : filtered.length > 0
+          ? filtered
+          : customers
+
+    if (exportRows.length === 0) {
+      toast.error('No customers to export')
+      return
+    }
+
+    try {
+      downloadCustomersCsv(exportRows)
+      toast.success(
+        `Exported ${exportRows.length} customer${exportRows.length === 1 ? '' : 's'}`,
+        {
+          description:
+            selectedCustomers.length > 0
+              ? 'Exported selected customers.'
+              : search.trim()
+                ? 'Exported current search results.'
+                : 'Exported all customers.',
+        },
+      )
+    } catch {
+      toast.error('Failed to export customers')
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
@@ -241,7 +276,13 @@ export default function AdminCustomersPage() {
             <h1 className="text-lg font-semibold text-neutral-950">Customers</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" size="sm" className="h-8">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8"
+              onClick={handleExportCsv}
+              disabled={loading || customers.length === 0}
+            >
               Export
             </Button>
             <Button
