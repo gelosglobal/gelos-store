@@ -101,14 +101,72 @@ export type CapiUserData = {
   fbc?: string
 }
 
+function isIpv4(value: string): boolean {
+  const parts = value.split('.')
+  if (parts.length !== 4) return false
+  return parts.every((part) => {
+    if (!/^\d{1,3}$/.test(part)) return false
+    const n = Number(part)
+    return n >= 0 && n <= 255
+  })
+}
+
+function isIpv6(value: string): boolean {
+  // Loose check — enough to prefer IPv6 over IPv4 for Meta matching.
+  return value.includes(':') && !isIpv4(value)
+}
+
+/** Strip ports / brackets so Meta gets a clean IP string. */
+function cleanClientIp(raw: string): string | undefined {
+  let value = raw.trim()
+  if (!value) return undefined
+
+  if (value.startsWith('[')) {
+    const end = value.indexOf(']')
+    if (end > 0) value = value.slice(1, end)
+  } else if (isIpv4(value.split(':')[0] ?? '') && value.includes(':')) {
+    // IPv4:port
+    value = value.split(':')[0] ?? value
+  }
+
+  value = value.trim()
+  if (!value || value.toLowerCase() === 'unknown') return undefined
+  if (!isIpv4(value) && !isIpv6(value)) return undefined
+  return value
+}
+
+/**
+ * Meta prefers IPv6 over IPv4 for the same user (pixel often sees v6 while
+ * naive X-Forwarded-For parsing returns v4). Collect candidates and prefer v6.
+ */
+export function resolveClientIpAddress(request: Request): string | undefined {
+  const headerNames = [
+    'x-forwarded-for',
+    'x-vercel-forwarded-for',
+    'cf-connecting-ip',
+    'true-client-ip',
+    'x-real-ip',
+    'x-client-ip',
+  ] as const
+
+  const candidates: string[] = []
+  for (const name of headerNames) {
+    const header = request.headers.get(name)
+    if (!header) continue
+    for (const part of header.split(',')) {
+      const cleaned = cleanClientIp(part)
+      if (cleaned) candidates.push(cleaned)
+    }
+  }
+
+  const ipv6 = candidates.find(isIpv6)
+  if (ipv6) return ipv6
+  return candidates[0]
+}
+
 /** Extract IP, user agent, and Meta browser cookies from a storefront request. */
 export function capiUserDataFromRequest(request: Request): Partial<CapiUserData> {
-  const forwarded = request.headers.get('x-forwarded-for')
-  const clientIpAddress =
-    forwarded?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip')?.trim() ||
-    undefined
-
+  const clientIpAddress = resolveClientIpAddress(request)
   const clientUserAgent = request.headers.get('user-agent') ?? undefined
 
   const cookies = request.headers.get('cookie') ?? ''
