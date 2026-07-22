@@ -135,13 +135,22 @@ function getConfiguredCrossSells(
   return getCheckoutCrossSells(cartItems, products, 3)
 }
 
+/** Discounted per-unit price for a quantity-tier cart upsell. */
+export function getQuantityUpsellUnitPrice(
+  catalogUnitPrice: number,
+  discountPercent: number,
+): number {
+  return displayDiscountedTotal(catalogUnitPrice, discountPercent)
+}
+
 function buildQuantityOffer(
   item: CartLineItem,
+  catalogUnitPrice: number,
   targetQty: 2 | 3,
   settings: CartUpsellSettings,
 ): QuantityCartUpsellOffer {
   const savingsPercent = getTierDiscount(settings, targetQty)
-  const fullTotal = item.price * targetQty
+  const fullTotal = catalogUnitPrice * targetQty
   const offerTotal = displayDiscountedTotal(fullTotal, savingsPercent)
 
   return {
@@ -211,14 +220,14 @@ export function getActiveCartUpsell(
     if (item.quantity === 1) {
       const id = quantityOfferId(item.lineKey, 2)
       if (!dismissed.has(id) && 2 <= available) {
-        return buildQuantityOffer(item, 2, settings)
+        return buildQuantityOffer(item, product.price, 2, settings)
       }
     }
 
     if (item.quantity === 2) {
       const id = quantityOfferId(item.lineKey, 3)
       if (!dismissed.has(id) && 3 <= available) {
-        return buildQuantityOffer(item, 3, settings)
+        return buildQuantityOffer(item, product.price, 3, settings)
       }
     }
   }

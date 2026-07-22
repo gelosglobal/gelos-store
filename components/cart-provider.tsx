@@ -62,7 +62,11 @@ type CartContextValue = {
     options?: AddItemsOptions,
   ) => AddItemsResult
   removeItem: (lineKey: string) => void
-  setQuantity: (lineKey: string, quantity: number) => void
+  setQuantity: (
+    lineKey: string,
+    quantity: number,
+    options?: { unitPrice?: number },
+  ) => void
   clearCart: () => void
 }
 
@@ -223,16 +227,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  const setQuantity = useCallback((lineKey: string, quantity: number) => {
-    if (quantity < 1) return
-    setEntries((prev) => {
-      const next = prev.map((e) =>
-        getCartLineKey(e) === lineKey ? { ...e, quantity } : e,
-      )
-      entriesRef.current = next
-      return next
-    })
-  }, [])
+  const setQuantity = useCallback(
+    (
+      lineKey: string,
+      quantity: number,
+      options?: { unitPrice?: number },
+    ) => {
+      if (quantity < 1) return
+      setEntries((prev) => {
+        const next = prev.map((e) => {
+          if (getCartLineKey(e) !== lineKey) return e
+          const updated: CartEntry = { ...e, quantity }
+          if (options?.unitPrice !== undefined && options.unitPrice >= 0) {
+            updated.unitPrice = options.unitPrice
+          }
+          return updated
+        })
+        entriesRef.current = next
+        return next
+      })
+    },
+    [],
+  )
 
   const clearCart = useCallback(() => {
     entriesRef.current = []

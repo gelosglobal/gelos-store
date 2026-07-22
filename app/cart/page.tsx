@@ -24,6 +24,7 @@ import {
 } from '@/lib/store-promotions'
 import {
   getActiveCartUpsell,
+  getQuantityUpsellUnitPrice,
   readDismissedCartUpsells,
 } from '@/lib/cart-upsells'
 
@@ -128,14 +129,22 @@ export default function CartPage() {
     if (!activeUpsell) return
 
     if (activeUpsell.kind === 'quantity') {
-      setQuantity(activeUpsell.lineKey, activeUpsell.targetQuantity)
+      const unitPrice = getQuantityUpsellUnitPrice(
+        activeUpsell.fullTotal / activeUpsell.targetQuantity,
+        activeUpsell.savingsPercent,
+      )
+      setQuantity(activeUpsell.lineKey, activeUpsell.targetQuantity, {
+        unitPrice,
+      })
       toast.success(
         `Updated to ${activeUpsell.targetQuantity} — you're saving more!`,
       )
       return
     }
 
-    addItem(activeUpsell.productId, 1)
+    addItem(activeUpsell.productId, 1, {
+      unitPrice: activeUpsell.offerPrice,
+    })
     toast.success(`${activeUpsell.productName} added to your cart`)
   }
 

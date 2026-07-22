@@ -182,7 +182,9 @@ export function ProductEnhancedPdp({
   const hasAnyFlavourInStock = variantPickerOptions.some(
     (option) => getAvailableStockForVariant(product, option.url) > 0,
   )
-  const canAddToCart = needsVariantChoice
+  /** Modal only when a multi-flavour product still has no selection on the PDP. */
+  const awaitingFlavourChoice = needsVariantChoice && !flavourChosen
+  const canAddToCart = awaitingFlavourChoice
     ? hasAnyFlavourInStock
     : !isOutOfStock
 
@@ -201,7 +203,7 @@ export function ProductEnhancedPdp({
   )
 
   const handleAddToCart = () => {
-    if (needsVariantChoice) {
+    if (awaitingFlavourChoice) {
       setVariantDialogOpen(true)
       return
     }
@@ -291,7 +293,7 @@ export function ProductEnhancedPdp({
                     onClick={() =>
                       setQuantity(
                         Math.min(
-                          needsVariantChoice
+                          awaitingFlavourChoice
                             ? Math.max(product.stock, availableStock)
                             : availableStock,
                           quantity + 1,
@@ -299,7 +301,7 @@ export function ProductEnhancedPdp({
                       )
                     }
                     disabled={
-                      needsVariantChoice
+                      awaitingFlavourChoice
                         ? quantity >= Math.max(product.stock, 1)
                         : quantity >= availableStock
                     }
@@ -311,15 +313,15 @@ export function ProductEnhancedPdp({
                 </div>
               </div>
 
-              {!needsVariantChoice && isOutOfStock ? (
+              {!awaitingFlavourChoice && isOutOfStock ? (
                 <p className="mt-4 text-sm font-medium text-red-600">
                   This flavour is currently out of stock. Pick another flavour.
                 </p>
-              ) : !needsVariantChoice && availableStock <= 5 ? (
+              ) : !awaitingFlavourChoice && availableStock <= 5 ? (
                 <p className="mt-4 text-sm text-neutral-600">
                   Only {availableStock} left for this flavour.
                 </p>
-              ) : needsVariantChoice ? (
+              ) : awaitingFlavourChoice ? (
                 <p className="mt-4 text-sm text-neutral-600">
                   You&apos;ll choose your flavour in the next step.
                 </p>
