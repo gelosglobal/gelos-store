@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
+import { useLocation } from '@/components/location-provider'
 import {
   footerLinkGroups,
   footerSocialLinks,
@@ -115,11 +116,17 @@ function FooterStoreLocatorBanner({ className }: { className?: string }) {
 
 export function SiteFooter() {
   const [newsletterEmail, setNewsletterEmail] = useState('')
+  const { location } = useLocation()
 
   const onNewsletterSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!newsletterEmail.trim()) return
-    trackSubscribe()
+    // Estimated newsletter subscriber value for Meta ROAS (not a paid sub price).
+    trackSubscribe({
+      value: 5,
+      currency: location.currencyCode,
+      predictedLtv: 25,
+    })
     setNewsletterEmail('')
   }
 

@@ -27,7 +27,11 @@ export function trackMetaEvent(
   options?: { eventID?: string },
 ) {
   if (typeof window === 'undefined' || !isMetaPixelEnabled()) return
-  window.fbq?.('track', event, params, options)
+  if (options?.eventID) {
+    window.fbq?.('track', event, params, options)
+    return
+  }
+  window.fbq?.('track', event, params)
 }
 
 export function trackMetaCustomEvent(
@@ -137,13 +141,41 @@ export function trackLead(contentName?: string) {
   })
 }
 
-export function trackSubscribe(value = 1, currency = 'GHS') {
-  // Meta requires value > 0 and a plain ISO currency code on Subscribe,
-  // otherwise Events Manager flags the event with a value/currency issue.
+export function trackSubscribe(input?: {
+  /** Estimated conversion value for this subscribe (must be > 0). */
+  value?: number
+  /** ISO 4217 currency code, e.g. GHS / USD / NGN. */
+  currency?: string
+  /** Predicted lifetime value of the subscriber. */
+  predictedLtv?: number
+}) {
+  // Meta flags Subscribe when value/currency are missing or malformed (ROAS).
+  const currency = normalizeMetaCurrency(input?.currency)
+  const value = normalizeMetaMoney(input?.value, 5)
+  const predictedLtv = normalizeMetaMoney(
+    input?.predictedLtv ?? input?.value,
+    value,
+  )
+
   trackMetaEvent('Subscribe', {
     value,
     currency,
+    predicted_ltv: predictedLtv,
   })
+}
+
+function normalizeMetaCurrency(currency?: string): string {
+  const code = currency?.trim().toUpperCase()
+  if (code && /^[A-Z]{3}$/.test(code)) return code
+  return 'GHS'
+}
+
+/** Meta expects a plain number >= 0 (no symbols/commas). Use > 0 for Subscribe. */
+function normalizeMetaMoney(value: number | undefined, fallback: number): number {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return Math.round(value * 100) / 100
+  }
+  return fallback
 }
 
 export function trackSchedule(contentName?: string) {
