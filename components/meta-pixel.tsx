@@ -43,7 +43,21 @@ export function MetaPixel() {
           t.src=v;s=b.getElementsByTagName(e)[0];
           s.parentNode.insertBefore(t,s)}(window, document,'script',
           'https://connect.facebook.net/en_US/fbevents.js');
-          fbq('init', '${META_PIXEL_ID}');
+          (function(){
+            var advancedMatching = {};
+            try {
+              var key = 'gelos:visitor-id';
+              var eid = localStorage.getItem(key);
+              if (!eid) {
+                eid = (window.crypto && crypto.randomUUID)
+                  ? crypto.randomUUID()
+                  : ('v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10));
+                localStorage.setItem(key, eid);
+              }
+              if (eid) advancedMatching.external_id = eid;
+            } catch (err) {}
+            fbq('init', '${META_PIXEL_ID}', advancedMatching);
+          })();
           fbq('track', 'PageView');
         `}
       </Script>

@@ -101,8 +101,13 @@ export function trackInitiateCheckout(
   items: MetaPixelLineItem[],
   value: number,
   currency = 'GHS',
+  eventId?: string,
 ) {
-  trackMetaEvent('InitiateCheckout', cartEventPayload(items, value, currency))
+  trackMetaEvent(
+    'InitiateCheckout',
+    cartEventPayload(items, value, currency),
+    eventId ? { eventID: eventId } : undefined,
+  )
 }
 
 export function trackViewCart(

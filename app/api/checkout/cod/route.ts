@@ -87,6 +87,8 @@ export async function POST(request: Request) {
       customerEmail: email,
       customerPhone: phone,
       locationId: parsed.data.locationId,
+      externalId: parsed.data.visitorId,
+      shippingAddress,
       eventSourceUrl: parsed.data.eventSourceUrl,
       request,
     })

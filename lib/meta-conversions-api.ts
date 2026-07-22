@@ -95,10 +95,105 @@ export type CapiUserData = {
   /** Storefront market, e.g. 'ghana' — mapped to a country code */
   locationId?: string
   externalId?: string
+  city?: string
+  state?: string
+  zip?: string
+  /** YYYYMMDD — only send when actually collected */
+  dateOfBirth?: string
   clientIpAddress?: string
   clientUserAgent?: string
   fbp?: string
   fbc?: string
+}
+
+/**
+ * Best-effort city / state / zip from freeform delivery address.
+ * Used to improve Meta EMQ — never invents values that aren't in the text.
+ */
+export function parseAddressHints(
+  address: string | undefined,
+  locationId?: string,
+): Pick<CapiUserData, 'city' | 'state' | 'zip'> {
+  const text = address?.trim()
+  if (!text) return {}
+
+  const hints: Pick<CapiUserData, 'city' | 'state' | 'zip'> = {}
+
+  const zipMatch = text.match(/\b(\d{5})(?:-\d{4})?\b/)
+  if (zipMatch?.[1]) hints.zip = zipMatch[1]
+
+  const cityStateZip = text.match(
+    /,\s*([^,0-9][^,]*?)\s*,\s*([A-Za-z]{2})\s+(\d{5})\b/,
+  )
+  if (cityStateZip) {
+    hints.city = cityStateZip[1]?.trim()
+    hints.state = cityStateZip[2]?.toUpperCase()
+    hints.zip = cityStateZip[3]
+    return hints
+  }
+
+  const stateZip = text.match(/\b([A-Za-z]{2})\s+(\d{5})\b/)
+  if (stateZip) {
+    hints.state = stateZip[1]?.toUpperCase()
+    hints.zip = stateZip[2]
+  }
+
+  const parts = text
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
+
+  if (!hints.city && parts.length >= 2) {
+    // Prefer the segment before state/zip / last non-numeric segment.
+    for (let i = parts.length - 1; i >= 0; i -= 1) {
+      const part = parts[i]
+      if (!part || /\d/.test(part)) continue
+      if (/^(ghana|nigeria|usa|united states|international)$/i.test(part)) {
+        continue
+      }
+      if (hints.state && part.toUpperCase() === hints.state) continue
+      hints.city = part
+      break
+    }
+  }
+
+  // US-style: require 2-letter state; skip inventing state for GH/NG markets.
+  if (hints.state && hints.state.length !== 2) {
+    delete hints.state
+  }
+  if (locationId && locationId !== 'usa' && locationId !== 'international') {
+    // Keep city/zip if present; state codes are US-oriented.
+    if (hints.state && !/^[A-Z]{2}$/.test(hints.state)) delete hints.state
+  }
+
+  return hints
+}
+
+function normalizeMetaGeo(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+function hashCity(city: string | undefined): string | undefined {
+  const normalized = city ? normalizeMetaGeo(city) : ''
+  return normalized ? sha256(normalized) : undefined
+}
+
+function hashState(state: string | undefined): string | undefined {
+  const normalized = state ? normalizeMetaGeo(state) : ''
+  return normalized ? sha256(normalized) : undefined
+}
+
+function hashZip(zip: string | undefined): string | undefined {
+  let normalized = zip?.trim().toLowerCase().replace(/[\s-]/g, '') ?? ''
+  if (!normalized) return undefined
+  if (/^\d{5}/.test(normalized)) normalized = normalized.slice(0, 5)
+  return sha256(normalized)
+}
+
+function hashDob(dateOfBirth: string | undefined): string | undefined {
+  const digits = dateOfBirth?.replace(/\D/g, '') ?? ''
+  if (digits.length !== 8) return undefined
+  return sha256(digits)
 }
 
 function isIpv4(value: string): boolean {
@@ -194,13 +289,21 @@ function buildUserData(user: CapiUserData): Record<string, unknown> {
   const fn = hashName(firstName)
   const ln = hashName(lastName)
   const country = hashCountry(user.locationId)
+  const ct = hashCity(user.city)
+  const st = hashState(user.state)
+  const zp = hashZip(user.zip)
+  const db = hashDob(user.dateOfBirth)
 
   if (em) data.em = [em]
   if (ph) data.ph = [ph]
   if (fn) data.fn = [fn]
   if (ln) data.ln = [ln]
   if (country) data.country = [country]
-  if (user.externalId) data.external_id = [sha256(user.externalId)]
+  if (ct) data.ct = [ct]
+  if (st) data.st = [st]
+  if (zp) data.zp = [zp]
+  if (db) data.db = [db]
+  if (user.externalId) data.external_id = [sha256(user.externalId.trim())]
   if (user.clientIpAddress) data.client_ip_address = user.clientIpAddress
   if (user.clientUserAgent) data.client_user_agent = user.clientUserAgent
   if (user.fbp) data.fbp = user.fbp
@@ -278,6 +381,8 @@ export type CapiPurchaseInput = {
   customerEmail?: string
   customerPhone?: string
   locationId?: string
+  externalId?: string
+  shippingAddress?: string
   /** Browser page URL where the purchase completed (preferred). */
   eventSourceUrl?: string
   request?: Request
@@ -288,6 +393,10 @@ export async function sendCapiPurchase(input: CapiPurchaseInput): Promise<boolea
   if (!isMetaCapiConfigured()) return false
 
   const requestData = input.request ? capiUserDataFromRequest(input.request) : {}
+  const addressHints = parseAddressHints(
+    input.shippingAddress,
+    input.locationId,
+  )
 
   return sendMetaCapiEvent({
     eventName: 'Purchase',
@@ -302,6 +411,8 @@ export async function sendCapiPurchase(input: CapiPurchaseInput): Promise<boolea
       phone: input.customerPhone,
       firstName: input.customerName,
       locationId: input.locationId,
+      externalId: input.externalId,
+      ...addressHints,
       ...requestData,
     },
     customData: {
@@ -329,6 +440,9 @@ export type CapiInitiateCheckoutInput = {
   customerName?: string
   customerPhone?: string
   locationId?: string
+  /** Stable shopper id (visitor id) — hashed as external_id for EMQ. */
+  externalId?: string
+  shippingAddress?: string
   /** Browser page URL where checkout started (preferred). */
   eventSourceUrl?: string
   request?: Request
@@ -341,6 +455,10 @@ export async function sendCapiInitiateCheckout(
   if (!isMetaCapiConfigured()) return false
 
   const requestData = input.request ? capiUserDataFromRequest(input.request) : {}
+  const addressHints = parseAddressHints(
+    input.shippingAddress,
+    input.locationId,
+  )
 
   return sendMetaCapiEvent({
     eventName: 'InitiateCheckout',
@@ -355,6 +473,8 @@ export async function sendCapiInitiateCheckout(
       phone: input.customerPhone,
       firstName: input.customerName,
       locationId: input.locationId,
+      externalId: input.externalId,
+      ...addressHints,
       ...requestData,
     },
     customData: {

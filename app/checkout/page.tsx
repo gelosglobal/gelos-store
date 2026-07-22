@@ -16,6 +16,7 @@ import { calculateCheckoutTotals } from '@/lib/checkout'
 import { convertForLocation } from '@/lib/exchange-rates'
 import { hasSmileRewardFreeShipping } from '@/lib/gelos-ai/smile-reward-storage'
 import { trackInitiateCheckout, trackPurchase, trackAddPaymentInfo } from '@/lib/meta-pixel'
+import { getInitiateCheckoutEventId } from '@/lib/meta-event-ids'
 import { saveCheckoutDraft } from '@/lib/checkout-draft'
 import { trackVisitorFunnelEvent } from '@/lib/visitor-funnel'
 import { getOrCreateVisitorId } from '@/lib/visitor-id'
@@ -64,10 +65,12 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!isHydrated || items.length === 0 || checkoutTracked.current) return
     checkoutTracked.current = true
+    const visitorId = getOrCreateVisitorId()
     trackInitiateCheckout(
       items.map((item) => ({ id: item.id, quantity: item.quantity })),
       convertForLocation(totals.total, locationId),
       location.currencyCode,
+      visitorId ? getInitiateCheckoutEventId(visitorId) : undefined,
     )
     trackVisitorFunnelEvent('checkout')
   }, [isHydrated, items, totals.total, locationId, location.currencyCode])

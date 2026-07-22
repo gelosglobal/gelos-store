@@ -6,6 +6,7 @@ import {
 } from '@/lib/build-checkout-order'
 import { upsertAbandonedCheckout } from '@/lib/db/abandoned-checkouts'
 import { sendCapiInitiateCheckout } from '@/lib/meta-conversions-api'
+import { getInitiateCheckoutEventId } from '@/lib/meta-event-ids'
 
 const draftSchema = z.object({
   visitorId: z.string().min(8).max(120),
@@ -63,9 +64,8 @@ export async function POST(request: Request) {
     // Send checkout leads with contact info to Meta Events Manager (CRM
     // audience for retargeting). One event per visitor per day via event_id.
     if (email || parsed.data.phone?.trim()) {
-      const day = new Date().toISOString().slice(0, 10)
       await sendCapiInitiateCheckout({
-        eventId: `checkout_${parsed.data.visitorId}_${day}`,
+        eventId: getInitiateCheckoutEventId(parsed.data.visitorId),
         total: totals.total,
         currency,
         items: parsed.data.items.map((item) => ({
@@ -76,6 +76,8 @@ export async function POST(request: Request) {
         customerName: name,
         customerPhone: parsed.data.phone?.trim(),
         locationId: parsed.data.locationId,
+        externalId: parsed.data.visitorId,
+        shippingAddress: parsed.data.shippingAddress?.trim(),
         eventSourceUrl: parsed.data.eventSourceUrl,
         request,
       })
