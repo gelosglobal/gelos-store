@@ -4,13 +4,12 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
-import { useLocation } from '@/components/location-provider'
 import {
   footerLinkGroups,
   footerSocialLinks,
 } from '@/lib/footer-links'
 import { paymentProviderLogos } from '@/lib/payment-provider-logos'
-import { trackSubscribe } from '@/lib/meta-pixel'
+import { trackLead } from '@/lib/meta-pixel'
 import { cn } from '@/lib/utils'
 
 function GelosLogo({
@@ -116,17 +115,13 @@ function FooterStoreLocatorBanner({ className }: { className?: string }) {
 
 export function SiteFooter() {
   const [newsletterEmail, setNewsletterEmail] = useState('')
-  const { location } = useLocation()
 
   const onNewsletterSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!newsletterEmail.trim()) return
-    // Estimated newsletter subscriber value for Meta ROAS (not a paid sub price).
-    trackSubscribe({
-      value: 5,
-      currency: location.currencyCode,
-      predictedLtv: 25,
-    })
+    // Newsletter signup is a Lead, not Meta's Subscribe (paid subscription) event.
+    // Subscribe with a fixed value triggers Meta's "same price" diagnostics.
+    trackLead('Newsletter signup')
     setNewsletterEmail('')
   }
 
