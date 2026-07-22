@@ -1,6 +1,6 @@
 export type EmailSubscription = 'Subscribed' | 'Not subscribed'
 
-export type CustomerSource = 'checkout' | 'manual' | 'import'
+export type CustomerSource = 'checkout' | 'manual' | 'import' | 'newsletter'
 
 export type StoreCustomer = {
   id: string

@@ -1,4 +1,5 @@
 import type { Customer as PrismaCustomer } from '@prisma/client'
+import { z } from 'zod'
 import {
   adminCustomerInputSchema,
   customerMatchKey,
@@ -35,7 +36,7 @@ function prismaToStoredCustomer(record: PrismaCustomer) {
     lifetimeOrders: record.lifetimeOrders ?? 0,
     lifetimeSpent: record.lifetimeSpent ?? 0,
     lifetimeCurrency: record.lifetimeCurrency ?? 'GHS',
-    source: record.source as 'manual' | 'import',
+    source: record.source as 'manual' | 'import' | 'newsletter',
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   }
@@ -288,4 +289,61 @@ export async function importStoredCustomers(
   }
 
   return { created, updated, skipped, errors }
+}
+
+export type NewsletterSubscribeResult =
+  | { ok: true; status: 'created' | 'updated' | 'already_subscribed' }
+  | { ok: false; reason: 'invalid_email' | 'database' }
+
+/** Upsert a footer newsletter email into customers as Subscribed. */
+export async function subscribeNewsletterEmail(
+  rawEmail: string,
+): Promise<NewsletterSubscribeResult> {
+  const email = normalizeCustomerEmail(rawEmail)
+  if (!email || !z.string().email().safeParse(email).success) {
+    return { ok: false, reason: 'invalid_email' }
+  }
+
+  if (!isDatabaseConfigured()) {
+    return { ok: false, reason: 'database' }
+  }
+
+  try {
+    const existing = await prisma.customer.findFirst({
+      where: { email },
+    })
+
+    if (existing) {
+      if (existing.emailSubscription === 'Subscribed') {
+        return { ok: true, status: 'already_subscribed' }
+      }
+
+      await prisma.customer.update({
+        where: { customerId: existing.customerId },
+        data: { emailSubscription: 'Subscribed' },
+      })
+      return { ok: true, status: 'updated' }
+    }
+
+    const localPart = email.split('@')[0]?.trim() || ''
+    const name =
+      localPart.length >= 2 ? localPart.slice(0, 120) : 'Newsletter subscriber'
+
+    await prisma.customer.create({
+      data: {
+        customerId: generateCustomerId(),
+        name,
+        email,
+        phone: '',
+        location: '',
+        emailSubscription: 'Subscribed',
+        source: 'newsletter',
+      },
+    })
+
+    return { ok: true, status: 'created' }
+  } catch (error) {
+    console.error('[subscribeNewsletterEmail]', error)
+    return { ok: false, reason: 'database' }
+  }
 }

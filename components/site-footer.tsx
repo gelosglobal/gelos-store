@@ -2,8 +2,9 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Loader2 } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
+import { toast } from 'sonner'
 import {
   footerLinkGroups,
   footerSocialLinks,
@@ -115,14 +116,47 @@ function FooterStoreLocatorBanner({ className }: { className?: string }) {
 
 export function SiteFooter() {
   const [newsletterEmail, setNewsletterEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const onNewsletterSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const onNewsletterSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!newsletterEmail.trim()) return
-    // Newsletter signup is a Lead, not Meta's Subscribe (paid subscription) event.
-    // Subscribe with a fixed value triggers Meta's "same price" diagnostics.
-    trackLead('Newsletter signup')
-    setNewsletterEmail('')
+    const email = newsletterEmail.trim()
+    if (!email || isSubmitting) return
+
+    setIsSubmitting(true)
+    try {
+      const response = await fetch('/api/store/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const data = (await response.json()) as {
+        ok?: boolean
+        status?: 'created' | 'updated' | 'already_subscribed'
+        error?: string
+      }
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error ?? 'Could not subscribe right now.')
+      }
+
+      trackLead('Newsletter signup')
+      setNewsletterEmail('')
+
+      if (data.status === 'already_subscribed') {
+        toast.success("You're already subscribed")
+      } else {
+        toast.success("You're subscribed — thanks for joining Gelos")
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Could not subscribe right now. Please try again.',
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -163,17 +197,25 @@ export function SiteFooter() {
                     <input
                       id="footer-newsletter-email"
                       type="email"
+                      required
+                      autoComplete="email"
                       placeholder="Enter your email"
                       value={newsletterEmail}
+                      disabled={isSubmitting}
                       onChange={(event) => setNewsletterEmail(event.target.value)}
-                      className="box-border w-full max-w-full rounded-full bg-white py-2.5 pl-4 pr-11 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#84CC16]"
+                      className="box-border w-full max-w-full rounded-full bg-white py-2.5 pl-4 pr-11 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#84CC16] disabled:opacity-70"
                     />
                     <button
                       type="submit"
                       aria-label="Subscribe"
-                      className="absolute right-1 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-[#84CC16] text-neutral-950 transition-colors hover:bg-[#73b512]"
+                      disabled={isSubmitting}
+                      className="absolute right-1 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-[#84CC16] text-neutral-950 transition-colors hover:bg-[#73b512] disabled:opacity-70"
                     >
-                      <ArrowRight className="size-3.5" />
+                      {isSubmitting ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <ArrowRight className="size-3.5" />
+                      )}
                     </button>
                   </form>
                 </div>
