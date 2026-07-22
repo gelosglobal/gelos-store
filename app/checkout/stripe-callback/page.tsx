@@ -34,7 +34,10 @@ function StripeCallbackContent() {
         const response = await fetch('/api/stripe/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId }),
+          body: JSON.stringify({
+            sessionId,
+            eventSourceUrl: window.location.href,
+          }),
         })
 
         const data = (await response.json()) as {

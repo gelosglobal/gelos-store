@@ -120,6 +120,8 @@ export default function CheckoutPage() {
     promoCode: appliedPromoCode || undefined,
     affiliateCode: affiliateCode || undefined,
     smileRewardFreeShipping: smileRewardFreeShipping || undefined,
+    eventSourceUrl:
+      typeof window !== 'undefined' ? window.location.href : undefined,
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {

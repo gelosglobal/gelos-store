@@ -17,6 +17,7 @@ import type { CheckoutLineItem } from '@/lib/checkout'
 
 const bodySchema = z.object({
   sessionId: z.string().min(3),
+  eventSourceUrl: z.string().url().optional(),
 })
 
 function orderItemsForEmail(items: unknown): CheckoutLineItem[] {
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { sessionId } = parsed.data
+    const { sessionId, eventSourceUrl } = parsed.data
     const existing = await getOrderByReference(sessionId)
 
     if (existing?.paymentStatus === 'Paid') {
@@ -99,6 +100,7 @@ export async function POST(request: Request) {
         customerName: paid.customerName,
         customerEmail: paid.customerEmail,
         customerPhone: paid.customerPhone ?? undefined,
+        eventSourceUrl,
         request,
       })
 
@@ -178,6 +180,7 @@ export async function POST(request: Request) {
         metadata.customer_email || session.customer_email || '',
       ),
       customerPhone: String(metadata.customer_phone ?? '') || undefined,
+      eventSourceUrl,
       request,
     })
 

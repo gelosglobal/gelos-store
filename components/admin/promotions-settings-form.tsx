@@ -169,6 +169,9 @@ export function PromotionsSettingsForm() {
                 }
                 className="bg-white"
               />
+              <p className="text-xs text-neutral-500">
+                Applied to Ghana checkout. Other countries use Admin → Markets.
+              </p>
             </div>
           </div>
 

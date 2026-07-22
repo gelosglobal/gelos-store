@@ -14,6 +14,7 @@ import type { CheckoutLineItem } from '@/lib/checkout'
 
 const bodySchema = z.object({
   reference: z.string().min(3),
+  eventSourceUrl: z.string().url().optional(),
 })
 
 function orderItemsForEmail(items: unknown): CheckoutLineItem[] {
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing payment reference' }, { status: 400 })
     }
 
-    const { reference } = parsed.data
+    const { reference, eventSourceUrl } = parsed.data
     const existing = await getOrderByReference(reference)
 
     if (existing?.paymentStatus === 'Paid') {
@@ -87,6 +88,7 @@ export async function POST(request: Request) {
         customerName: paid.customerName,
         customerEmail: paid.customerEmail,
         customerPhone: paid.customerPhone ?? undefined,
+        eventSourceUrl,
         request,
       })
 
@@ -165,6 +167,7 @@ export async function POST(request: Request) {
       customerName,
       customerEmail,
       customerPhone,
+      eventSourceUrl,
       request,
     })
 

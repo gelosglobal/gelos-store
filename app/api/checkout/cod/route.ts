@@ -13,6 +13,7 @@ import type { LocationId } from '@/lib/locations'
 const codRequestSchema = checkoutRequestSchema.extend({
   phone: z.string().min(6).max(30),
   shippingAddress: z.string().min(5).max(300),
+  eventSourceUrl: z.string().url().optional(),
 })
 
 export async function POST(request: Request) {
@@ -86,6 +87,7 @@ export async function POST(request: Request) {
       customerEmail: email,
       customerPhone: phone,
       locationId: parsed.data.locationId,
+      eventSourceUrl: parsed.data.eventSourceUrl,
       request,
     })
 

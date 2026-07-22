@@ -12,6 +12,11 @@ import {
   sanitizeCartUpsellSettings,
   type CartUpsellSettings,
 } from '@/lib/cart-upsell-settings'
+import {
+  sanitizeAllMarketSettings,
+  sanitizeMarketSettings,
+  type AllMarketSettings,
+} from '@/lib/market-settings'
 
 const SETTINGS_KEY = 'default'
 
@@ -40,6 +45,27 @@ function docToStorePromotions(doc: {
   })
 }
 
+/**
+ * Checkout reads shipping from Markets (per country). Keep Ghana — the home
+ * market — aligned with Checkouts shipping settings so the fee admins set
+ * there is what Ghana customers actually pay.
+ */
+function syncGhanaShippingFromPromotions(
+  markets: unknown,
+  promotions: StorePromotions,
+): AllMarketSettings {
+  const all = sanitizeAllMarketSettings(markets)
+  return {
+    ...all,
+    ghana: sanitizeMarketSettings('ghana', {
+      ...all.ghana,
+      shippingFee: promotions.shippingFee,
+      freeShippingEnabled: promotions.freeShippingEnabled,
+      freeShippingThreshold: promotions.freeShippingThreshold,
+    }),
+  }
+}
+
 export async function getStorePromotions(): Promise<StorePromotions> {
   if (!isDatabaseConfigured()) return DEFAULT_STORE_PROMOTIONS
 
@@ -57,6 +83,12 @@ export async function updateStorePromotions(
   const data = sanitizeStorePromotions(input)
   if (!isDatabaseConfigured()) return data
 
+  const existing = await prisma.storeSettings.findUnique({
+    where: { key: SETTINGS_KEY },
+    select: { markets: true },
+  })
+  const markets = syncGhanaShippingFromPromotions(existing?.markets, data)
+
   const doc = await prisma.storeSettings.upsert({
     where: { key: SETTINGS_KEY },
     create: {
@@ -68,6 +100,7 @@ export async function updateStorePromotions(
       freeShippingProgressLabel: data.freeShippingProgressLabel,
       freeShippingUnlockedLabel: data.freeShippingUnlockedLabel,
       promos: data.promos as Prisma.InputJsonValue,
+      markets: markets as unknown as Prisma.InputJsonValue,
     },
     update: {
       freeShippingEnabled: data.freeShippingEnabled,
@@ -77,6 +110,7 @@ export async function updateStorePromotions(
       freeShippingProgressLabel: data.freeShippingProgressLabel,
       freeShippingUnlockedLabel: data.freeShippingUnlockedLabel,
       promos: data.promos as Prisma.InputJsonValue,
+      markets: markets as unknown as Prisma.InputJsonValue,
     },
   })
 

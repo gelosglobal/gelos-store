@@ -27,7 +27,8 @@ export function saveCheckoutDraft(payload: CheckoutDraftPayload, delayMs = 1500)
   const visitorId = getOrCreateVisitorId()
   if (!visitorId || payload.items.length === 0) return
 
-  const payloadKey = JSON.stringify({ visitorId, ...payload })
+  const eventSourceUrl = window.location.href
+  const payloadKey = JSON.stringify({ visitorId, eventSourceUrl, ...payload })
   if (payloadKey === lastPayloadKey) return
   lastPayloadKey = payloadKey
 
@@ -39,6 +40,7 @@ export function saveCheckoutDraft(payload: CheckoutDraftPayload, delayMs = 1500)
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         visitorId,
+        eventSourceUrl,
         ...payload,
       }),
       keepalive: true,

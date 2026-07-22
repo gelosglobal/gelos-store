@@ -18,6 +18,7 @@ const draftSchema = z.object({
   promoCode: z.string().max(40).optional(),
   affiliateCode: z.string().max(40).optional(),
   smileRewardFreeShipping: z.boolean().optional(),
+  eventSourceUrl: z.string().url().optional(),
 })
 
 export async function POST(request: Request) {
@@ -75,6 +76,7 @@ export async function POST(request: Request) {
         customerName: name,
         customerPhone: parsed.data.phone?.trim(),
         locationId: parsed.data.locationId,
+        eventSourceUrl: parsed.data.eventSourceUrl,
         request,
       })
     }

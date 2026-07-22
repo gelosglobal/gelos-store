@@ -34,7 +34,10 @@ function CheckoutCallbackContent() {
         const response = await fetch('/api/paystack/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reference }),
+          body: JSON.stringify({
+            reference,
+            eventSourceUrl: window.location.href,
+          }),
         })
 
         const data = (await response.json()) as {

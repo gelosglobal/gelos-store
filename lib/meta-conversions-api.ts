@@ -1,5 +1,6 @@
 import { createHash } from 'crypto'
 import type { CheckoutLineItem } from '@/lib/checkout'
+import { getPublicAppUrl } from '@/lib/env'
 
 /**
  * Meta Conversions API (server-side events for Events Manager).
@@ -7,6 +8,38 @@ import type { CheckoutLineItem } from '@/lib/checkout'
  */
 
 const GRAPH_API_VERSION = 'v21.0'
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Meta requires event_source_url for website CAPI events (attribution/optimization).
+ * Prefer an explicit browser URL, then Referer, then app origin + path.
+ */
+export function resolveEventSourceUrl(
+  request?: Request,
+  fallbackPath = '/',
+  explicit?: string,
+): string {
+  const trimmed = explicit?.trim()
+  if (trimmed && isHttpUrl(trimmed)) return trimmed
+
+  const referer = request?.headers.get('referer')?.trim()
+  if (referer && isHttpUrl(referer)) return referer
+
+  const originHeader = request?.headers.get('origin')?.trim()
+  const base = (
+    originHeader && isHttpUrl(originHeader) ? originHeader : getPublicAppUrl()
+  ).replace(/\/$/, '')
+  const path = fallbackPath.startsWith('/') ? fallbackPath : `/${fallbackPath}`
+  return `${base}${path}`
+}
 
 function getPixelId(): string | undefined {
   return process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim() || undefined
@@ -139,9 +172,13 @@ export async function sendMetaCapiEvent(input: CapiEventInput): Promise<boolean>
     event_time: input.eventTime ?? Math.floor(Date.now() / 1000),
     event_id: input.eventId,
     action_source: 'website',
+    event_source_url: resolveEventSourceUrl(
+      undefined,
+      '/',
+      input.eventSourceUrl,
+    ),
     user_data: buildUserData(input.userData),
   }
-  if (input.eventSourceUrl) event.event_source_url = input.eventSourceUrl
   if (input.customData) event.custom_data = input.customData
 
   const body: Record<string, unknown> = { data: [event] }
@@ -183,6 +220,8 @@ export type CapiPurchaseInput = {
   customerEmail?: string
   customerPhone?: string
   locationId?: string
+  /** Browser page URL where the purchase completed (preferred). */
+  eventSourceUrl?: string
   request?: Request
 }
 
@@ -195,6 +234,11 @@ export async function sendCapiPurchase(input: CapiPurchaseInput): Promise<boolea
   return sendMetaCapiEvent({
     eventName: 'Purchase',
     eventId: input.orderNumber,
+    eventSourceUrl: resolveEventSourceUrl(
+      input.request,
+      '/checkout/success',
+      input.eventSourceUrl,
+    ),
     userData: {
       email: input.customerEmail,
       phone: input.customerPhone,
@@ -227,6 +271,8 @@ export type CapiInitiateCheckoutInput = {
   customerName?: string
   customerPhone?: string
   locationId?: string
+  /** Browser page URL where checkout started (preferred). */
+  eventSourceUrl?: string
   request?: Request
 }
 
@@ -241,6 +287,11 @@ export async function sendCapiInitiateCheckout(
   return sendMetaCapiEvent({
     eventName: 'InitiateCheckout',
     eventId: input.eventId,
+    eventSourceUrl: resolveEventSourceUrl(
+      input.request,
+      '/checkout',
+      input.eventSourceUrl,
+    ),
     userData: {
       email: input.customerEmail,
       phone: input.customerPhone,
