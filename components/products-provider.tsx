@@ -9,7 +9,6 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { usePathname } from 'next/navigation'
 import { products as mockProducts } from '@/lib/mock-data'
 import { normalizeImageUrl } from '@/lib/image-url'
 import { PRODUCTS_UPDATED_EVENT } from '@/lib/products-events'
@@ -46,7 +45,6 @@ function toProduct(p: (typeof mockProducts)[number]): Product {
 }
 
 export function ProductsProvider({ children }: { children: ReactNode }) {
-  const pathname = usePathname()
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [databaseConnected, setDatabaseConnected] = useState(false)
@@ -55,7 +53,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
 
   const refreshProducts = useCallback(async () => {
     try {
-      const res = await fetch('/api/products', { cache: 'no-store' })
+      const res = await fetch('/api/products')
       const data = (await res.json()) as {
         products?: Product[]
         tagCollections?: TagCollectionsMap
@@ -84,10 +82,6 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refreshProducts()
   }, [refreshProducts])
-
-  useEffect(() => {
-    void refreshProducts()
-  }, [pathname, refreshProducts])
 
   useEffect(() => {
     const onUpdate = () => void refreshProducts()

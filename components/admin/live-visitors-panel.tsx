@@ -43,7 +43,7 @@ type LiveVisitorsPanelProps = {
 }
 
 export function LiveVisitorsPanel({
-  pollMs = 10_000,
+  pollMs = 30_000,
   compact = false,
 }: LiveVisitorsPanelProps) {
   const [data, setData] = useState<LiveVisitorsPayload>(emptyLive)

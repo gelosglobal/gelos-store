@@ -4,7 +4,8 @@ import { getAllTagCollectionOrders } from '@/lib/db/tag-collections'
 import { listProductBundles } from '@/lib/db/product-bundles'
 import { isDatabaseConfigured } from '@/lib/env'
 
-export const dynamic = 'force-dynamic'
+/** Short cache cuts Fluid CPU + Edge Requests; admin mutations still revalidate. */
+export const revalidate = 60
 
 export async function GET() {
   try {
@@ -17,7 +18,7 @@ export async function GET() {
       { products, tagCollections, productBundles, databaseConnected: isDatabaseConfigured() },
       {
         headers: {
-          'Cache-Control': 'no-store, max-age=0',
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
         },
       },
     )

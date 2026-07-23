@@ -40,7 +40,7 @@ export function StorePromotionsProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch('/api/store/promotions', { cache: 'no-store' })
+      const res = await fetch('/api/store/promotions')
       if (!res.ok) return
       const data = (await res.json()) as StorePromotions
       setPromotions(data)

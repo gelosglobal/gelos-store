@@ -8,7 +8,8 @@ import type { LocationId } from '@/lib/locations'
 import { getOrCreateVisitorId } from '@/lib/visitor-id'
 
 const LANDING_STORAGE_KEY = 'gelos:landing-attribution'
-const HEARTBEAT_INTERVAL_MS = 30_000
+/** Keep live analytics, but avoid burning Vercel Edge Requests / Fluid CPU. */
+const HEARTBEAT_INTERVAL_MS = 120_000
 
 type LandingAttribution = {
   landingPath: string
@@ -85,6 +86,8 @@ export function LiveVisitorsTracker() {
     void sendHeartbeat(path, locationId)
 
     const interval = window.setInterval(() => {
+      // Don't ping the server while the tab is in the background.
+      if (document.visibilityState !== 'visible') return
       void sendHeartbeat(lastPath.current || path, locationId)
     }, HEARTBEAT_INTERVAL_MS)
 

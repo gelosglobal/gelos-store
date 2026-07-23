@@ -135,7 +135,7 @@ export function AnalyticsOverviewHeader({
 
   useEffect(() => {
     loadLive()
-    const interval = window.setInterval(loadLive, 10_000)
+    const interval = window.setInterval(loadLive, 30_000)
     return () => window.clearInterval(interval)
   }, [loadLive])
 

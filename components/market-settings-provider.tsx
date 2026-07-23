@@ -45,7 +45,7 @@ export function MarketSettingsProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch('/api/store/markets', { cache: 'no-store' })
+      const res = await fetch('/api/store/markets')
       if (!res.ok) return
       const data = (await res.json()) as { markets?: AllMarketSettings }
       if (!data.markets) return
