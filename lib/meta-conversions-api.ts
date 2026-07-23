@@ -67,9 +67,36 @@ function hashEmail(email: string | undefined): string | undefined {
 }
 
 /** Meta expects digits only with country code, e.g. 233539621338. */
-function hashPhone(phone: string | undefined): string | undefined {
-  const digits = phone?.replace(/\D/g, '')
+function hashPhone(
+  phone: string | undefined,
+  locationId?: string,
+): string | undefined {
+  const digits = normalizePhoneDigits(phone, locationId)
   return digits ? sha256(digits) : undefined
+}
+
+function normalizePhoneDigits(
+  phone: string | undefined,
+  locationId?: string,
+): string | undefined {
+  let digits = phone?.replace(/\D/g, '') ?? ''
+  if (!digits) return undefined
+
+  const dialCodes: Record<string, string> = {
+    ghana: '233',
+    nigeria: '234',
+    usa: '1',
+  }
+  const cc = locationId ? dialCodes[locationId] : undefined
+  if (cc) {
+    if (digits.startsWith('0') && !digits.startsWith(cc)) {
+      digits = `${cc}${digits.slice(1)}`
+    } else if (!digits.startsWith(cc) && digits.length <= 10) {
+      digits = `${cc}${digits}`
+    }
+  }
+
+  return digits
 }
 
 function hashName(name: string | undefined): string | undefined {
@@ -82,9 +109,21 @@ function hashCountry(locationId: string | undefined): string | undefined {
     ghana: 'gh',
     nigeria: 'ng',
     usa: 'us',
+    international: 'us',
   }
   const code = locationId ? map[locationId] : undefined
   return code ? sha256(code) : undefined
+}
+
+/** Infer market from order currency when locationId was not stored. */
+export function locationIdFromCurrency(
+  currency: string | undefined,
+): string | undefined {
+  const code = currency?.trim().toUpperCase()
+  if (code === 'GHS') return 'ghana'
+  if (code === 'NGN') return 'nigeria'
+  if (code === 'USD') return 'usa'
+  return undefined
 }
 
 export type CapiUserData = {
@@ -285,7 +324,7 @@ function buildUserData(user: CapiUserData): Record<string, unknown> {
 
   const data: Record<string, unknown> = {}
   const em = hashEmail(user.email)
-  const ph = hashPhone(user.phone)
+  const ph = hashPhone(user.phone, user.locationId)
   const fn = hashName(firstName)
   const ln = hashName(lastName)
   const country = hashCountry(user.locationId)
@@ -393,10 +432,11 @@ export async function sendCapiPurchase(input: CapiPurchaseInput): Promise<boolea
   if (!isMetaCapiConfigured()) return false
 
   const requestData = input.request ? capiUserDataFromRequest(input.request) : {}
-  const addressHints = parseAddressHints(
-    input.shippingAddress,
-    input.locationId,
-  )
+  const locationId =
+    input.locationId ?? locationIdFromCurrency(input.currency)
+  const addressHints = parseAddressHints(input.shippingAddress, locationId)
+  const value = Number(input.total)
+  if (!Number.isFinite(value) || value < 0) return false
 
   return sendMetaCapiEvent({
     eventName: 'Purchase',
@@ -410,13 +450,13 @@ export async function sendCapiPurchase(input: CapiPurchaseInput): Promise<boolea
       email: input.customerEmail,
       phone: input.customerPhone,
       firstName: input.customerName,
-      locationId: input.locationId,
+      locationId,
       externalId: input.externalId,
       ...addressHints,
       ...requestData,
     },
     customData: {
-      value: input.total,
+      value,
       currency: input.currency.toUpperCase(),
       content_type: 'product',
       content_ids: input.items.map((item) => item.id),
@@ -455,10 +495,11 @@ export async function sendCapiInitiateCheckout(
   if (!isMetaCapiConfigured()) return false
 
   const requestData = input.request ? capiUserDataFromRequest(input.request) : {}
-  const addressHints = parseAddressHints(
-    input.shippingAddress,
-    input.locationId,
-  )
+  const locationId =
+    input.locationId ?? locationIdFromCurrency(input.currency)
+  const addressHints = parseAddressHints(input.shippingAddress, locationId)
+  const value = Number(input.total)
+  if (!Number.isFinite(value) || value < 0) return false
 
   return sendMetaCapiEvent({
     eventName: 'InitiateCheckout',
@@ -472,13 +513,13 @@ export async function sendCapiInitiateCheckout(
       email: input.customerEmail,
       phone: input.customerPhone,
       firstName: input.customerName,
-      locationId: input.locationId,
+      locationId,
       externalId: input.externalId,
       ...addressHints,
       ...requestData,
     },
     customData: {
-      value: input.total,
+      value,
       currency: input.currency.toUpperCase(),
       content_type: 'product',
       content_ids: input.items.map((item) => item.id),

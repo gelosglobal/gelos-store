@@ -18,6 +18,7 @@ import type { CheckoutLineItem } from '@/lib/checkout'
 const bodySchema = z.object({
   sessionId: z.string().min(3),
   eventSourceUrl: z.string().url().optional(),
+  visitorId: z.string().min(8).max(120).optional(),
 })
 
 function orderItemsForEmail(items: unknown): CheckoutLineItem[] {
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { sessionId, eventSourceUrl } = parsed.data
+    const { sessionId, eventSourceUrl, visitorId } = parsed.data
     const existing = await getOrderByReference(sessionId)
 
     if (existing?.paymentStatus === 'Paid') {
@@ -100,6 +101,8 @@ export async function POST(request: Request) {
         customerName: paid.customerName,
         customerEmail: paid.customerEmail,
         customerPhone: paid.customerPhone ?? undefined,
+        shippingAddress: paid.shippingAddress ?? undefined,
+        externalId: visitorId,
         eventSourceUrl,
         request,
       })
@@ -129,16 +132,21 @@ export async function POST(request: Request) {
       session.currency ||
       'USD'
     ).toUpperCase()
+    const shippingAddress =
+      String(metadata.shipping_address ?? '') || undefined
+    const locationId =
+      String(metadata.location_id ?? '') || undefined
 
     const order = await createPaidOrder({
       orderNumber: generateOrderNumber(),
       paystackReference: sessionId,
+      visitorId,
       customerName: String(metadata.customer_name ?? 'Customer'),
       customerEmail: String(
         metadata.customer_email || session.customer_email || '',
       ),
       customerPhone: String(metadata.customer_phone ?? '') || undefined,
-      shippingAddress: String(metadata.shipping_address ?? '') || undefined,
+      shippingAddress,
       items: [],
       subtotal,
       shipping,
@@ -159,7 +167,7 @@ export async function POST(request: Request) {
         metadata.customer_email || session.customer_email || '',
       ),
       customerPhone: String(metadata.customer_phone ?? '') || undefined,
-      shippingAddress: String(metadata.shipping_address ?? '') || undefined,
+      shippingAddress,
       items: [],
       subtotal,
       shipping,
@@ -180,6 +188,9 @@ export async function POST(request: Request) {
         metadata.customer_email || session.customer_email || '',
       ),
       customerPhone: String(metadata.customer_phone ?? '') || undefined,
+      shippingAddress,
+      locationId,
+      externalId: visitorId,
       eventSourceUrl,
       request,
     })

@@ -7,6 +7,7 @@ import { CheckCircle2, Loader2, XCircle } from 'lucide-react'
 import { useCart } from '@/components/cart-provider'
 import { useLocation } from '@/components/location-provider'
 import { trackPurchase } from '@/lib/meta-pixel'
+import { getOrCreateVisitorId } from '@/lib/visitor-id'
 
 type VerifyState =
   | { status: 'loading' }
@@ -37,6 +38,7 @@ function StripeCallbackContent() {
           body: JSON.stringify({
             sessionId,
             eventSourceUrl: window.location.href,
+            visitorId: getOrCreateVisitorId() || undefined,
           }),
         })
 

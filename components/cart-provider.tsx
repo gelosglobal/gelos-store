@@ -26,7 +26,9 @@ import {
   getProductLineVariantLabel,
 } from '@/lib/variant-display'
 import { useProducts } from '@/components/products-provider'
+import { useLocation } from '@/components/location-provider'
 import type { Product } from '@/lib/types/product'
+import { convertForLocation } from '@/lib/exchange-rates'
 import { trackAddToCart } from '@/lib/meta-pixel'
 import { trackVisitorFunnelEvent } from '@/lib/visitor-funnel'
 
@@ -130,6 +132,7 @@ function entriesToLineItems(
 export function CartProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const { getProductById, products } = useProducts()
+  const { location, locationId } = useLocation()
   const [entries, setEntries] = useState<CartEntry[]>([])
   const [isHydrated, setIsHydrated] = useState(false)
   const entriesRef = useRef<CartEntry[]>([])
@@ -175,7 +178,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setEntries(result.entries)
 
       for (const event of result.trackEvents) {
-        trackAddToCart(event)
+        trackAddToCart({
+          ...event,
+          price: convertForLocation(event.price, locationId),
+          currency: location.currencyCode,
+        })
       }
 
       if (result.added === 0) {
@@ -206,7 +213,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       return { added: result.added, skipped: result.skipped }
     },
-    [getProductById, router],
+    [getProductById, location.currencyCode, locationId, router],
   )
 
   const addItem = useCallback(

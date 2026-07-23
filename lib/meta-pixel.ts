@@ -69,13 +69,14 @@ export function trackViewContent(product: {
   name: string
   price: number
   category?: string
+  currency?: string
 }) {
   trackMetaEvent('ViewContent', {
     content_ids: [product.id],
     content_name: product.name,
     content_type: 'product',
     value: product.price,
-    currency: 'GHS',
+    currency: normalizeMetaCurrency(product.currency),
     content_category: product.category,
   })
 }
@@ -85,13 +86,14 @@ export function trackAddToCart(product: {
   name: string
   price: number
   quantity: number
+  currency?: string
 }) {
   trackMetaEvent('AddToCart', {
     content_ids: [product.id],
     content_name: product.name,
     content_type: 'product',
     value: product.price * product.quantity,
-    currency: 'GHS',
+    currency: normalizeMetaCurrency(product.currency),
     contents: [{ id: product.id, quantity: product.quantity }],
     num_items: product.quantity,
   })

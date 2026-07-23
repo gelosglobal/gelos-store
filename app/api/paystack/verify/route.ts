@@ -15,6 +15,7 @@ import type { CheckoutLineItem } from '@/lib/checkout'
 const bodySchema = z.object({
   reference: z.string().min(3),
   eventSourceUrl: z.string().url().optional(),
+  visitorId: z.string().min(8).max(120).optional(),
 })
 
 function orderItemsForEmail(items: unknown): CheckoutLineItem[] {
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing payment reference' }, { status: 400 })
     }
 
-    const { reference, eventSourceUrl } = parsed.data
+    const { reference, eventSourceUrl, visitorId } = parsed.data
     const existing = await getOrderByReference(reference)
 
     if (existing?.paymentStatus === 'Paid') {
@@ -88,6 +89,8 @@ export async function POST(request: Request) {
         customerName: paid.customerName,
         customerEmail: paid.customerEmail,
         customerPhone: paid.customerPhone ?? undefined,
+        shippingAddress: paid.shippingAddress ?? undefined,
+        externalId: visitorId,
         eventSourceUrl,
         request,
       })
@@ -116,6 +119,7 @@ export async function POST(request: Request) {
     const customerEmail = String(metadata.customer_email ?? '')
     const customerPhone = String(metadata.customer_phone ?? '') || undefined
     const shippingAddress = String(metadata.shipping_address ?? '') || undefined
+    const locationId = String(metadata.location_id ?? '') || undefined
     const channel = payment.channel ?? 'Paystack'
     const affiliateCode = String(metadata.affiliate_code ?? '') || undefined
     const affiliateId = String(metadata.affiliate_id ?? '') || undefined
@@ -124,6 +128,7 @@ export async function POST(request: Request) {
     const order = await createPaidOrder({
       orderNumber: generateOrderNumber(),
       paystackReference: payment.reference,
+      visitorId,
       customerName,
       customerEmail,
       customerPhone,
@@ -167,6 +172,9 @@ export async function POST(request: Request) {
       customerName,
       customerEmail,
       customerPhone,
+      shippingAddress,
+      locationId,
+      externalId: visitorId,
       eventSourceUrl,
       request,
     })
