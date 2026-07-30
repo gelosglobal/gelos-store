@@ -11,9 +11,14 @@ export type ProductLineParentConfig = {
   handle: string
   name: string
   category: string
-  /** Curated flavour order (handles / slugs / legacy ids) */
+  /** Curated flavour/style order (handles / slugs / legacy ids) */
   order: readonly string[]
   labelFromName: (name: string) => string
+  /**
+   * Optional subset filter. When set, only matching products in the category
+   * collapse into this parent (e.g. SonicWave colours within Toothbrushes).
+   */
+  isMember?: (product: Pick<Product, 'id' | 'name' | 'handle' | 'category'>) => boolean
 }
 
 export const TOOTHPASTE_LINE_PARENT: ProductLineParentConfig = {
@@ -72,7 +77,56 @@ export const MOUTHWASH_LINE_PARENT: ProductLineParentConfig = {
       .trim(),
 }
 
-const LINE_PARENTS = [TOOTHPASTE_LINE_PARENT, MOUTHWASH_LINE_PARENT] as const
+const SONICWAVE_NAME_RE = /sonicwave\s*g1\s*series\s*electric\s*toothbrush/i
+
+export function isSonicwaveElectricToothbrush(
+  product: Pick<Product, 'name' | 'handle'>,
+): boolean {
+  if (SONICWAVE_NAME_RE.test(product.name)) return true
+  const handle = (product.handle || '').toLowerCase()
+  return (
+    handle === 'electric-toothbrush' ||
+    handle === 'white-electric-toothbrush' ||
+    handle === 'pink-electric-toothbrush' ||
+    handle === 'blue-electric-toothbrush' ||
+    handle === 'green-electric-toothbrush' ||
+    handle === 'sonicwave-g1-series-electric-toothbrush' ||
+    handle === '3d-sonicwave-g1-electric-toothbrush'
+  )
+}
+
+export const SONICWAVE_LINE_PARENT: ProductLineParentConfig = {
+  id: 'line:sonicwave-g1',
+  handle: 'sonicwave-g1-series-electric-toothbrush',
+  name: 'SonicWave G1 Series Electric Toothbrush',
+  category: 'Toothbrushes',
+  order: [
+    'electric-toothbrush',
+    'white-electric-toothbrush',
+    'pink-electric-toothbrush',
+    'blue-electric-toothbrush',
+    'green-electric-toothbrush',
+    'sonicwave-g1-series-electric-toothbrush',
+    '3d-sonicwave-g1-electric-toothbrush',
+  ],
+  labelFromName: (name) => {
+    const colour = name.match(/-\s*([^-]+)\s*$/)
+    if (colour?.[1]?.trim()) return colour[1].trim()
+    return (
+      name
+        .replace(/SonicWave G1 Series Electric Toothbrush/i, '')
+        .replace(/^[-–\s]+/, '')
+        .trim() || 'Brush'
+    )
+  },
+  isMember: (product) => isSonicwaveElectricToothbrush(product),
+}
+
+const LINE_PARENTS = [
+  TOOTHPASTE_LINE_PARENT,
+  MOUTHWASH_LINE_PARENT,
+  SONICWAVE_LINE_PARENT,
+] as const
 
 export function isProductLineParentId(id: string): boolean {
   return id.startsWith('line:')
@@ -89,10 +143,36 @@ export function getProductLineParentConfigBySlug(
   )
 }
 
+/** Whole-category parents only (Toothpaste / Mouthwash). */
 export function getProductLineParentConfigForCategory(
   category: string,
 ): ProductLineParentConfig | null {
-  return LINE_PARENTS.find((parent) => parent.category === category) ?? null
+  return (
+    LINE_PARENTS.find(
+      (parent) => parent.category === category && !parent.isMember,
+    ) ?? null
+  )
+}
+
+/** Resolve the line parent config for a specific product (category or subset). */
+export function getProductLineParentConfigForProduct(
+  product: Pick<Product, 'id' | 'name' | 'handle' | 'category'>,
+): ProductLineParentConfig | null {
+  const byMember = LINE_PARENTS.find((parent) => parent.isMember?.(product))
+  if (byMember) return byMember
+  return getProductLineParentConfigForCategory(product.category)
+}
+
+function getLineMembers(
+  products: Product[],
+  config: ProductLineParentConfig,
+): Product[] {
+  return products.filter(
+    (product) =>
+      product.category === config.category &&
+      product.active !== false &&
+      (config.isMember ? config.isMember(product) : true),
+  )
 }
 
 function buildVariantOptions(
@@ -120,21 +200,18 @@ function buildVariantOptions(
   return options
 }
 
-/** Build a catalogue parent that owns every flavour as admin variant tiles. */
+/** Build a catalogue parent that owns every flavour/colour as admin variant tiles. */
 export function buildProductLineParent(
   members: Product[],
   config: ProductLineParentConfig,
 ): Product | null {
-  const inCategory = members.filter(
-    (product) => product.category === config.category && product.active !== false,
-  )
-  if (inCategory.length <= 1) return null
+  const inLine = getLineMembers(members, config)
+  if (inLine.length <= 1) return null
 
-  const options = buildVariantOptions(inCategory, config)
+  const options = buildVariantOptions(inLine, config)
   if (options.length <= 1) return null
 
-  const primary =
-    sortProductsByLineOrder(inCategory, config.order)[0] ?? inCategory[0]
+  const primary = sortProductsByLineOrder(inLine, config.order)[0] ?? inLine[0]
   const ratings = resolveProductRatings(primary)
 
   return {
@@ -147,7 +224,9 @@ export function buildProductLineParent(
     image: options[0]?.url || primary.image,
     description: primary.description,
     stock: options.reduce((sum, option) => sum + (option.stock ?? 0), 0),
-    tags: primary.tags,
+    tags: Array.from(
+      new Set(inLine.flatMap((product) => product.tags ?? [])),
+    ),
     variantImages: options.map((option) => option.url),
     variantImageOptions: options,
     galleryImages: primary.galleryImages ?? [],
@@ -169,31 +248,31 @@ export function buildAllProductLineParents(products: Product[]): Product[] {
 }
 
 /**
- * Replace per-flavour SKUs with one parent card for configured categories.
+ * Replace per-flavour / per-colour SKUs with one parent card for configured lines.
  * Other products pass through unchanged.
  */
 export function collapseProductsIntoLineParents(
   products: Product[],
 ): Product[] {
-  const collapsedCategories = new Set<string>()
+  const collapsedIds = new Set<string>()
   const parents: Product[] = []
 
   for (const config of LINE_PARENTS) {
     const parent = buildProductLineParent(products, config)
     if (!parent) continue
     parents.push(parent)
-    collapsedCategories.add(config.category)
+    for (const member of getLineMembers(products, config)) {
+      collapsedIds.add(member.id)
+    }
   }
 
   if (parents.length === 0) return products
 
-  const rest = products.filter(
-    (product) => !collapsedCategories.has(product.category),
-  )
+  const rest = products.filter((product) => !collapsedIds.has(product.id))
   return [...parents, ...rest]
 }
 
-/** Resolve cart product id to the real Shopify flavour SKU when present. */
+/** Resolve cart product id to the real Shopify flavour/colour SKU when present. */
 export function resolveCartProductId(
   product: Pick<Product, 'id' | 'variantImageOptions'>,
   options?: { variantImage?: string; variantLabel?: string },
@@ -230,8 +309,7 @@ export function isProductLineParentProduct(
 
 /**
  * For homepage carousels (best sellers, new arrivals): if any selected product
- * belongs to a flavour line, replace those SKUs with one parent card that owns
- * all flavours (same UX as the shop category grid).
+ * belongs to a flavour/colour line, replace those SKUs with one parent card.
  */
 export function presentProductsForStorefrontSections(
   selected: Product[],
@@ -239,17 +317,17 @@ export function presentProductsForStorefrontSections(
 ): Product[] {
   if (selected.length === 0) return selected
 
-  const insertedCategories = new Set<string>()
+  const insertedLineIds = new Set<string>()
   const result: Product[] = []
 
   for (const product of selected) {
-    const config = getProductLineParentConfigForCategory(product.category)
+    const config = getProductLineParentConfigForProduct(product)
     if (!config) {
       result.push(product)
       continue
     }
 
-    if (insertedCategories.has(config.category)) continue
+    if (insertedLineIds.has(config.id)) continue
 
     const parent = buildProductLineParent(allProducts, config)
     if (!parent) {
@@ -257,8 +335,10 @@ export function presentProductsForStorefrontSections(
       continue
     }
 
-    const selectedInLine = selected.filter(
-      (item) => item.category === config.category,
+    const selectedInLine = selected.filter((item) =>
+      config.isMember
+        ? config.isMember(item)
+        : item.category === config.category,
     )
     const mergedTags = [
       ...new Set([
@@ -271,7 +351,7 @@ export function presentProductsForStorefrontSections(
       ...parent,
       tags: mergedTags,
     })
-    insertedCategories.add(config.category)
+    insertedLineIds.add(config.id)
   }
 
   return result

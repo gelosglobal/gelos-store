@@ -57,6 +57,7 @@ export function CartSummaryPanel({
 }: CartSummaryPanelProps) {
   const [promoOpen, setPromoOpen] = useState(Boolean(appliedPromo))
   const [isRedirecting, setIsRedirecting] = useState(false)
+  const [checkoutEmail, setCheckoutEmail] = useState('')
   const { enabled: shopifyCheckoutEnabled, isLoading: shopifyStatusLoading } =
     useShopifyCommerce()
   const { locationId, location } = useLocation()
@@ -67,16 +68,27 @@ export function CartSummaryPanel({
 
     try {
       const visitorId = getOrCreateVisitorId()
+      const eventId = getInitiateCheckoutEventId(visitorId)
+      const value = convertForLocation(total, locationId)
+
       trackInitiateCheckout(
         items.map((item) => ({ id: item.id, quantity: item.quantity })),
-        convertForLocation(total, locationId),
+        value,
         location.currencyCode,
-        getInitiateCheckoutEventId(visitorId),
+        eventId,
       )
 
       const checkoutUrl = await startShopifyCheckout({
         items,
         countryCode: shopifyCountryCodeFromLocation(locationId),
+        locationId,
+        email: checkoutEmail.trim() || undefined,
+        visitorId,
+        eventId,
+        eventSourceUrl:
+          typeof window !== 'undefined' ? window.location.href : undefined,
+        total: value,
+        currency: location.currencyCode,
       })
       window.location.href = checkoutUrl
     } catch (error) {
@@ -124,21 +136,41 @@ export function CartSummaryPanel({
       )}
 
       {shopifyCheckoutEnabled ? (
-        <button
-          type="button"
-          onClick={() => void handleShopifyCheckout()}
-          disabled={isRedirecting || shopifyStatusLoading || items.length === 0}
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-neutral-950 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {isRedirecting ? (
-            <>
-              <Loader2 className="size-4 animate-spin" />
-              Redirecting to checkout…
-            </>
-          ) : (
-            'Checkout'
-          )}
-        </button>
+        <div className="mt-5 space-y-3">
+          <div>
+            <label
+              htmlFor="cart-checkout-email"
+              className="text-xs font-medium text-neutral-600"
+            >
+              Email for order updates{' '}
+              <span className="font-normal text-neutral-400">(recommended)</span>
+            </label>
+            <input
+              id="cart-checkout-email"
+              type="email"
+              autoComplete="email"
+              value={checkoutEmail}
+              onChange={(e) => setCheckoutEmail(e.target.value)}
+              placeholder="you@email.com"
+              className="mt-1.5 w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-sm outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleShopifyCheckout()}
+            disabled={isRedirecting || shopifyStatusLoading || items.length === 0}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-neutral-950 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {isRedirecting ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Redirecting to checkout…
+              </>
+            ) : (
+              'Checkout'
+            )}
+          </button>
+        </div>
       ) : (
         <Link
           href="/checkout"

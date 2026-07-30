@@ -6,7 +6,13 @@ type StartShopifyCheckoutInput = {
     variantLabel?: string
   }>
   countryCode?: string
+  locationId?: string
   email?: string
+  visitorId?: string
+  eventId?: string
+  eventSourceUrl?: string
+  total?: number
+  currency?: string
 }
 
 /**
@@ -26,6 +32,12 @@ export async function startShopifyCheckout(
     body: JSON.stringify({
       email: input.email?.trim() || undefined,
       countryCode: input.countryCode,
+      locationId: input.locationId,
+      visitorId: input.visitorId,
+      eventId: input.eventId,
+      eventSourceUrl: input.eventSourceUrl,
+      total: input.total,
+      currency: input.currency,
       items: input.items.map((item) => ({
         id: item.id,
         quantity: item.quantity,

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { sendCapiInitiateCheckout } from '@/lib/meta-conversions-api'
 import { createShopifyCheckout } from '@/lib/shopify/cart'
 import { isShopifyCommerceEnabled } from '@/lib/shopify/config'
 
@@ -8,6 +9,12 @@ export const dynamic = 'force-dynamic'
 const bodySchema = z.object({
   email: z.union([z.string().email(), z.literal('')]).optional(),
   countryCode: z.string().trim().length(2).optional(),
+  locationId: z.enum(['international', 'nigeria', 'ghana', 'usa']).optional(),
+  visitorId: z.string().min(8).max(120).optional(),
+  eventId: z.string().min(8).max(160).optional(),
+  eventSourceUrl: z.string().url().optional(),
+  total: z.number().nonnegative().optional(),
+  currency: z.string().trim().min(3).max(3).optional(),
   items: z
     .array(
       z.object({
@@ -19,6 +26,16 @@ const bodySchema = z.object({
     )
     .min(1),
 })
+
+function locationIdFromCountryCode(
+  countryCode: string | undefined,
+): 'international' | 'nigeria' | 'ghana' | 'usa' | undefined {
+  const code = countryCode?.trim().toUpperCase()
+  if (code === 'GH') return 'ghana'
+  if (code === 'NG') return 'nigeria'
+  if (code === 'US') return 'usa'
+  return undefined
+}
 
 /**
  * Create a Shopify cart and return the hosted checkout URL.
@@ -43,8 +60,13 @@ export async function POST(request: Request) {
       )
     }
 
+    const email = parsed.data.email?.trim() || undefined
+    const locationId =
+      parsed.data.locationId ??
+      locationIdFromCountryCode(parsed.data.countryCode)
+
     const result = await createShopifyCheckout({
-      email: parsed.data.email?.trim() || undefined,
+      email,
       countryCode: parsed.data.countryCode,
       lines: parsed.data.items.map((item) => ({
         productId: item.id,
@@ -53,6 +75,25 @@ export async function POST(request: Request) {
         variantLabel: item.variantLabel,
       })),
     })
+
+    // Mirror browser InitiateCheckout on CAPI (same event_id) so Meta can
+    // merge Pixel + server params for Event Match Quality.
+    if (parsed.data.eventId && parsed.data.total !== undefined) {
+      await sendCapiInitiateCheckout({
+        eventId: parsed.data.eventId,
+        total: parsed.data.total,
+        currency: parsed.data.currency || 'GHS',
+        items: parsed.data.items.map((item) => ({
+          id: item.id,
+          quantity: item.quantity,
+        })),
+        customerEmail: email,
+        locationId,
+        externalId: parsed.data.visitorId,
+        eventSourceUrl: parsed.data.eventSourceUrl,
+        request,
+      })
+    }
 
     return NextResponse.json({
       ok: true,

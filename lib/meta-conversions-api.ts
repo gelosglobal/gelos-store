@@ -488,6 +488,19 @@ export type CapiInitiateCheckoutInput = {
   request?: Request
 }
 
+function splitCustomerName(fullName: string | undefined): {
+  firstName?: string
+  lastName?: string
+} {
+  const parts = fullName?.trim().split(/\s+/).filter(Boolean) ?? []
+  if (parts.length === 0) return {}
+  if (parts.length === 1) return { firstName: parts[0] }
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(' '),
+  }
+}
+
 /** Server-side InitiateCheckout from the checkout draft endpoint. */
 export async function sendCapiInitiateCheckout(
   input: CapiInitiateCheckoutInput,
@@ -498,6 +511,7 @@ export async function sendCapiInitiateCheckout(
   const locationId =
     input.locationId ?? locationIdFromCurrency(input.currency)
   const addressHints = parseAddressHints(input.shippingAddress, locationId)
+  const { firstName, lastName } = splitCustomerName(input.customerName)
   const value = Number(input.total)
   if (!Number.isFinite(value) || value < 0) return false
 
@@ -512,7 +526,8 @@ export async function sendCapiInitiateCheckout(
     userData: {
       email: input.customerEmail,
       phone: input.customerPhone,
-      firstName: input.customerName,
+      firstName,
+      lastName,
       locationId,
       externalId: input.externalId,
       ...addressHints,

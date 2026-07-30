@@ -51,6 +51,9 @@ export function getToothbrushStyleCover(
 }
 
 export function getToothbrushStyleLabel(name: string): string {
+  const colour = name.match(/SonicWave G1 Series Electric Toothbrush\s*[-–]\s*(.+)$/i)
+  if (colour?.[1]?.trim()) return colour[1].trim()
+
   return name
     .replace(/ \(3-pack\)$/i, '')
     .replace(/ Set$/i, '')

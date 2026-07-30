@@ -1,7 +1,7 @@
 import { normalizeImageUrl } from '@/lib/image-url'
 import {
   buildProductLineParent,
-  getProductLineParentConfigForCategory,
+  getProductLineParentConfigForProduct,
 } from '@/lib/product-line-parents'
 import {
   getAvailableStockForVariant,
@@ -13,55 +13,9 @@ import type { ProductVariantOption } from '@/lib/types/product-variant'
 
 export { productNeedsVariantChoice }
 
-const SONICWAVE_NAME_RE = /sonicwave\s*g1\s*series\s*electric\s*toothbrush/i
-
-function sonicwaveColorLabel(name: string): string {
-  const match = name.match(/-\s*([^-]+)\s*$/)
-  return match?.[1]?.trim() || name
-}
-
-/** Group SonicWave colour SKUs into one style picker for bundles. */
-function buildSonicwaveChoiceProduct(
-  slotProduct: Product,
-  allProducts: Product[],
-): Product | null {
-  if (!SONICWAVE_NAME_RE.test(slotProduct.name)) return null
-
-  const siblings = allProducts.filter(
-    (product) =>
-      product.active !== false && SONICWAVE_NAME_RE.test(product.name),
-  )
-  if (siblings.length <= 1) return null
-
-  const options: ProductVariantOption[] = []
-  const seen = new Set<string>()
-  for (const sibling of siblings) {
-    const url = normalizeImageUrl(sibling.image)
-    if (!url || seen.has(url)) continue
-    seen.add(url)
-    options.push({
-      url,
-      label: sonicwaveColorLabel(sibling.name),
-      stock: sibling.stock,
-      shopifyVariantGid: sibling.shopifyVariantGid,
-      sourceProductId: sibling.id,
-    })
-  }
-  if (options.length <= 1) return null
-
-  return {
-    ...slotProduct,
-    name: 'SonicWave G1 Electric Toothbrush',
-    variantImages: options.map((option) => option.url),
-    variantImageOptions: options,
-    carouselImages: options.map((option) => option.url),
-  }
-}
-
 /**
  * Build the product shown in the bundle flavour dialog.
- * Toothpaste/mouthwash SKUs expand into the full line of flavours;
- * SonicWave colours group as style choices;
+ * Toothpaste / mouthwash / SonicWave SKUs expand into the full line;
  * multi-style products (e.g. tongue scrapers) keep their own variants.
  */
 export function buildBundleVariantChoiceProduct(
@@ -72,10 +26,7 @@ export function buildBundleVariantChoiceProduct(
     return slotProduct
   }
 
-  const sonicwave = buildSonicwaveChoiceProduct(slotProduct, allProducts)
-  if (sonicwave) return sonicwave
-
-  const config = getProductLineParentConfigForCategory(slotProduct.category)
+  const config = getProductLineParentConfigForProduct(slotProduct)
   if (!config) return null
 
   const parent = buildProductLineParent(allProducts, config)
