@@ -28,6 +28,9 @@ const plusJakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: 'Gelos | Premium Dental Care',
   description: 'Discover premium dental care products including whitening kits, charcoal powder, tongue scrapers, and more.',
+  other: {
+    'facebook-domain-verification': '1lbp60a0z7kieudy5y5c9zceuc2rc7',
+  },
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
