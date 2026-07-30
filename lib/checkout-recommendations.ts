@@ -11,6 +11,7 @@ import {
   resolveBundlePrice,
   sumProductPrices,
 } from '@/lib/product-bundle-pricing'
+import { resolveBundleProductIdAgainstCatalog } from '@/lib/product-bundle-id-map'
 import {
   hasVariantLevelInventory,
   sumVariantInventory,
@@ -56,7 +57,7 @@ export function productBundleToOffer(
 ): CheckoutBundleOffer {
   const productIds = getResolvableBundleProductIds(bundle.productIds, products)
   const unavailableProductIds = bundle.productIds.filter(
-    (id) => !productIds.includes(id),
+    (id) => !resolveBundleProductIdAgainstCatalog(id, products),
   )
   const firstProduct = products.find((product) =>
     productIds.includes(product.id),

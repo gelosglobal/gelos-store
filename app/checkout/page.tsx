@@ -20,9 +20,14 @@ import { getInitiateCheckoutEventId } from '@/lib/meta-event-ids'
 import { saveCheckoutDraft } from '@/lib/checkout-draft'
 import { trackVisitorFunnelEvent } from '@/lib/visitor-funnel'
 import { getOrCreateVisitorId } from '@/lib/visitor-id'
+import {
+  shopifyCountryCodeFromLocation,
+  useShopifyCommerce,
+} from '@/lib/shopify/use-shopify-commerce'
+import { startShopifyCheckout } from '@/lib/shopify/start-checkout-client'
 import { cn } from '@/lib/utils'
 
-type PaymentMethod = 'paystack' | 'stripe' | 'cod'
+type PaymentMethod = 'paystack' | 'stripe' | 'cod' | 'shopify'
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -31,6 +36,8 @@ export default function CheckoutPage() {
   const { promotions, appliedPromoCode } = useStorePromotions()
   const { market, applyShipping, isProductAvailable } = useMarketSettings()
   const { affiliateCode, affiliate } = useAffiliate()
+  const { enabled: shopifyCheckoutEnabled, isLoading: shopifyStatusLoading } =
+    useShopifyCommerce()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -49,8 +56,53 @@ export default function CheckoutPage() {
   }, [])
 
   useEffect(() => {
+    if (shopifyCheckoutEnabled) {
+      setPaymentMethod('shopify')
+      return
+    }
     setPaymentMethod(market.defaultPaymentMethod)
-  }, [market.defaultPaymentMethod, locationId])
+  }, [market.defaultPaymentMethod, locationId, shopifyCheckoutEnabled])
+
+  // Shopify mode: skip this page and go straight to hosted checkout.
+  const shopifyRedirectStarted = useRef(false)
+  useEffect(() => {
+    if (
+      !shopifyCheckoutEnabled ||
+      shopifyStatusLoading ||
+      !isHydrated ||
+      items.length === 0 ||
+      shopifyRedirectStarted.current
+    ) {
+      return
+    }
+
+    shopifyRedirectStarted.current = true
+    setIsSubmitting(true)
+
+    void (async () => {
+      try {
+        const checkoutUrl = await startShopifyCheckout({
+          items,
+          countryCode: shopifyCountryCodeFromLocation(locationId),
+        })
+        window.location.href = checkoutUrl
+      } catch (error) {
+        shopifyRedirectStarted.current = false
+        setIsSubmitting(false)
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : 'Could not start Shopify checkout',
+        )
+      }
+    })()
+  }, [
+    shopifyCheckoutEnabled,
+    shopifyStatusLoading,
+    isHydrated,
+    items,
+    locationId,
+  ])
 
   const totals = useMemo(
     () =>
@@ -151,15 +203,27 @@ export default function CheckoutPage() {
       }
     }
 
-    if (cartHasUnavailableItems) {
+    if (cartHasUnavailableItems && !shopifyCheckoutEnabled) {
       toast.error(
         'Some items are not available in this market. Remove them to continue.',
       )
       return
     }
 
-    if (!market.payments[paymentMethod]) {
+    if (
+      !shopifyCheckoutEnabled &&
+      paymentMethod !== 'shopify' &&
+      !market.payments[paymentMethod]
+    ) {
       toast.error('That payment method is not available in this market.')
+      return
+    }
+
+    if (
+      (paymentMethod === 'shopify' || shopifyCheckoutEnabled) &&
+      !email.trim()
+    ) {
+      toast.error('Enter your email to continue to checkout')
       return
     }
 
@@ -178,6 +242,37 @@ export default function CheckoutPage() {
     )
 
     try {
+      if (paymentMethod === 'shopify' || shopifyCheckoutEnabled) {
+        const response = await fetch('/api/shopify/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: email.trim() || undefined,
+            countryCode: shopifyCountryCodeFromLocation(locationId),
+            items: items.map((item) => ({
+              id: item.id,
+              quantity: item.quantity,
+              variantImage: item.variantImage,
+              variantLabel: item.variantLabel,
+            })),
+          }),
+        })
+
+        const data = (await response.json()) as {
+          ok?: boolean
+          checkoutUrl?: string
+          error?: string
+        }
+
+        if (!response.ok || !data.checkoutUrl) {
+          throw new Error(data.error ?? 'Could not start Shopify checkout')
+        }
+
+        // Hosted Shopify Checkout — Meta Purchase fires via Meta sales channel.
+        window.location.href = data.checkoutUrl
+        return
+      }
+
       if (paymentMethod === 'cod') {
         const response = await fetch('/api/checkout/cod', {
           method: 'POST',
@@ -260,10 +355,13 @@ export default function CheckoutPage() {
     }
   }
 
-  if (!isHydrated) {
+  if (!isHydrated || shopifyStatusLoading || (shopifyCheckoutEnabled && isSubmitting)) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-neutral-50 text-neutral-500">
-        Loading checkout…
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 bg-neutral-50 text-neutral-500">
+        <Loader2 className="size-5 animate-spin" />
+        {shopifyCheckoutEnabled
+          ? 'Redirecting to Shopify Checkout…'
+          : 'Loading checkout…'}
       </div>
     )
   }
@@ -389,6 +487,29 @@ export default function CheckoutPage() {
                 Payment method
               </h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {shopifyCheckoutEnabled || shopifyStatusLoading ? (
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('shopify')}
+                    className={cn(
+                      'rounded-2xl border px-4 py-4 text-left transition-colors sm:col-span-2',
+                      paymentMethod === 'shopify'
+                        ? 'border-neutral-950 bg-neutral-50'
+                        : 'border-neutral-200 hover:border-neutral-400',
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Lock className="size-4" />
+                      <span className="text-sm font-semibold">
+                        Checkout securely
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-neutral-500">
+                      Paystack, cash on delivery & more via Shopify Checkout
+                    </p>
+                  </button>
+                ) : (
+                  <>
                 {market.payments.paystack ? (
                   <button
                     type="button"
@@ -453,6 +574,8 @@ export default function CheckoutPage() {
                     </p>
                   </button>
                 ) : null}
+                  </>
+                )}
               </div>
             </div>
 
@@ -466,14 +589,21 @@ export default function CheckoutPage() {
                   <Loader2 className="size-4 animate-spin" />
                   {paymentMethod === 'cod'
                     ? 'Placing order…'
-                    : paymentMethod === 'stripe'
-                      ? 'Redirecting to Stripe…'
-                      : 'Redirecting to Paystack…'}
+                    : paymentMethod === 'shopify'
+                      ? 'Redirecting to Shopify…'
+                      : paymentMethod === 'stripe'
+                        ? 'Redirecting to Stripe…'
+                        : 'Redirecting to Paystack…'}
                 </>
               ) : paymentMethod === 'cod' ? (
                 <>
                   <Banknote className="size-4" />
                   Place order — cash on delivery
+                </>
+              ) : paymentMethod === 'shopify' ? (
+                <>
+                  <Lock className="size-4" />
+                  Continue to Shopify Checkout
                 </>
               ) : paymentMethod === 'stripe' ? (
                 <>
@@ -491,6 +621,11 @@ export default function CheckoutPage() {
             <p className="mt-4 text-center text-xs text-neutral-500">
               {paymentMethod === 'cod' ? (
                 <>You&apos;ll pay in cash when your order is delivered.</>
+              ) : paymentMethod === 'shopify' ? (
+                <>
+                  You&apos;ll choose Paystack, cash on delivery, or other
+                  methods on Shopify Checkout ({location.label}).
+                </>
               ) : paymentMethod === 'stripe' ? (
                 <>
                   You&apos;ll be charged in{' '}

@@ -16,7 +16,10 @@ import {
   getMissingBundleProductIds,
   type CheckoutBundleOffer,
 } from '@/lib/checkout-recommendations'
-import { productNeedsBundleVariantChoice } from '@/lib/bundle-variant-selection'
+import {
+  getBundleVariantChoiceProducts,
+  resolveBundleVariantSelection,
+} from '@/lib/bundle-variant-selection'
 import { getBundleLineUnitPrice } from '@/lib/product-bundle-pricing'
 import { getBundleAddToCartOptions } from '@/lib/cart-merge-requests'
 import { getDefaultVariantDisplayImage } from '@/lib/product-variant-images'
@@ -94,39 +97,44 @@ export function BundleUpsellCard({
     return badges
   }, [offer.badge, activeProductBadge])
 
-  const variantChoiceProducts = useMemo(
-    () =>
-      missingIds
-        .map((id) => products.find((product) => product.id === id))
-        .filter(
-          (product): product is Product =>
-            Boolean(product && productNeedsBundleVariantChoice(product)),
-        ),
-    [missingIds, products],
-  )
+  const variantChoiceProducts = useMemo(() => {
+    const missingProducts = missingIds
+      .map((id) => products.find((product) => product.id === id))
+      .filter((product): product is Product => Boolean(product))
+
+    return getBundleVariantChoiceProducts(missingProducts, products)
+  }, [missingIds, products])
 
   const commitAddBundle = (variantSelections: Record<string, string> = {}) => {
     if (missingIds.length === 0) return
 
     const bundlePrice = getBundleOfferPrice(offer, products)
     const result = addItems(
-      missingIds.map((productId) => {
-        const product = products.find((item) => item.id === productId)
+      missingIds.map((slotProductId) => {
+        const choiceProduct = variantChoiceProducts.find(
+          (product) => product.id === slotProductId,
+        )
+        const resolved = resolveBundleVariantSelection(
+          slotProductId,
+          choiceProduct,
+          variantSelections[slotProductId],
+          products,
+        )
         const unitPrice = getBundleLineUnitPrice(
-          productId,
+          slotProductId,
           bundlePrice,
           offer.productIds,
           products,
         )
 
         return {
-          productId,
+          productId: resolved.productId,
           quantity: 1,
-          options: product
+          options: resolved.product
             ? getBundleAddToCartOptions(
-                product,
+                resolved.product,
                 unitPrice,
-                variantSelections[productId],
+                resolved.variantImage,
               )
             : unitPrice !== undefined
               ? { unitPrice }

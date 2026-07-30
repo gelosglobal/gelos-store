@@ -1,39 +1,66 @@
-/** Cover art for wellness flavour picker on PDP */
-export const wellnessFlavorCoverByProductId: Record<string, string> = {
+import { isWellnessStandaloneProduct } from '@/lib/product-content-slug'
+import {
+  filterProductsByLineOrder,
+  lookupByProductLineKey,
+} from '@/lib/product-line-keys'
+import type { Product } from '@/lib/types/product'
+
+/** Cover art for wellness flavour picker on PDP. */
+export const wellnessFlavorCoverByKey: Record<string, string> = {
+  'grape-mint-fruit-energy': '/gelos/grape-mint-fruit-energy.png',
+  'full-energy-inhaler-grape-mint': '/gelos/grape-mint-fruit-energy.png',
   '9': '/gelos/grape-mint-fruit-energy.png',
+
+  'aromatherapy-nasal-inhaler': '/gelos/mango-inhaler.png',
   '5': '/gelos/mango-inhaler.png',
 }
 
-export const wellnessFlavorOrder = ['9', '5'] as const
+export const wellnessFlavorOrder = [
+  'grape-mint-fruit-energy',
+  'full-energy-inhaler-grape-mint',
+  'aromatherapy-nasal-inhaler',
+  '9',
+  '5',
+] as const
 
 /** Wellness SKUs with no cross-product flavour picker (serums, oils, etc.). */
 export const wellnessStandaloneProductIds = ['28', '29', '31'] as const
 
-export function isWellnessStandaloneProduct(productId: string): boolean {
-  return (wellnessStandaloneProductIds as readonly string[]).includes(productId)
-}
+export { isWellnessStandaloneProduct }
 
-export function getWellnessLineVariants<T extends { id: string }>(
-  product: T,
-  categoryVariants: T[],
-): T[] {
-  if (isWellnessStandaloneProduct(product.id)) {
+/** @deprecated Use wellnessFlavorCoverByKey */
+export const wellnessFlavorCoverByProductId = wellnessFlavorCoverByKey
+
+export function getWellnessLineVariants<
+  T extends { id: string; name?: string; handle?: string },
+>(product: T, categoryVariants: T[]): T[] {
+  if (
+    isWellnessStandaloneProduct({
+      id: product.id,
+      name: product.name ?? '',
+      handle: product.handle,
+    })
+  ) {
     return [product]
   }
 
-  const orderSet = new Set<string>(wellnessFlavorOrder)
-  const standalone = new Set<string>(wellnessStandaloneProductIds)
-
-  return categoryVariants.filter(
-    (item) => orderSet.has(item.id) && !standalone.has(item.id),
+  const line = filterProductsByLineOrder(
+    categoryVariants.map((item) => ({
+      ...item,
+      name: item.name ?? '',
+    })),
+    wellnessFlavorOrder,
   )
+
+  return line.length > 0 ? (line as T[]) : [product]
 }
 
 export function getWellnessFlavorCover(
-  productId: string,
-  fallbackImage: string,
+  product: Pick<Product, 'id' | 'name' | 'image'> & { handle?: string },
+  fallbackImage?: string,
 ): string {
-  return wellnessFlavorCoverByProductId[productId] ?? fallbackImage
+  const fallback = fallbackImage ?? product.image
+  return lookupByProductLineKey(wellnessFlavorCoverByKey, product) ?? fallback
 }
 
 export function getWellnessFlavorLabel(name: string): string {
@@ -41,5 +68,6 @@ export function getWellnessFlavorLabel(name: string): string {
     .replace(/ Fruit Energy$/i, '')
     .replace(/ Nasal Inhaler$/i, '')
     .replace(/^Aromatherapy /i, '')
+    .replace(/^Double Nasal /i, '')
     .trim()
 }

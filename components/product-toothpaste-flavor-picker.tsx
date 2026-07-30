@@ -7,6 +7,7 @@ import {
   getToothpasteFlavorLabel,
   toothpasteFlavorOrder,
 } from '@/lib/toothpaste-flavor-covers'
+import { sortProductsByLineOrder } from '@/lib/product-line-keys'
 import { getProductHref, getProductSlug } from '@/lib/product-utils'
 import type { Product } from '@/lib/types/product'
 import { cn } from '@/lib/utils'
@@ -23,12 +24,7 @@ export function ProductToothpasteFlavorPicker({
   if (products.length <= 1) return null
 
   const currentSlug = getProductSlug(currentProduct)
-  const orderIndex = new Map(
-    toothpasteFlavorOrder.map((id, index) => [id, index]),
-  )
-  const sorted = [...products].sort(
-    (a, b) => (orderIndex.get(a.id) ?? 99) - (orderIndex.get(b.id) ?? 99),
-  )
+  const sorted = sortProductsByLineOrder(products, toothpasteFlavorOrder)
 
   return (
     <div className="pt-3">
@@ -39,12 +35,12 @@ export function ProductToothpasteFlavorPicker({
         {sorted.map((variant) => {
           const slug = getProductSlug(variant)
           const isActive = slug === currentSlug
-          const coverSrc = getToothpasteFlavorCover(variant.id, variant.image)
+          const coverSrc = getToothpasteFlavorCover(variant)
           const flavorLabel = getToothpasteFlavorLabel(variant.name)
 
           return (
             <Link
-              key={variant.id}
+              key={variant.handle || variant.id}
               href={getProductHref(variant)}
               title={variant.name}
               className={cn(

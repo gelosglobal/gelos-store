@@ -22,4 +22,12 @@ export type Product = {
   carouselImages: string[]
   /** When false, product is hidden from the storefront (draft). */
   active?: boolean
+  /** Shopify Product GID when catalog is sourced from Storefront API. */
+  shopifyProductGid?: string
+  /** Default Shopify variant GID (merchandiseId) for cart/checkout. */
+  shopifyVariantGid?: string
+  /** Shopify product handle (URL slug on Shopify). */
+  handle?: string
+  /** Parsed Shopify custom.pdp metafield (headline, FAQ, usage steps, etc.). */
+  shopifyPdpContent?: Partial<import('@/lib/product-pdp-content').ProductPdpContent> | null
 }

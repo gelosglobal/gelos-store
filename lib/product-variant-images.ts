@@ -164,6 +164,12 @@ function dedupeVariantOptions(
       url,
       label: option.label,
       ...(option.stock !== undefined ? { stock: option.stock } : {}),
+      ...(option.shopifyVariantGid
+        ? { shopifyVariantGid: option.shopifyVariantGid }
+        : {}),
+      ...(option.sourceProductId
+        ? { sourceProductId: option.sourceProductId }
+        : {}),
     })
   }
 
@@ -229,6 +235,12 @@ export function getProductVariantPickerOptions(product: {
         url: normalizeImageUrl(option.url),
         label: resolveVariantOptionLabel(product, option.url),
         ...(option.stock !== undefined ? { stock: option.stock } : {}),
+        ...(option.shopifyVariantGid
+          ? { shopifyVariantGid: option.shopifyVariantGid }
+          : {}),
+        ...(option.sourceProductId
+          ? { sourceProductId: option.sourceProductId }
+          : {}),
       })),
     )
   }

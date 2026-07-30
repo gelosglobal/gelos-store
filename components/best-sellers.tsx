@@ -6,21 +6,21 @@ import { useMemo } from 'react'
 import { BestSellerCard } from '@/components/best-seller-card'
 import { useProducts } from '@/components/products-provider'
 import { bestSellerIds } from '@/lib/best-seller-meta'
+import { presentProductsForStorefrontSections } from '@/lib/product-line-parents'
 import { orderProductsForTagCollection } from '@/lib/product-tags'
 
 export function BestSellers() {
   const { products, getTagCollectionOrder, isLoading } = useProducts()
 
-  const bestSellers = useMemo(
-    () =>
-      orderProductsForTagCollection(
-        products,
-        'best-seller',
-        getTagCollectionOrder('best-seller'),
-        bestSellerIds,
-      ),
-    [products, getTagCollectionOrder],
-  )
+  const bestSellers = useMemo(() => {
+    const tagged = orderProductsForTagCollection(
+      products,
+      'best-seller',
+      getTagCollectionOrder('best-seller'),
+      bestSellerIds,
+    )
+    return presentProductsForStorefrontSections(tagged, products)
+  }, [products, getTagCollectionOrder])
 
   if (isLoading || bestSellers.length === 0) return null
 

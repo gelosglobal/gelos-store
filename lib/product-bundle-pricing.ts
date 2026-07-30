@@ -1,11 +1,12 @@
 import type { Product } from '@/lib/types/product'
+import type { ProductBundle } from '@/lib/types/product-bundle'
+import { remapBundleProductIds } from '@/lib/product-bundle-id-map'
 
 export function getResolvableBundleProductIds(
   productIds: string[],
   products: Product[],
 ): string[] {
-  const available = new Set(products.map((product) => product.id))
-  return productIds.filter((id) => available.has(id))
+  return remapBundleProductIds(productIds, products)
 }
 
 export function sumProductPrices(

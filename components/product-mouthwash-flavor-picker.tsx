@@ -6,6 +6,7 @@ import {
   getMouthwashFlavorCover,
   mouthwashFlavorOrder,
 } from '@/lib/mouthwash-flavor-covers'
+import { sortProductsByLineOrder } from '@/lib/product-line-keys'
 import { getProductHref, getProductSlug } from '@/lib/product-utils'
 import type { Product } from '@/lib/types/product'
 import { cn } from '@/lib/utils'
@@ -22,13 +23,7 @@ export function ProductMouthwashFlavorPicker({
   if (products.length <= 1) return null
 
   const currentSlug = getProductSlug(currentProduct)
-  const orderIndex = new Map(
-    mouthwashFlavorOrder.map((id, index) => [id, index]),
-  )
-  const sorted = [...products].sort(
-    (a, b) =>
-      (orderIndex.get(a.id) ?? 99) - (orderIndex.get(b.id) ?? 99),
-  )
+  const sorted = sortProductsByLineOrder(products, mouthwashFlavorOrder)
 
   return (
     <div className="pt-3">
@@ -39,14 +34,14 @@ export function ProductMouthwashFlavorPicker({
         {sorted.map((variant) => {
           const slug = getProductSlug(variant)
           const isActive = slug === currentSlug
-          const coverSrc = getMouthwashFlavorCover(variant.id, variant.image)
+          const coverSrc = getMouthwashFlavorCover(variant)
           const flavorLabel = variant.name
             .replace(/ Foaming Mouthwash$/i, '')
             .trim()
 
           return (
             <Link
-              key={variant.id}
+              key={variant.handle || variant.id}
               href={getProductHref(variant)}
               title={variant.name}
               className={cn(

@@ -2,7 +2,7 @@ import type { ProductPdpContent } from '@/lib/product-pdp-content'
 import type { Product } from '@/lib/types/product'
 import { normalizeImageUrl } from '@/lib/image-url'
 import { getCodeDefaultGalleryImages } from '@/lib/product-gallery-images'
-import { getProductSlug } from '@/lib/product-utils'
+import { getProductContentSlug } from '@/lib/product-content-slug'
 
 const accessoriesHighlights: ProductPdpContent['highlights'] = [
   { label: 'Fun extras', emoji: '✨' },
@@ -99,7 +99,7 @@ function mergeGallery(base: ProductPdpContent): ProductPdpContent {
 export function getAccessoriesProductContent(
   product: Product,
 ): ProductPdpContent {
-  const slug = getProductSlug(product)
+  const slug = getProductContentSlug(product)
   const base = contentBySlug[slug] ?? defaultAccessoriesContent(product)
   return mergeGallery(base)
 }

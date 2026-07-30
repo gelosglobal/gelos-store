@@ -16,6 +16,8 @@ import {
   getAdminGalleryMedia,
   getAdminCarouselImages,
   getProductCarouselImages,
+  normalizeGalleryImages,
+  parseGalleryMediaItem,
 } from '@/lib/product-gallery-images'
 import {
   getAdminVariantImages,
@@ -39,6 +41,7 @@ import {
   isGenericMultiFlavourProduct,
 } from '@/lib/variant-display'
 import { findVariantOptionByFlavourSlug } from '@/lib/shop-catalog-items'
+import { resolveCartProductId } from '@/lib/product-line-parents'
 import type { Product } from '@/lib/types/product'
 
 type ProductEnhancedPdpProps = {
@@ -132,10 +135,15 @@ export function ProductEnhancedPdp({
     })
   }, [activeImage, product])
 
-  const featureMedia = useMemo(
-    () => getAdminGalleryMedia(product),
-    [product],
-  )
+  const featureMedia = useMemo(() => {
+    const fromProduct = getAdminGalleryMedia(product)
+    if (fromProduct.length > 0) return fromProduct
+
+    // Fallback: gallery URLs inside custom.pdp / code content defaults.
+    return normalizeGalleryImages(content.galleryImages)
+      .map(parseGalleryMediaItem)
+      .filter((item): item is NonNullable<typeof item> => item !== null)
+  }, [content.galleryImages, product])
 
   const featureImages = useMemo(
     () => featureMedia.filter((item) => item.type === 'image').map((item) => item.url),
@@ -212,7 +220,10 @@ export function ProductEnhancedPdp({
       product,
       activeImage,
     )
-    addItem(product.id, quantity, { variantImage, variantLabel })
+    addItem(resolveCartProductId(product, { variantImage, variantLabel }), quantity, {
+      variantImage,
+      variantLabel,
+    })
   }
 
   return (
@@ -448,7 +459,11 @@ export function ProductEnhancedPdp({
           product={product}
           quantity={quantity}
           onConfirm={({ variantImage, variantLabel }) => {
-            addItem(product.id, quantity, { variantImage, variantLabel })
+            addItem(
+              resolveCartProductId(product, { variantImage, variantLabel }),
+              quantity,
+              { variantImage, variantLabel },
+            )
             if (variantImage) selectFlavourImage(variantImage)
           }}
         />

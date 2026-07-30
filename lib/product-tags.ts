@@ -108,9 +108,12 @@ export function orderProductsForTagCollection(
 
   if (order) {
     const byId = new Map(products.map((p) => [p.id, p]))
-    return order
+    const ordered = order
       .map((id) => byId.get(id))
       .filter((p): p is Product => Boolean(p))
+    // Curated lists may still use Prisma/mock IDs while the catalog is Shopify.
+    // Fall back to tag matching so homepage / shop sections stay populated.
+    if (ordered.length > 0) return ordered
   }
 
   return filterProductsByTag(products, tag, legacyOrder)

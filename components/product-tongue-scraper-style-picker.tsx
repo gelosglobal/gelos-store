@@ -7,6 +7,7 @@ import {
   getTongueScraperStyleLabel,
   tongueScraperStyleOrder,
 } from '@/lib/tongue-scraper-style-covers'
+import { sortProductsByLineOrder } from '@/lib/product-line-keys'
 import { getProductHref, getProductSlug } from '@/lib/product-utils'
 import type { Product } from '@/lib/types/product'
 import { cn } from '@/lib/utils'
@@ -21,12 +22,7 @@ export function ProductTongueScraperStylePicker({
   currentProduct,
 }: ProductTongueScraperStylePickerProps) {
   const currentSlug = getProductSlug(currentProduct)
-  const orderIndex = new Map(
-    tongueScraperStyleOrder.map((id, index) => [id, index]),
-  )
-  const sorted = [...products].sort(
-    (a, b) => (orderIndex.get(a.id) ?? 99) - (orderIndex.get(b.id) ?? 99),
-  )
+  const sorted = sortProductsByLineOrder(products, tongueScraperStyleOrder)
 
   if (sorted.length === 0) return null
 
@@ -39,12 +35,12 @@ export function ProductTongueScraperStylePicker({
         {sorted.map((variant) => {
           const slug = getProductSlug(variant)
           const isActive = slug === currentSlug
-          const coverSrc = getTongueScraperStyleCover(variant.id, variant.image)
+          const coverSrc = getTongueScraperStyleCover(variant)
           const styleLabel = getTongueScraperStyleLabel(variant.name)
 
           return (
             <Link
-              key={variant.id}
+              key={variant.handle || variant.id}
               href={getProductHref(variant)}
               title={variant.name}
               className={cn(
@@ -67,7 +63,9 @@ export function ProductTongueScraperStylePicker({
               <span
                 className={cn(
                   'border-t border-neutral-200/80 px-1 py-1 text-center text-[9px] font-semibold leading-tight sm:text-[10px]',
-                  isActive ? 'bg-neutral-950 text-white' : 'bg-white text-neutral-700',
+                  isActive
+                    ? 'bg-neutral-950 text-white'
+                    : 'bg-white text-neutral-700',
                 )}
               >
                 {styleLabel}

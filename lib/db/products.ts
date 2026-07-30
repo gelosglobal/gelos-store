@@ -10,6 +10,15 @@ import {
   normalizeVariantImageOptions,
   normalizeVariantImages,
 } from '@/lib/product-variant-images'
+import { isShopifyCommerceEnabled } from '@/lib/shopify/config'
+import {
+  getShopifyProductBySlugOrId,
+  getShopifyProducts,
+} from '@/lib/shopify/products'
+import {
+  buildProductLineParent,
+  getProductLineParentConfigBySlug,
+} from '@/lib/product-line-parents'
 import type { Product } from '@/lib/types/product'
 
 function prismaToProduct(doc: PrismaProduct): Product {
@@ -51,6 +60,15 @@ function mockFallback(): Product[] {
 }
 
 export async function getAllProducts(): Promise<Product[]> {
+  if (isShopifyCommerceEnabled()) {
+    try {
+      return await getShopifyProducts()
+    } catch (error) {
+      console.error('[getAllProducts] Shopify Storefront failed', error)
+      // Fall through to Prisma / mock so the site still renders.
+    }
+  }
+
   if (!isDatabaseConfigured()) {
     return mockFallback()
   }
@@ -72,6 +90,26 @@ export async function getAllProducts(): Promise<Product[]> {
 export async function getProductBySlugOrId(
   slugOrId: string,
 ): Promise<Product | null> {
+  const lineParentConfig = getProductLineParentConfigBySlug(slugOrId)
+  if (lineParentConfig) {
+    try {
+      const all = await getAllProducts()
+      const parent = buildProductLineParent(all, lineParentConfig)
+      if (parent) return parent
+    } catch (error) {
+      console.error('[getProductBySlugOrId] line parent failed', error)
+    }
+  }
+
+  if (isShopifyCommerceEnabled()) {
+    try {
+      const shopifyProduct = await getShopifyProductBySlugOrId(slugOrId)
+      if (shopifyProduct) return shopifyProduct
+    } catch (error) {
+      console.error('[getProductBySlugOrId] Shopify Storefront failed', error)
+    }
+  }
+
   if (!isDatabaseConfigured()) {
     const found = mockProducts.find(
       (p) => p.id === slugOrId || getProductSlug(p) === slugOrId,

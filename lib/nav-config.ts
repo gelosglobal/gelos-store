@@ -7,7 +7,6 @@ import {
   Waves,
   LayoutGrid,
   Package,
-  Percent,
   ShowerHead,
   Sparkles,
   ScanFace,
@@ -137,8 +136,8 @@ export const navCategories: NavCategory[] = [
   },
   {
     id: 'packages',
-    label: 'Discounted packages',
-    icon: Percent,
+    label: 'Bundles',
+    icon: Package,
     href: '/shop?bundles=true',
   },
   {

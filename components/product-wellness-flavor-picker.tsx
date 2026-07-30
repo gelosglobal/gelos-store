@@ -7,6 +7,7 @@ import {
   getWellnessFlavorLabel,
   wellnessFlavorOrder,
 } from '@/lib/wellness-flavor-covers'
+import { sortProductsByLineOrder } from '@/lib/product-line-keys'
 import { getProductHref, getProductSlug } from '@/lib/product-utils'
 import type { Product } from '@/lib/types/product'
 import { cn } from '@/lib/utils'
@@ -23,12 +24,7 @@ export function ProductWellnessFlavorPicker({
   if (products.length <= 1) return null
 
   const currentSlug = getProductSlug(currentProduct)
-  const orderIndex = new Map(
-    wellnessFlavorOrder.map((id, index) => [id, index]),
-  )
-  const sorted = [...products].sort(
-    (a, b) => (orderIndex.get(a.id) ?? 99) - (orderIndex.get(b.id) ?? 99),
-  )
+  const sorted = sortProductsByLineOrder(products, wellnessFlavorOrder)
 
   return (
     <div className="pt-3">
@@ -39,12 +35,12 @@ export function ProductWellnessFlavorPicker({
         {sorted.map((variant) => {
           const slug = getProductSlug(variant)
           const isActive = slug === currentSlug
-          const coverSrc = getWellnessFlavorCover(variant.id, variant.image)
+          const coverSrc = getWellnessFlavorCover(variant)
           const flavorLabel = getWellnessFlavorLabel(variant.name)
 
           return (
             <Link
-              key={variant.id}
+              key={variant.handle || variant.id}
               href={getProductHref(variant)}
               title={variant.name}
               className={cn(

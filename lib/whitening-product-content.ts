@@ -1,6 +1,6 @@
 import type { ProductPdpContent } from '@/lib/product-pdp-content'
 import type { Product } from '@/lib/types/product'
-import { getProductSlug } from '@/lib/product-utils'
+import { getProductContentSlug } from '@/lib/product-content-slug'
 import { getCodeDefaultGalleryImages } from '@/lib/product-gallery-images'
 
 const whiteningHighlights: ProductPdpContent['highlights'] = [
@@ -830,6 +830,8 @@ const contentBySlug: Record<string, ProductPdpContent> = {
   'v34-shade-correction-kit': v34Content,
   'v34-teeth-whitening-kit': v34Content,
   'led-whitening-device': ledDeviceContent,
+  // Shopify handle for the LED kit product
+  'teeth-whitening-kit': ledDeviceContent,
   'premium-whitening-strips-30-pairs': stripsContent,
   'nhpro-enamel-care': nhproEnamelCareContent,
   'hyaluronic-serum': ha5HyaluronicSerumContent,
@@ -846,7 +848,7 @@ function mergeGallery(base: ProductPdpContent): ProductPdpContent {
 }
 
 export function getWhiteningProductContent(product: Product): ProductPdpContent {
-  const slug = getProductSlug(product)
+  const slug = getProductContentSlug(product)
   const base = contentBySlug[slug] ?? defaultWhiteningContent(product)
   return mergeGallery(base)
 }

@@ -6,21 +6,21 @@ import { useMemo } from 'react'
 import { BestSellerCard } from '@/components/best-seller-card'
 import { useProducts } from '@/components/products-provider'
 import { newArrivalProductIds } from '@/lib/new-arrivals'
+import { presentProductsForStorefrontSections } from '@/lib/product-line-parents'
 import { orderProductsForTagCollection } from '@/lib/product-tags'
 
 export function NewArrivals() {
   const { products, getTagCollectionOrder, isLoading } = useProducts()
 
-  const newArrivals = useMemo(
-    () =>
-      orderProductsForTagCollection(
-        products,
-        'new-arrival',
-        getTagCollectionOrder('new-arrival'),
-        newArrivalProductIds,
-      ),
-    [products, getTagCollectionOrder],
-  )
+  const newArrivals = useMemo(() => {
+    const tagged = orderProductsForTagCollection(
+      products,
+      'new-arrival',
+      getTagCollectionOrder('new-arrival'),
+      newArrivalProductIds,
+    )
+    return presentProductsForStorefrontSections(tagged, products)
+  }, [products, getTagCollectionOrder])
 
   if (isLoading || !newArrivals.length) return null
 

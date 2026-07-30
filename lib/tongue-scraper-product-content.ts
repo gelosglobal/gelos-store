@@ -1,7 +1,7 @@
 import type { ProductPdpContent } from '@/lib/product-pdp-content'
 import type { Product } from '@/lib/types/product'
 import { normalizeImageUrl, repairImageUrl } from '@/lib/image-url'
-import { getProductSlug } from '@/lib/product-utils'
+import { getProductContentSlug } from '@/lib/product-content-slug'
 import { getTongueScraperStyleLabel } from '@/lib/tongue-scraper-style-covers'
 
 const scraperHighlights: ProductPdpContent['highlights'] = [
@@ -265,7 +265,7 @@ function mergeGallery(
 export function getTongueScraperProductContent(
   product: Product,
 ): ProductPdpContent {
-  const slug = getProductSlug(product)
+  const slug = getProductContentSlug(product)
   const base = contentBySlug[slug] ?? defaultTongueScraperContent(product)
   return mergeGallery(base, product)
 }

@@ -7,7 +7,7 @@ function AnnouncementMessage() {
       <span aria-hidden>—</span>
       <span>Designed to give you everything you need.</span>
       <Link
-        href="/shop"
+        href="/shop?bundles=true"
         className="ml-1 font-semibold underline underline-offset-2 transition-colors hover:text-[#D4FF59]"
       >
         Shop now

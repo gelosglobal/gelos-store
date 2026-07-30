@@ -1,11 +1,22 @@
 'use client'
 
 import Link from 'next/link'
-import { ChevronDown, Tag } from 'lucide-react'
+import { ChevronDown, Loader2, Tag } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { CartPaymentMethods } from '@/components/cart-payment-methods'
 import { WhatsAppOrderButton } from '@/components/whatsapp-order-button'
 import type { CartLineItem } from '@/components/cart-provider'
+import { useLocation } from '@/components/location-provider'
+import { trackInitiateCheckout } from '@/lib/meta-pixel'
+import { getInitiateCheckoutEventId } from '@/lib/meta-event-ids'
+import { getOrCreateVisitorId } from '@/lib/visitor-id'
+import { convertForLocation } from '@/lib/exchange-rates'
+import { startShopifyCheckout } from '@/lib/shopify/start-checkout-client'
+import {
+  shopifyCountryCodeFromLocation,
+  useShopifyCommerce,
+} from '@/lib/shopify/use-shopify-commerce'
 import type { PromoCode } from '@/lib/store-promotions'
 import { cn } from '@/lib/utils'
 
@@ -45,6 +56,38 @@ export function CartSummaryPanel({
   onClearPromo,
 }: CartSummaryPanelProps) {
   const [promoOpen, setPromoOpen] = useState(Boolean(appliedPromo))
+  const [isRedirecting, setIsRedirecting] = useState(false)
+  const { enabled: shopifyCheckoutEnabled, isLoading: shopifyStatusLoading } =
+    useShopifyCommerce()
+  const { locationId, location } = useLocation()
+
+  const handleShopifyCheckout = async () => {
+    if (isRedirecting || items.length === 0) return
+    setIsRedirecting(true)
+
+    try {
+      const visitorId = getOrCreateVisitorId()
+      trackInitiateCheckout(
+        items.map((item) => ({ id: item.id, quantity: item.quantity })),
+        convertForLocation(total, locationId),
+        location.currencyCode,
+        getInitiateCheckoutEventId(visitorId),
+      )
+
+      const checkoutUrl = await startShopifyCheckout({
+        items,
+        countryCode: shopifyCountryCodeFromLocation(locationId),
+      })
+      window.location.href = checkoutUrl
+    } catch (error) {
+      setIsRedirecting(false)
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Could not start Shopify checkout',
+      )
+    }
+  }
 
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
@@ -80,12 +123,30 @@ export function CartSummaryPanel({
         </div>
       )}
 
-      <Link
-        href="/checkout"
-        className="mt-5 flex w-full items-center justify-center rounded-full bg-neutral-950 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800"
-      >
-        Checkout
-      </Link>
+      {shopifyCheckoutEnabled ? (
+        <button
+          type="button"
+          onClick={() => void handleShopifyCheckout()}
+          disabled={isRedirecting || shopifyStatusLoading || items.length === 0}
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-neutral-950 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {isRedirecting ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Redirecting to checkout…
+            </>
+          ) : (
+            'Checkout'
+          )}
+        </button>
+      ) : (
+        <Link
+          href="/checkout"
+          className="mt-5 flex w-full items-center justify-center rounded-full bg-neutral-950 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800"
+        >
+          Checkout
+        </Link>
+      )}
 
       <WhatsAppOrderButton
         items={items}

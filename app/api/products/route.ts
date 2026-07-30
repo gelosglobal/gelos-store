@@ -4,8 +4,8 @@ import { getAllTagCollectionOrders } from '@/lib/db/tag-collections'
 import { listProductBundles } from '@/lib/db/product-bundles'
 import { isDatabaseConfigured } from '@/lib/env'
 
-/** Short cache cuts Fluid CPU + Edge Requests; admin mutations still revalidate. */
-export const revalidate = 60
+/** Avoid stale catalog after Shopify metafield syncs. */
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
@@ -18,7 +18,7 @@ export async function GET() {
       { products, tagCollections, productBundles, databaseConnected: isDatabaseConfigured() },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+          'Cache-Control': 'no-store',
         },
       },
     )

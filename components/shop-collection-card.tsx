@@ -13,12 +13,16 @@ import {
   getAvailableStockForVariant,
   getDefaultVariantDisplayImage,
   getEffectiveVariantImages,
+  hasAdminVariantPicker,
   productNeedsVariantChoice,
 } from '@/lib/product-variant-images'
 import { isExternalImageUrl, normalizeImageUrl } from '@/lib/image-url'
 import { getProductImageDisplayClass } from '@/lib/product-image-display'
 import { getProductHref } from '@/lib/product-utils'
+import { resolveCartProductId } from '@/lib/product-line-parents'
 import { getVariantSelectionForCart } from '@/lib/variant-display'
+import type { Product } from '@/lib/types/product'
+import type { ProductVariantOption } from '@/lib/types/product-variant'
 
 type ShopCollectionCardProps = {
   product: {
@@ -29,7 +33,7 @@ type ShopCollectionCardProps = {
     stock?: number
     image: string
     variantImages?: string[]
-    variantImageOptions?: { url: string; label: string; stock?: number }[]
+    variantImageOptions?: ProductVariantOption[]
   }
   badge?: 'NEW' | 'Best seller'
   /** Override card title (e.g. expanded flavour name). */
@@ -91,7 +95,13 @@ export function ShopCollectionCard({
       { stock: product.stock ?? 0, variantImageOptions: product.variantImageOptions },
       variantSelection.variantImage ?? displayImage,
     ) <= 0
-  const fullProduct = getProductById(product.id)
+  const fullProduct =
+    getProductById(product.id) ??
+    (hasAdminVariantPicker(product) ? (product as Product) : undefined)
+  const cartProductId = resolveCartProductId(product, {
+    variantImage: variantSelection.variantImage,
+    variantLabel: variantSelection.variantLabel,
+  })
 
   return (
     <article className="flex flex-col">
@@ -165,14 +175,21 @@ export function ShopCollectionCard({
               onOpenChange={setVariantDialogOpen}
               product={fullProduct}
               onConfirm={({ variantImage, variantLabel }) => {
-                addItem(product.id, 1, { variantImage, variantLabel })
+                addItem(
+                  resolveCartProductId(fullProduct, {
+                    variantImage,
+                    variantLabel,
+                  }),
+                  1,
+                  { variantImage, variantLabel },
+                )
                 if (variantImage) setActiveImage(variantImage)
               }}
             />
           </>
         ) : (
           <AddToCartButton
-            productId={product.id}
+            productId={cartProductId}
             variantImage={variantSelection.variantImage}
             variantLabel={variantSelection.variantLabel}
             disabled={selectedOutOfStock}

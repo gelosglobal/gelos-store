@@ -7,45 +7,117 @@ import { useMemo, useState } from 'react'
 import { useProducts } from '@/components/products-provider'
 import { useIsMobile } from '@/components/ui/use-mobile'
 import { navCategories, type NavCategoryId } from '@/lib/nav-config'
+import { normalizeImageUrl } from '@/lib/image-url'
+import { getResolvableBundleProductIds } from '@/lib/product-bundle-pricing'
+import { sortProductsByLineOrder } from '@/lib/product-line-keys'
+import { getProductLineParentConfigForCategory } from '@/lib/product-line-parents'
+import { productHasTag } from '@/lib/product-tags'
 import { expandProductsForShopCatalog } from '@/lib/shop-catalog-items'
+import type { Product } from '@/lib/types/product'
+import type { ProductBundle } from '@/lib/types/product-bundle'
 import { cn } from '@/lib/utils'
 
 type MegaMenuProps = {
   onNavigate?: () => void
 }
 
+type MegaMenuPreviewItem = {
+  key: string
+  href: string
+  displayName: string
+  image: string
+}
+
 /** Max products shown in the grid (2 rows × 4 columns on desktop) */
 const PRODUCT_PREVIEW_LIMIT = 8
 
+function bundlePreviewItems(
+  bundles: ProductBundle[],
+  products: Product[],
+): MegaMenuPreviewItem[] {
+  return bundles
+    .filter((bundle) => bundle.active && bundle.productIds.length > 0)
+    .filter(
+      (bundle) =>
+        getResolvableBundleProductIds(bundle.productIds, products).length > 0,
+    )
+    .slice()
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((bundle) => {
+      const firstProduct = products.find((product) =>
+        bundle.productIds.includes(product.id),
+      )
+      return {
+        key: bundle.id,
+        href: '/shop?bundles=true',
+        displayName: bundle.name,
+        image: normalizeImageUrl(
+          bundle.image || firstProduct?.image || '/gelos/watermelon2.jpeg',
+        ),
+      }
+    })
+}
+
 export function MegaMenu({ onNavigate }: MegaMenuProps) {
-  const { products } = useProducts()
+  const { products, productBundles } = useProducts()
   const isMobile = useIsMobile()
   const [activeCategory, setActiveCategory] = useState<NavCategoryId>('toothpaste')
   const previewLimit = isMobile ? 4 : PRODUCT_PREVIEW_LIMIT
 
-  const activeConfig = navCategories.find((c) => c.id === activeCategory) ?? navCategories[0]
+  const activeConfig =
+    navCategories.find((c) => c.id === activeCategory) ?? navCategories[0]
+  const isBundlesCategory = activeCategory === 'packages'
 
   const filteredProducts = useMemo(() => {
+    let next: typeof products = []
     if (activeConfig.productIds) {
       const idSet = new Set(activeConfig.productIds)
-      return products.filter((p) => idSet.has(p.id))
+      const byIds = products.filter((p) => idSet.has(p.id))
+      if (byIds.length > 0) {
+        next = byIds
+      } else if (activeCategory === 'bestsellers') {
+        // Legacy Prisma IDs won't match Shopify product IDs — use tags instead.
+        next = products.filter((p) => productHasTag(p, 'best-seller'))
+      }
+    } else if (activeConfig.productCategory) {
+      next = products.filter((p) => p.category === activeConfig.productCategory)
+    } else {
+      next = products
     }
-    if (activeConfig.productCategory) {
-      return products.filter((p) => p.category === activeConfig.productCategory)
+
+    const lineConfig = activeConfig.productCategory
+      ? getProductLineParentConfigForCategory(activeConfig.productCategory)
+      : null
+    if (lineConfig) {
+      return sortProductsByLineOrder(next, lineConfig.order)
     }
-    if (activeCategory === 'packages') {
-      return products.filter((p) => p.price <= 20)
-    }
-    return products
+    return next
   }, [activeCategory, activeConfig, products])
 
   const catalogItems = useMemo(
-    () => expandProductsForShopCatalog(filteredProducts),
+    // Mega menu lists each flavour SKU (not the collapsed line parent).
+    () =>
+      expandProductsForShopCatalog(filteredProducts, {
+        collapseLineParents: false,
+      }),
     [filteredProducts],
   )
 
-  const previewItems = catalogItems.slice(0, previewLimit)
-  const hasMoreProducts = catalogItems.length > previewLimit
+  const bundleItems = useMemo(
+    () => bundlePreviewItems(productBundles, products),
+    [productBundles, products],
+  )
+
+  const allPreviewItems = isBundlesCategory ? bundleItems : catalogItems.map((item) => ({
+    key: item.key,
+    href: item.href,
+    displayName: item.displayName,
+    image: item.image,
+  }))
+
+  const previewItems = allPreviewItems.slice(0, previewLimit)
+  const totalCount = allPreviewItems.length
+  const hasMoreProducts = totalCount > previewLimit
 
   return (
     <div className="font-nav flex flex-col overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-2xl lg:h-[min(640px,90vh)] lg:flex-row">
@@ -130,15 +202,21 @@ export function MegaMenu({ onNavigate }: MegaMenuProps) {
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3 lg:px-6">
           <p className="text-sm font-medium text-neutral-500">
-            {catalogItems.length}{' '}
-            {catalogItems.length === 1 ? 'product' : 'products'}
+            {totalCount}{' '}
+            {isBundlesCategory
+              ? totalCount === 1
+                ? 'bundle'
+                : 'bundles'
+              : totalCount === 1
+                ? 'product'
+                : 'products'}
           </p>
           <Link
             href={activeConfig.href}
             onClick={onNavigate}
             className="text-sm font-semibold hover:underline"
           >
-            View category
+            {isBundlesCategory ? 'View all bundles' : 'View category'}
           </Link>
         </div>
 
@@ -175,7 +253,7 @@ export function MegaMenu({ onNavigate }: MegaMenuProps) {
             >
               See more
               <span className="text-neutral-500">
-                ({catalogItems.length - previewLimit} more)
+                ({totalCount - previewLimit} more)
               </span>
               <ChevronRight className="h-4 w-4" />
             </Link>

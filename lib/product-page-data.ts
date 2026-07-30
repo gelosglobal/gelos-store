@@ -2,29 +2,47 @@ import {
   getAllProducts,
   getProductsByIds,
 } from '@/lib/db/products'
-import { getAccessoriesProductContent } from '@/lib/accessories-product-content'
-import { getMouthwashProductContent } from '@/lib/mouthwash-product-content'
-import { getToothbrushProductContent } from '@/lib/toothbrush-product-content'
-import { getToothpasteProductContent } from '@/lib/toothpaste-product-content'
-import { getTongueScraperProductContent } from '@/lib/tongue-scraper-product-content'
-import { getToolsProductContent } from '@/lib/tools-product-content'
-import { getWaterFlosserProductContent } from '@/lib/water-flosser-product-content'
-import { getWellnessProductContent } from '@/lib/wellness-product-content'
-import { getWhiteningProductContent } from '@/lib/whitening-product-content'
+import {
+  accessoriesCommunityFavoriteIds,
+  getAccessoriesProductContent,
+} from '@/lib/accessories-product-content'
+import {
+  getMouthwashProductContent,
+  mouthwashCommunityFavoriteIds,
+} from '@/lib/mouthwash-product-content'
+import {
+  getToothbrushProductContent,
+  toothbrushCommunityFavoriteIds,
+} from '@/lib/toothbrush-product-content'
+import {
+  getToothpasteProductContent,
+  toothpasteCommunityFavoriteIds,
+} from '@/lib/toothpaste-product-content'
+import {
+  getTongueScraperProductContent,
+  tongueScraperCommunityFavoriteIds,
+} from '@/lib/tongue-scraper-product-content'
+import {
+  getToolsProductContent,
+  toolsCommunityFavoriteIds,
+} from '@/lib/tools-product-content'
+import {
+  getWaterFlosserProductContent,
+  waterFlosserCommunityFavoriteIds,
+} from '@/lib/water-flosser-product-content'
+import {
+  getWellnessProductContent,
+  wellnessCommunityFavoriteIds,
+} from '@/lib/wellness-product-content'
+import {
+  getWhiteningProductContent,
+  whiteningCommunityFavoriteIds,
+} from '@/lib/whitening-product-content'
 import type { ProductPdpContent } from '@/lib/product-pdp-content'
-import { accessoriesCommunityFavoriteIds } from '@/lib/accessories-product-content'
-import { mouthwashCommunityFavoriteIds } from '@/lib/mouthwash-product-content'
-import { toothbrushCommunityFavoriteIds } from '@/lib/toothbrush-product-content'
-import { toothpasteCommunityFavoriteIds } from '@/lib/toothpaste-product-content'
-import { tongueScraperCommunityFavoriteIds } from '@/lib/tongue-scraper-product-content'
-import { toolsCommunityFavoriteIds } from '@/lib/tools-product-content'
-import { waterFlosserCommunityFavoriteIds } from '@/lib/water-flosser-product-content'
-import { wellnessCommunityFavoriteIds } from '@/lib/wellness-product-content'
-import { whiteningCommunityFavoriteIds } from '@/lib/whitening-product-content'
+import { mergePdpContent } from '@/lib/shopify/pdp-metafield'
 import type { Product } from '@/lib/types/product'
 import { getWhiteningLineVariants } from '@/lib/whitening-treatment-covers'
 import { getWellnessLineVariants } from '@/lib/wellness-flavor-covers'
-
 const DEFAULT_COMMUNITY_FAVORITE_IDS = [
   '1',
   '12',
@@ -92,6 +110,10 @@ export function getProductLineVariants(
   product: Product,
   categoryVariants: Product[],
 ): Product[] {
+  // Synthetic parents already own flavours as admin variant tiles.
+  if (product.id.startsWith('line:')) {
+    return [product]
+  }
   if (product.category === 'Whitening') {
     return getWhiteningLineVariants(product, categoryVariants)
   }
@@ -110,26 +132,38 @@ export async function getCommunityFavoritesForCategory(
 }
 
 export function getProductPdpContent(product: Product): ProductPdpContent {
+  let base: ProductPdpContent
   switch (product.category) {
     case 'Toothpaste':
-      return getToothpasteProductContent(product)
+      base = getToothpasteProductContent(product)
+      break
     case 'Mouthwash':
-      return getMouthwashProductContent(product)
+      base = getMouthwashProductContent(product)
+      break
     case 'Tongue Scraper':
-      return getTongueScraperProductContent(product)
+      base = getTongueScraperProductContent(product)
+      break
     case 'Wellness':
-      return getWellnessProductContent(product)
+      base = getWellnessProductContent(product)
+      break
     case 'Whitening':
-      return getWhiteningProductContent(product)
+      base = getWhiteningProductContent(product)
+      break
     case 'Water Flossers':
-      return getWaterFlosserProductContent(product)
+      base = getWaterFlosserProductContent(product)
+      break
     case 'Toothbrushes':
-      return getToothbrushProductContent(product)
+      base = getToothbrushProductContent(product)
+      break
     case 'Accessories':
-      return getAccessoriesProductContent(product)
+      base = getAccessoriesProductContent(product)
+      break
     case 'Tools':
-      return getToolsProductContent(product)
+      base = getToolsProductContent(product)
+      break
     default:
-      return getToolsProductContent(product)
+      base = getToolsProductContent(product)
   }
+
+  return mergePdpContent(base, product.shopifyPdpContent)
 }

@@ -2,7 +2,7 @@ import type { ProductPdpContent } from '@/lib/product-pdp-content'
 import type { Product } from '@/lib/types/product'
 import { normalizeImageUrl } from '@/lib/image-url'
 import { getCodeDefaultGalleryImages } from '@/lib/product-gallery-images'
-import { getProductSlug } from '@/lib/product-utils'
+import { getProductContentSlug } from '@/lib/product-content-slug'
 
 const mouthwashHighlights: ProductPdpContent['highlights'] = [
   { label: 'Flavour & freshness', emoji: '👄' },
@@ -373,6 +373,7 @@ const contentBySlug: Record<string, ProductPdpContent> = {
   'blue-raspberry-foaming-mouthwash': blueRaspberryMouthwash,
   'grape-bubblegum-foaming-mouthwash': grapeBubblegumMouthwash,
   'mouth-spray': mouthSprayContent,
+  'foaming-mouthwash': watermelonMouthwash,
 }
 
 function mergeGallery(base: ProductPdpContent): ProductPdpContent {
@@ -383,7 +384,7 @@ function mergeGallery(base: ProductPdpContent): ProductPdpContent {
 }
 
 export function getMouthwashProductContent(product: Product): ProductPdpContent {
-  const slug = getProductSlug(product)
+  const slug = getProductContentSlug(product)
   const base = contentBySlug[slug] ?? defaultMouthwashContent(product)
   return mergeGallery(base)
 }

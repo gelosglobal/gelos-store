@@ -2,7 +2,7 @@ import type { ProductPdpContent } from '@/lib/product-pdp-content'
 import type { Product } from '@/lib/types/product'
 import { normalizeImageUrl } from '@/lib/image-url'
 import { getCodeDefaultGalleryImages } from '@/lib/product-gallery-images'
-import { getProductSlug } from '@/lib/product-utils'
+import { getProductContentSlug } from '@/lib/product-content-slug'
 
 export type { ProductHighlight, ProductAccordionItem, ProductPdpContent } from '@/lib/product-pdp-content'
 
@@ -357,6 +357,7 @@ const contentBySlug: Record<string, ProductPdpContent> = {
   'vanilla-toothpaste': vanillaContent,
   'red-velvet-toothpaste': redVelvetContent,
   'candy-cane-toothpaste': candyCaneContent,
+  'flavored-toothpaste': watermelonContent,
 }
 
 function mergeGallery(base: ProductPdpContent): ProductPdpContent {
@@ -367,7 +368,7 @@ function mergeGallery(base: ProductPdpContent): ProductPdpContent {
 }
 
 export function getToothpasteProductContent(product: Product): ProductPdpContent {
-  const slug = getProductSlug(product)
+  const slug = getProductContentSlug(product)
   const base = contentBySlug[slug] ?? defaultToothpasteContent(product)
   return mergeGallery(base)
 }

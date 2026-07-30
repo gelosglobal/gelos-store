@@ -21,7 +21,29 @@ function ProductPageClientInner({
 }: ProductPageClientProps) {
   const { getProductById } = useProducts()
   const { location, locationId } = useLocation()
-  const product = getProductById(serverProduct.id) ?? serverProduct
+  const clientProduct = getProductById(serverProduct.id)
+  // Synthetic line parents are server-only — don't let a missing client match wipe variants.
+  const product =
+    serverProduct.id.startsWith('line:') || !clientProduct
+      ? serverProduct
+      : {
+          ...serverProduct,
+          ...clientProduct,
+          shopifyPdpContent:
+            clientProduct.shopifyPdpContent ?? serverProduct.shopifyPdpContent,
+          galleryImages:
+            clientProduct.galleryImages?.length > 0
+              ? clientProduct.galleryImages
+              : serverProduct.galleryImages,
+          variantImageOptions:
+            clientProduct.variantImageOptions?.length > 0
+              ? clientProduct.variantImageOptions
+              : serverProduct.variantImageOptions,
+          variantImages:
+            clientProduct.variantImages?.length > 0
+              ? clientProduct.variantImages
+              : serverProduct.variantImages,
+        }
 
   useEffect(() => {
     trackViewContent({

@@ -15,13 +15,17 @@ import {
   getAvailableStockForVariant,
   getDefaultVariantDisplayImage,
   getEffectiveVariantImages,
+  hasAdminVariantPicker,
   productNeedsVariantChoice,
 } from '@/lib/product-variant-images'
 import { getProductDisplayBadge } from '@/lib/product-tags'
 import type { ProductTagId } from '@/lib/product-tags'
 import { isExternalImageUrl, normalizeImageUrl } from '@/lib/image-url'
 import { getProductHref } from '@/lib/product-utils'
+import { resolveCartProductId } from '@/lib/product-line-parents'
 import { getVariantSelectionForCart } from '@/lib/variant-display'
+import type { Product } from '@/lib/types/product'
+import type { ProductVariantOption } from '@/lib/types/product-variant'
 
 type BestSellerCardProduct = {
   id: string
@@ -32,7 +36,7 @@ type BestSellerCardProduct = {
   image: string
   tags?: ProductTagId[]
   variantImages?: string[]
-  variantImageOptions?: { url: string; label: string; stock?: number }[]
+  variantImageOptions?: ProductVariantOption[]
 }
 
 type BestSellerCardProps = {
@@ -68,7 +72,13 @@ export function BestSellerCard({ product }: BestSellerCardProps) {
       { stock: product.stock ?? 0, variantImageOptions: product.variantImageOptions },
       displayImage,
     ) <= 0
-  const fullProduct = getProductById(product.id)
+  const fullProduct =
+    getProductById(product.id) ??
+    (hasAdminVariantPicker(product) ? (product as Product) : undefined)
+  const cartProductId = resolveCartProductId(product, {
+    variantImage: variantSelection.variantImage,
+    variantLabel: variantSelection.variantLabel,
+  })
 
   return (
     <article className="flex w-[min(72vw,280px)] shrink-0 snap-start flex-col sm:w-[280px]">
@@ -136,14 +146,21 @@ export function BestSellerCard({ product }: BestSellerCardProps) {
             onOpenChange={setVariantDialogOpen}
             product={fullProduct}
             onConfirm={({ variantImage, variantLabel }) => {
-              addItem(product.id, 1, { variantImage, variantLabel })
+              addItem(
+                resolveCartProductId(fullProduct, {
+                  variantImage,
+                  variantLabel,
+                }),
+                1,
+                { variantImage, variantLabel },
+              )
               if (variantImage) setActiveImage(variantImage)
             }}
           />
         </>
       ) : (
         <AddToCartButton
-          productId={product.id}
+          productId={cartProductId}
           variantImage={variantSelection.variantImage}
           variantLabel={variantSelection.variantLabel}
           disabled={selectedOutOfStock}

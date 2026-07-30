@@ -7,6 +7,7 @@ import {
   getWhiteningTreatmentLabel,
   whiteningTreatmentOrder,
 } from '@/lib/whitening-treatment-covers'
+import { sortProductsByLineOrder } from '@/lib/product-line-keys'
 import { getProductHref, getProductSlug } from '@/lib/product-utils'
 import type { Product } from '@/lib/types/product'
 import { cn } from '@/lib/utils'
@@ -23,12 +24,7 @@ export function ProductWhiteningTreatmentPicker({
   if (products.length <= 1) return null
 
   const currentSlug = getProductSlug(currentProduct)
-  const orderIndex = new Map(
-    whiteningTreatmentOrder.map((id, index) => [id, index]),
-  )
-  const sorted = [...products].sort(
-    (a, b) => (orderIndex.get(a.id) ?? 99) - (orderIndex.get(b.id) ?? 99),
-  )
+  const sorted = sortProductsByLineOrder(products, whiteningTreatmentOrder)
 
   return (
     <div className="pt-3">
@@ -39,12 +35,16 @@ export function ProductWhiteningTreatmentPicker({
         {sorted.map((variant) => {
           const slug = getProductSlug(variant)
           const isActive = slug === currentSlug
-          const coverSrc = getWhiteningTreatmentCover(variant.id, variant.image)
+          const coverSrc = getWhiteningTreatmentCover(variant)
           const label = getWhiteningTreatmentLabel(variant.name)
+          const useContain =
+            /strips|charcoal|\.png($|\?)/i.test(
+              `${variant.handle || ''} ${coverSrc}`,
+            )
 
           return (
             <Link
-              key={variant.id}
+              key={variant.handle || variant.id}
               href={getProductHref(variant)}
               title={variant.name}
               className={cn(
@@ -61,9 +61,7 @@ export function ProductWhiteningTreatmentPicker({
                 fill
                 className={cn(
                   'transition-transform duration-300 group-hover:scale-[1.04]',
-                  variant.id === '7' || /\.png($|\?)/i.test(coverSrc)
-                    ? 'object-contain p-1'
-                    : 'object-cover',
+                  useContain ? 'object-contain p-1' : 'object-cover',
                 )}
                 sizes="44px"
               />

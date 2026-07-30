@@ -12,7 +12,8 @@ type PageProps = {
   params: Promise<{ slug: string }>
 }
 
-export const revalidate = 60
+export const revalidate = 0
+export const dynamic = 'force-dynamic'
 
 export async function generateStaticParams() {
   const products = await getAllProducts()

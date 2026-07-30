@@ -77,11 +77,11 @@ export function BundleVariantDialog({
                 <div className="mb-3 flex items-center gap-3">
                   <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-white">
                     <Image
-                      src={product.image}
+                      src={activeImage}
                       alt=""
                       fill
                       className="object-contain p-1"
-                      unoptimized={isExternalImageUrl(product.image)}
+                      unoptimized={isExternalImageUrl(activeImage)}
                     />
                   </div>
                   <p className="text-sm font-semibold text-neutral-950">

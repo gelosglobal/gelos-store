@@ -4,6 +4,7 @@ import {
   productNeedsVariantChoice,
 } from '@/lib/product-variant-images'
 import { getProductHref } from '@/lib/product-utils'
+import { collapseProductsIntoLineParents } from '@/lib/product-line-parents'
 import { isGenericMultiFlavourProduct } from '@/lib/variant-display'
 import type { Product } from '@/lib/types/product'
 import type { ProductVariantOption } from '@/lib/types/product-variant'
@@ -91,13 +92,20 @@ function shouldExpandProductVariants(product: Product): boolean {
  * Expand multi-flavour admin variants into one catalog card per flavour.
  * Single-SKU products without a flavour picker stay as one card.
  * Generic multi-flavour parents (e.g. Flavored Toothpaste) also stay one card.
+ * Shopify toothpaste/mouthwash flavour SKUs collapse into one parent card
+ * unless `collapseLineParents` is false (e.g. mega-menu flavour grid).
  */
 export function expandProductsForShopCatalog(
   products: Product[],
+  options?: { collapseLineParents?: boolean },
 ): ShopCatalogItem[] {
+  const catalogProducts =
+    options?.collapseLineParents === false
+      ? products
+      : collapseProductsIntoLineParents(products)
   const items: ShopCatalogItem[] = []
 
-  for (const product of products) {
+  for (const product of catalogProducts) {
     if (!shouldExpandProductVariants(product)) {
       items.push({
         key: product.id,
@@ -110,8 +118,8 @@ export function expandProductsForShopCatalog(
       continue
     }
 
-    const options = getProductVariantPickerOptions(product)
-    for (const option of options) {
+    const variantOptions = getProductVariantPickerOptions(product)
+    for (const option of variantOptions) {
       const label = option.label.trim() || 'Variant'
       const displayName = buildVariantDisplayName(product, option)
       const image = normalizeImageUrl(option.url)
