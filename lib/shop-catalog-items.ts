@@ -4,7 +4,11 @@ import {
   productNeedsVariantChoice,
 } from '@/lib/product-variant-images'
 import { getProductHref } from '@/lib/product-utils'
-import { collapseProductsIntoLineParents } from '@/lib/product-line-parents'
+import {
+  collapseProductsIntoLineParents,
+  getProductLineParentConfigForProduct,
+  isProductLineParentId,
+} from '@/lib/product-line-parents'
 import { isGenericMultiFlavourProduct } from '@/lib/variant-display'
 import type { Product } from '@/lib/types/product'
 import type { ProductVariantOption } from '@/lib/types/product-variant'
@@ -39,12 +43,38 @@ export function getFlavourSlug(label: string): string {
 }
 
 export function getProductFlavourHref(
-  product: Pick<Product, 'id' | 'name'>,
+  product: Pick<Product, 'id' | 'name'> & { handle?: string },
   flavourLabel: string,
 ): string {
   const slug = getFlavourSlug(flavourLabel)
   const base = getProductHref(product)
   return slug ? `${base}?flavour=${encodeURIComponent(slug)}` : base
+}
+
+/**
+ * Flavour/colour SKUs in a line (toothpaste, mouthwash, SonicWave) link to the
+ * shared parent PDP with that flavour selected, not the standalone SKU page.
+ */
+export function getLineAwareProductHref(
+  product: Pick<Product, 'id' | 'name' | 'handle' | 'category'>,
+): string {
+  if (isProductLineParentId(product.id)) {
+    return getProductHref(product)
+  }
+
+  const config = getProductLineParentConfigForProduct(product)
+  if (!config) return getProductHref(product)
+
+  const handle = (product.handle || '').toLowerCase()
+  if (handle === config.handle) {
+    return getProductHref({ ...product, handle: config.handle })
+  }
+
+  const label = config.labelFromName(product.name)
+  return getProductFlavourHref(
+    { id: config.id, name: config.name, handle: config.handle },
+    label,
+  )
 }
 
 function buildVariantDisplayName(
@@ -113,12 +143,22 @@ export function expandProductsForShopCatalog(
         displayName: product.name,
         image: normalizeImageUrl(product.image),
         flavourLocked: false,
-        href: getProductHref(product),
+        href: getLineAwareProductHref(product),
       })
       continue
     }
 
     const variantOptions = getProductVariantPickerOptions(product)
+    const lineConfig = getProductLineParentConfigForProduct(product)
+    const hrefTarget =
+      isProductLineParentId(product.id) || !lineConfig
+        ? product
+        : {
+            id: lineConfig.id,
+            name: lineConfig.name,
+            handle: lineConfig.handle,
+          }
+
     for (const option of variantOptions) {
       const label = option.label.trim() || 'Variant'
       const displayName = buildVariantDisplayName(product, option)
@@ -132,7 +172,7 @@ export function expandProductsForShopCatalog(
         variantImage: image,
         variantLabel: label,
         flavourLocked: true,
-        href: getProductFlavourHref(product, label),
+        href: getProductFlavourHref(hrefTarget, label),
       })
     }
   }

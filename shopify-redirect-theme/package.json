@@ -1,0 +1,14 @@
+{
+  "name": "hydrogen-redirect-theme",
+  "description": "A theme for redirecting to your Hydrogen storefront.",
+  "version": "2.0.0",
+  "author": {
+    "name": "Shopify",
+    "url": "https://shopify.com/",
+    "email": "support@shopify.com"
+  },
+  "license": "MIT",
+  "scripts": {
+    "build": "rm -rf dist && mkdir dist && zip -r ./dist/hydrogen-redirect-theme.zip ./*"
+  }
+}

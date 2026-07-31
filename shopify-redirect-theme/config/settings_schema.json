@@ -1,0 +1,37 @@
+[
+  {
+    "name": "theme_info",
+    "theme_name": "Gelos Redirect Theme",
+    "theme_author": "Gelos (based on Shopify hydrogen-redirect-theme)",
+    "theme_version": "1.0.0",
+    "theme_documentation_url": "https://github.com/Shopify/hydrogen-redirect-theme",
+    "theme_support_url": "https://github.com/Shopify/hydrogen-redirect-theme/issues"
+  },
+  {
+    "name": "Storefront",
+    "settings": [
+      {
+        "type": "header",
+        "content": "Settings"
+      },
+      {
+        "type": "text",
+        "id": "storefront_hostname",
+        "label": "Hostname",
+        "info": "Without protocol, e.g. mydomain.com"
+      },
+      {
+        "type": "textarea",
+        "id": "custom_redirects",
+        "label": "Custom redirects",
+        "info": "Shopify path > Storefront path [Learn more](https://github.com/Shopify/hydrogen-redirect-theme#custom-redirects)"
+      },
+      {
+        "type": "checkbox",
+        "id": "integrate_with_customer_accounts",
+        "label": "Integrate with customer accounts",
+        "info": " [Learn more](https://help.shopify.com/en/manual/customers/customer-accounts/new-customer-accounts)"
+      }
+    ]
+  }
+]

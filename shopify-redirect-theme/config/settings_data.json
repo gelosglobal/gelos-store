@@ -1,0 +1,13 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ * Gelos defaults: redirect Online Store → www.gelosglobal.com
+ * ------------------------------------------------------------
+ */
+{
+  "current": {
+    "storefront_hostname": "www.gelosglobal.com",
+    "custom_redirects": "/products/ > /product/\n/collections > /shop\n/cart > /cart\n/pages/contact > /contact\n/search > /shop",
+    "integrate_with_customer_accounts": false
+  }
+}
