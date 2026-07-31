@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic'
 
 const bodySchema = z.object({
   email: z.union([z.string().email(), z.literal('')]).optional(),
+  phone: z.string().trim().max(30).optional(),
   countryCode: z.string().trim().length(2).optional(),
   locationId: z.enum(['international', 'nigeria', 'ghana', 'usa']).optional(),
   visitorId: z.string().min(8).max(120).optional(),
@@ -61,12 +62,14 @@ export async function POST(request: Request) {
     }
 
     const email = parsed.data.email?.trim() || undefined
+    const phone = parsed.data.phone?.trim() || undefined
     const locationId =
       parsed.data.locationId ??
       locationIdFromCountryCode(parsed.data.countryCode)
 
     const result = await createShopifyCheckout({
       email,
+      phone,
       countryCode: parsed.data.countryCode,
       lines: parsed.data.items.map((item) => ({
         productId: item.id,
@@ -77,7 +80,8 @@ export async function POST(request: Request) {
     })
 
     // Mirror browser InitiateCheckout on CAPI (same event_id) so Meta can
-    // merge Pixel + server params for Event Match Quality.
+    // merge Pixel + server params for Event Match Quality (em + ph).
+    // Docs: https://developers.facebook.com/documentation/ads-commerce/conversions-api
     if (parsed.data.eventId && parsed.data.total !== undefined) {
       await sendCapiInitiateCheckout({
         eventId: parsed.data.eventId,
@@ -88,6 +92,7 @@ export async function POST(request: Request) {
           quantity: item.quantity,
         })),
         customerEmail: email,
+        customerPhone: phone,
         locationId,
         externalId: parsed.data.visitorId,
         eventSourceUrl: parsed.data.eventSourceUrl,

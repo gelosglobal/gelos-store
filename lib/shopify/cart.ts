@@ -64,6 +64,7 @@ function indexProducts(products: ShopifyMappedProduct[]) {
 export async function createShopifyCheckout(input: {
   lines: ShopifyCheckoutLineInput[]
   email?: string
+  phone?: string
   countryCode?: string
 }): Promise<ShopifyCheckoutResult> {
   if (input.lines.length === 0) {
@@ -95,6 +96,7 @@ export async function createShopifyCheckout(input: {
 
   const buyerIdentity: Record<string, string> = {}
   if (input.email?.trim()) buyerIdentity.email = input.email.trim().toLowerCase()
+  if (input.phone?.trim()) buyerIdentity.phone = input.phone.trim()
   if (input.countryCode?.trim()) {
     buyerIdentity.countryCode = input.countryCode.trim().toUpperCase()
   }

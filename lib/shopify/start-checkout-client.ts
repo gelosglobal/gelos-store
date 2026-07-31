@@ -8,6 +8,7 @@ type StartShopifyCheckoutInput = {
   countryCode?: string
   locationId?: string
   email?: string
+  phone?: string
   visitorId?: string
   eventId?: string
   eventSourceUrl?: string
@@ -31,6 +32,7 @@ export async function startShopifyCheckout(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       email: input.email?.trim() || undefined,
+      phone: input.phone?.trim() || undefined,
       countryCode: input.countryCode,
       locationId: input.locationId,
       visitorId: input.visitorId,

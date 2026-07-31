@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { ChevronDown, Loader2, Tag } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { CartPaymentMethods } from '@/components/cart-payment-methods'
 import { WhatsAppOrderButton } from '@/components/whatsapp-order-button'
@@ -19,6 +19,40 @@ import {
 } from '@/lib/shopify/use-shopify-commerce'
 import type { PromoCode } from '@/lib/store-promotions'
 import { cn } from '@/lib/utils'
+
+const CHECKOUT_CONTACT_KEY = 'gelos:checkout-contact'
+
+type SavedCheckoutContact = {
+  email?: string
+  phone?: string
+}
+
+function readSavedContact(): SavedCheckoutContact {
+  if (typeof window === 'undefined') return {}
+  try {
+    const raw = window.localStorage.getItem(CHECKOUT_CONTACT_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw) as SavedCheckoutContact
+    return {
+      email: typeof parsed.email === 'string' ? parsed.email : '',
+      phone: typeof parsed.phone === 'string' ? parsed.phone : '',
+    }
+  } catch {
+    return {}
+  }
+}
+
+function saveContact(email: string, phone: string) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(
+      CHECKOUT_CONTACT_KEY,
+      JSON.stringify({ email, phone }),
+    )
+  } catch {
+    // ignore quota / private mode
+  }
+}
 
 type CartSummaryPanelProps = {
   items: CartLineItem[]
@@ -58,13 +92,29 @@ export function CartSummaryPanel({
   const [promoOpen, setPromoOpen] = useState(Boolean(appliedPromo))
   const [isRedirecting, setIsRedirecting] = useState(false)
   const [checkoutEmail, setCheckoutEmail] = useState('')
+  const [checkoutPhone, setCheckoutPhone] = useState('')
   const { enabled: shopifyCheckoutEnabled, isLoading: shopifyStatusLoading } =
     useShopifyCommerce()
   const { locationId, location } = useLocation()
 
+  useEffect(() => {
+    const saved = readSavedContact()
+    if (saved.email) setCheckoutEmail(saved.email)
+    if (saved.phone) setCheckoutPhone(saved.phone)
+  }, [])
+
   const handleShopifyCheckout = async () => {
     if (isRedirecting || items.length === 0) return
+
+    const email = checkoutEmail.trim().toLowerCase()
+    const phone = checkoutPhone.trim()
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error('Enter a valid email so we can send order updates')
+      return
+    }
+
     setIsRedirecting(true)
+    saveContact(email, phone)
 
     try {
       const visitorId = getOrCreateVisitorId()
@@ -82,7 +132,8 @@ export function CartSummaryPanel({
         items,
         countryCode: shopifyCountryCodeFromLocation(locationId),
         locationId,
-        email: checkoutEmail.trim() || undefined,
+        email,
+        phone: phone || undefined,
         visitorId,
         eventId,
         eventSourceUrl:
@@ -142,16 +193,34 @@ export function CartSummaryPanel({
               htmlFor="cart-checkout-email"
               className="text-xs font-medium text-neutral-600"
             >
-              Email for order updates{' '}
-              <span className="font-normal text-neutral-400">(recommended)</span>
+              Email for order updates
             </label>
             <input
               id="cart-checkout-email"
               type="email"
               autoComplete="email"
+              required
               value={checkoutEmail}
               onChange={(e) => setCheckoutEmail(e.target.value)}
               placeholder="you@email.com"
+              className="mt-1.5 w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-sm outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="cart-checkout-phone"
+              className="text-xs font-medium text-neutral-600"
+            >
+              Phone{' '}
+              <span className="font-normal text-neutral-400">(optional)</span>
+            </label>
+            <input
+              id="cart-checkout-phone"
+              type="tel"
+              autoComplete="tel"
+              value={checkoutPhone}
+              onChange={(e) => setCheckoutPhone(e.target.value)}
+              placeholder="e.g. 053 962 1338"
               className="mt-1.5 w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-sm outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950"
             />
           </div>
