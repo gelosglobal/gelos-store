@@ -1,6 +1,7 @@
 import { createHash } from 'crypto'
 import type { CheckoutLineItem } from '@/lib/checkout'
 import { getPublicAppUrl } from '@/lib/env'
+import { getGeoFromRequestHeaders } from '@/lib/visitor-location'
 
 /**
  * Meta Conversions API (server-side events for Events Manager).
@@ -104,15 +105,48 @@ function hashName(name: string | undefined): string | undefined {
   return normalized ? sha256(normalized) : undefined
 }
 
-function hashCountry(locationId: string | undefined): string | undefined {
-  const map: Record<string, string> = {
-    ghana: 'gh',
-    nigeria: 'ng',
-    usa: 'us',
-    international: 'us',
+/** ISO 3166-1 alpha-2 lowercase (Meta hashes this). */
+export function normalizeCountryIso2(
+  value: string | undefined,
+): string | undefined {
+  const code = value?.trim().toLowerCase()
+  if (!code || !/^[a-z]{2}$/.test(code)) return undefined
+  return code
+}
+
+function countryFromLocationId(
+  locationId: string | undefined,
+): string | undefined {
+  switch (locationId) {
+    case 'ghana':
+      return 'gh'
+    case 'nigeria':
+      return 'ng'
+    case 'usa':
+      return 'us'
+    // "international" is not a country — use geo / explicit ISO instead.
+    default:
+      return undefined
   }
-  const code = locationId ? map[locationId] : undefined
-  return code ? sha256(code) : undefined
+}
+
+/**
+ * Resolve Meta `country` from the best available signal.
+ * Prefer explicit ISO → storefront market → geo IP country.
+ */
+export function resolveCountryIso2(user: {
+  countryCode?: string
+  locationId?: string
+}): string | undefined {
+  return (
+    normalizeCountryIso2(user.countryCode) ||
+    countryFromLocationId(user.locationId)
+  )
+}
+
+function hashCountryIso2(code: string | undefined): string | undefined {
+  const iso = normalizeCountryIso2(code)
+  return iso ? sha256(iso) : undefined
 }
 
 /** Infer market from order currency when locationId was not stored. */
@@ -133,6 +167,8 @@ export type CapiUserData = {
   lastName?: string
   /** Storefront market, e.g. 'ghana' — mapped to a country code */
   locationId?: string
+  /** ISO 3166-1 alpha-2 (e.g. gh). Preferred over locationId for Meta country. */
+  countryCode?: string
   externalId?: string
   city?: string
   state?: string
@@ -245,9 +281,30 @@ function isIpv4(value: string): boolean {
   })
 }
 
+function isIpv4MappedIpv6(value: string): boolean {
+  return /^::ffff:\d+\.\d+\.\d+\.\d+$/i.test(value)
+}
+
 function isIpv6(value: string): boolean {
-  // Loose check — enough to prefer IPv6 over IPv4 for Meta matching.
-  return value.includes(':') && !isIpv4(value)
+  // Real IPv6 only — mapped IPv4 (::ffff:a.b.c.d) does not satisfy Meta's IPv6 ask.
+  return value.includes(':') && !isIpv4(value) && !isIpv4MappedIpv6(value)
+}
+
+function isLoopbackOrPrivateIp(value: string): boolean {
+  if (isIpv4(value)) {
+    if (value.startsWith('10.') || value.startsWith('127.') || value.startsWith('192.168.')) {
+      return true
+    }
+    if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(value)) return true
+    return false
+  }
+  const lower = value.toLowerCase()
+  return (
+    lower === '::1' ||
+    lower.startsWith('fc') ||
+    lower.startsWith('fd') ||
+    lower.startsWith('fe80:')
+  )
 }
 
 /** Strip ports / brackets so Meta gets a clean IP string. */
@@ -265,43 +322,89 @@ function cleanClientIp(raw: string): string | undefined {
 
   value = value.trim()
   if (!value || value.toLowerCase() === 'unknown') return undefined
+
+  // Expand IPv4-mapped IPv6 to plain IPv4 for hashing/matching consistency.
+  const mapped = value.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i)
+  if (mapped?.[1]) value = mapped[1]
+
   if (!isIpv4(value) && !isIpv6(value)) return undefined
   return value
 }
 
-/**
- * Meta prefers IPv6 over IPv4 for the same user (pixel often sees v6 while
- * naive X-Forwarded-For parsing returns v4). Collect candidates and prefer v6.
- */
-export function resolveClientIpAddress(request: Request): string | undefined {
+function collectIpCandidates(request: Request): string[] {
   const headerNames = [
     'x-forwarded-for',
     'x-vercel-forwarded-for',
+    'forwarded',
     'cf-connecting-ip',
     'true-client-ip',
     'x-real-ip',
     'x-client-ip',
   ] as const
 
+  const seen = new Set<string>()
   const candidates: string[] = []
+
+  const push = (raw: string | undefined) => {
+    if (!raw) return
+    const cleaned = cleanClientIp(raw)
+    if (!cleaned || seen.has(cleaned)) return
+    seen.add(cleaned)
+    candidates.push(cleaned)
+  }
+
   for (const name of headerNames) {
     const header = request.headers.get(name)
     if (!header) continue
+
+    if (name === 'forwarded') {
+      // Forwarded: for=10.0.0.1;proto=https, for="[2001:db8::1]"
+      for (const part of header.split(',')) {
+        const match = part.match(/for=\s*"?\[?([^\]";]+)/i)
+        push(match?.[1])
+      }
+      continue
+    }
+
     for (const part of header.split(',')) {
-      const cleaned = cleanClientIp(part)
-      if (cleaned) candidates.push(cleaned)
+      push(part)
     }
   }
 
-  const ipv6 = candidates.find(isIpv6)
-  if (ipv6) return ipv6
+  return candidates
+}
+
+/**
+ * Meta prefers IPv6 over IPv4 for the same user (pixel often sees v6 while
+ * naive X-Forwarded-For parsing returns v4). Collect every candidate and
+ * prefer a public IPv6 address whenever the edge provides one.
+ */
+export function resolveClientIpAddress(request: Request): string | undefined {
+  const candidates = collectIpCandidates(request)
+  if (candidates.length === 0) return undefined
+
+  const publicIpv6 = candidates.find(
+    (ip) => isIpv6(ip) && !isLoopbackOrPrivateIp(ip),
+  )
+  if (publicIpv6) return publicIpv6
+
+  const anyIpv6 = candidates.find(isIpv6)
+  if (anyIpv6) return anyIpv6
+
+  const publicIpv4 = candidates.find(
+    (ip) => isIpv4(ip) && !isLoopbackOrPrivateIp(ip),
+  )
+  if (publicIpv4) return publicIpv4
+
   return candidates[0]
 }
 
-/** Extract IP, user agent, and Meta browser cookies from a storefront request. */
+/** Extract IP, user agent, geo country, and Meta browser cookies from a request. */
 export function capiUserDataFromRequest(request: Request): Partial<CapiUserData> {
   const clientIpAddress = resolveClientIpAddress(request)
   const clientUserAgent = request.headers.get('user-agent') ?? undefined
+  const geo = getGeoFromRequestHeaders(request.headers)
+  const countryCode = normalizeCountryIso2(geo.country)
 
   const cookies = request.headers.get('cookie') ?? ''
   const readCookie = (name: string): string | undefined => {
@@ -312,6 +415,8 @@ export function capiUserDataFromRequest(request: Request): Partial<CapiUserData>
   return {
     clientIpAddress,
     clientUserAgent,
+    countryCode,
+    ...(geo.city?.trim() ? { city: geo.city.trim() } : {}),
     fbp: readCookie('_fbp'),
     fbc: readCookie('_fbc'),
   }
@@ -327,7 +432,7 @@ function buildUserData(user: CapiUserData): Record<string, unknown> {
   const ph = hashPhone(user.phone, user.locationId)
   const fn = hashName(firstName)
   const ln = hashName(lastName)
-  const country = hashCountry(user.locationId)
+  const country = hashCountryIso2(resolveCountryIso2(user))
   const ct = hashCity(user.city)
   const st = hashState(user.state)
   const zp = hashZip(user.zip)
@@ -420,6 +525,7 @@ export type CapiPurchaseInput = {
   customerEmail?: string
   customerPhone?: string
   locationId?: string
+  countryCode?: string
   externalId?: string
   shippingAddress?: string
   /** Browser page URL where the purchase completed (preferred). */
@@ -434,6 +540,10 @@ export async function sendCapiPurchase(input: CapiPurchaseInput): Promise<boolea
   const requestData = input.request ? capiUserDataFromRequest(input.request) : {}
   const locationId =
     input.locationId ?? locationIdFromCurrency(input.currency)
+  const countryCode =
+    normalizeCountryIso2(input.countryCode) ||
+    countryFromLocationId(locationId) ||
+    normalizeCountryIso2(requestData.countryCode)
   const addressHints = parseAddressHints(input.shippingAddress, locationId)
   const value = Number(input.total)
   if (!Number.isFinite(value) || value < 0) return false
@@ -447,13 +557,14 @@ export async function sendCapiPurchase(input: CapiPurchaseInput): Promise<boolea
       input.eventSourceUrl,
     ),
     userData: {
+      ...requestData,
       email: input.customerEmail,
       phone: input.customerPhone,
       firstName: input.customerName,
       locationId,
+      countryCode,
       externalId: input.externalId,
       ...addressHints,
-      ...requestData,
     },
     customData: {
       value,
@@ -480,6 +591,7 @@ export type CapiInitiateCheckoutInput = {
   customerName?: string
   customerPhone?: string
   locationId?: string
+  countryCode?: string
   /** Stable shopper id (visitor id) — hashed as external_id for EMQ. */
   externalId?: string
   shippingAddress?: string
@@ -510,6 +622,10 @@ export async function sendCapiInitiateCheckout(
   const requestData = input.request ? capiUserDataFromRequest(input.request) : {}
   const locationId =
     input.locationId ?? locationIdFromCurrency(input.currency)
+  const countryCode =
+    normalizeCountryIso2(input.countryCode) ||
+    countryFromLocationId(locationId) ||
+    normalizeCountryIso2(requestData.countryCode)
   const addressHints = parseAddressHints(input.shippingAddress, locationId)
   const { firstName, lastName } = splitCustomerName(input.customerName)
   const value = Number(input.total)
@@ -524,14 +640,15 @@ export async function sendCapiInitiateCheckout(
       input.eventSourceUrl,
     ),
     userData: {
+      ...requestData,
       email: input.customerEmail,
       phone: input.customerPhone,
       firstName,
       lastName,
       locationId,
+      countryCode,
       externalId: input.externalId,
       ...addressHints,
-      ...requestData,
     },
     customData: {
       value,

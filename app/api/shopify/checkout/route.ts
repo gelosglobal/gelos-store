@@ -94,6 +94,7 @@ export async function POST(request: Request) {
         customerEmail: email,
         customerPhone: phone,
         locationId,
+        countryCode: parsed.data.countryCode,
         externalId: parsed.data.visitorId,
         eventSourceUrl: parsed.data.eventSourceUrl,
         request,
