@@ -2,6 +2,7 @@ import { createHash } from 'crypto'
 import type { CheckoutLineItem } from '@/lib/checkout'
 import { getPublicAppUrl } from '@/lib/env'
 import { getGeoFromRequestHeaders } from '@/lib/visitor-location'
+import { readVisitorIdFromCookieHeader } from '@/lib/visitor-id'
 
 /**
  * Meta Conversions API (server-side events for Events Manager).
@@ -399,26 +400,71 @@ export function resolveClientIpAddress(request: Request): string | undefined {
   return candidates[0]
 }
 
-/** Extract IP, user agent, geo country, and Meta browser cookies from a request. */
+/** Extract IP, user agent, geo, visitor id, and Meta cookies from a request. */
 export function capiUserDataFromRequest(request: Request): Partial<CapiUserData> {
   const clientIpAddress = resolveClientIpAddress(request)
   const clientUserAgent = request.headers.get('user-agent') ?? undefined
   const geo = getGeoFromRequestHeaders(request.headers)
   const countryCode = normalizeCountryIso2(geo.country)
-
   const cookies = request.headers.get('cookie') ?? ''
+  const externalId = readVisitorIdFromCookieHeader(cookies)
+
   const readCookie = (name: string): string | undefined => {
     const match = cookies.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`))
     return match?.[1] ? decodeURIComponent(match[1]) : undefined
   }
 
+  // Meta `st` prefers a short region/state code (e.g. CA, NY, AA).
+  const region = geo.region?.trim()
+  const state =
+    region && region.includes('-')
+      ? region.split('-').pop()?.trim() || region
+      : region
+
   return {
     clientIpAddress,
     clientUserAgent,
     countryCode,
+    externalId,
     ...(geo.city?.trim() ? { city: geo.city.trim() } : {}),
+    ...(state ? { state } : {}),
+    ...(geo.postalCode?.trim() ? { zip: geo.postalCode.trim() } : {}),
     fbp: readCookie('_fbp'),
     fbc: readCookie('_fbc'),
+  }
+}
+
+function resolveExternalId(
+  explicit: string | undefined,
+  requestData: Partial<CapiUserData>,
+): string | undefined {
+  const fromExplicit = explicit?.trim()
+  if (fromExplicit && fromExplicit.length >= 8) return fromExplicit
+  const fromCookie = requestData.externalId?.trim()
+  if (fromCookie && fromCookie.length >= 8) return fromCookie
+  return undefined
+}
+
+/**
+ * Merge geo / cookie user data with checkout fields.
+ * Explicit contact + address win over geo defaults for city/state/zip.
+ */
+function mergeCapiUserData(
+  requestData: Partial<CapiUserData>,
+  fields: CapiUserData,
+  addressHints: Pick<CapiUserData, 'city' | 'state' | 'zip'>,
+): CapiUserData {
+  return {
+    ...requestData,
+    ...fields,
+    city: addressHints.city || fields.city || requestData.city,
+    state: addressHints.state || fields.state || requestData.state,
+    zip: addressHints.zip || fields.zip || requestData.zip,
+    externalId: resolveExternalId(fields.externalId, requestData),
+    countryCode:
+      normalizeCountryIso2(fields.countryCode) ||
+      countryFromLocationId(fields.locationId) ||
+      normalizeCountryIso2(requestData.countryCode),
   }
 }
 
@@ -540,10 +586,6 @@ export async function sendCapiPurchase(input: CapiPurchaseInput): Promise<boolea
   const requestData = input.request ? capiUserDataFromRequest(input.request) : {}
   const locationId =
     input.locationId ?? locationIdFromCurrency(input.currency)
-  const countryCode =
-    normalizeCountryIso2(input.countryCode) ||
-    countryFromLocationId(locationId) ||
-    normalizeCountryIso2(requestData.countryCode)
   const addressHints = parseAddressHints(input.shippingAddress, locationId)
   const value = Number(input.total)
   if (!Number.isFinite(value) || value < 0) return false
@@ -556,16 +598,18 @@ export async function sendCapiPurchase(input: CapiPurchaseInput): Promise<boolea
       '/checkout/success',
       input.eventSourceUrl,
     ),
-    userData: {
-      ...requestData,
-      email: input.customerEmail,
-      phone: input.customerPhone,
-      firstName: input.customerName,
-      locationId,
-      countryCode,
-      externalId: input.externalId,
-      ...addressHints,
-    },
+    userData: mergeCapiUserData(
+      requestData,
+      {
+        email: input.customerEmail,
+        phone: input.customerPhone,
+        firstName: input.customerName,
+        locationId,
+        countryCode: input.countryCode,
+        externalId: input.externalId,
+      },
+      addressHints,
+    ),
     customData: {
       value,
       currency: input.currency.toUpperCase(),
@@ -595,6 +639,7 @@ export type CapiInitiateCheckoutInput = {
   /** Stable shopper id (visitor id) — hashed as external_id for EMQ. */
   externalId?: string
   shippingAddress?: string
+  dateOfBirth?: string
   /** Browser page URL where checkout started (preferred). */
   eventSourceUrl?: string
   request?: Request
@@ -622,10 +667,6 @@ export async function sendCapiInitiateCheckout(
   const requestData = input.request ? capiUserDataFromRequest(input.request) : {}
   const locationId =
     input.locationId ?? locationIdFromCurrency(input.currency)
-  const countryCode =
-    normalizeCountryIso2(input.countryCode) ||
-    countryFromLocationId(locationId) ||
-    normalizeCountryIso2(requestData.countryCode)
   const addressHints = parseAddressHints(input.shippingAddress, locationId)
   const { firstName, lastName } = splitCustomerName(input.customerName)
   const value = Number(input.total)
@@ -639,17 +680,20 @@ export async function sendCapiInitiateCheckout(
       '/checkout',
       input.eventSourceUrl,
     ),
-    userData: {
-      ...requestData,
-      email: input.customerEmail,
-      phone: input.customerPhone,
-      firstName,
-      lastName,
-      locationId,
-      countryCode,
-      externalId: input.externalId,
-      ...addressHints,
-    },
+    userData: mergeCapiUserData(
+      requestData,
+      {
+        email: input.customerEmail,
+        phone: input.customerPhone,
+        firstName,
+        lastName,
+        locationId,
+        countryCode: input.countryCode,
+        externalId: input.externalId,
+        dateOfBirth: input.dateOfBirth,
+      },
+      addressHints,
+    ),
     customData: {
       value,
       currency: input.currency.toUpperCase(),

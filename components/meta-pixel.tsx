@@ -54,7 +54,17 @@ export function MetaPixel() {
                   : ('v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10));
                 localStorage.setItem(key, eid);
               }
-              if (eid) advancedMatching.external_id = eid;
+              if (eid) {
+                advancedMatching.external_id = eid;
+                var maxAge = 60 * 60 * 24 * 400;
+                var secure = location.protocol === 'https:' ? '; Secure' : '';
+                var cookie = 'gelos_vid=' + encodeURIComponent(eid) + '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax' + secure;
+                document.cookie = cookie;
+                var host = location.hostname;
+                if (host === 'gelosglobal.com' || host.slice(-16) === '.gelosglobal.com') {
+                  document.cookie = cookie + '; Domain=.gelosglobal.com';
+                }
+              }
             } catch (err) {}
             fbq('init', '${META_PIXEL_ID}', advancedMatching);
           })();

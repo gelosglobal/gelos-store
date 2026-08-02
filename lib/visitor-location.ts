@@ -57,6 +57,9 @@ function resolveCountryMeta(country?: string | null) {
 export function getGeoFromRequestHeaders(headers: Headers): {
   city?: string
   country?: string
+  /** ISO 3166-2 subdivision / region (e.g. GH-AA, CA, NY) — used as Meta `st`. */
+  region?: string
+  postalCode?: string
 } {
   const city = decodeGeoHeader(
     headers.get('x-vercel-ip-city') ??
@@ -68,8 +71,17 @@ export function getGeoFromRequestHeaders(headers: Headers): {
       headers.get('cf-ipcountry') ??
       headers.get('x-nf-client-connection-ip-country'),
   )
+  const region = decodeGeoHeader(
+    headers.get('x-vercel-ip-country-region') ??
+      headers.get('cf-region-code') ??
+      headers.get('cf-region'),
+  )
+  const postalCode = decodeGeoHeader(
+    headers.get('x-vercel-ip-postal-code') ??
+      headers.get('cf-postal-code'),
+  )
 
-  return { city, country }
+  return { city, country, region, postalCode }
 }
 
 export function isLocationId(value: string | undefined | null): value is LocationId {

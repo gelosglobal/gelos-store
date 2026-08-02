@@ -8,8 +8,18 @@ import { normalizeShopifyCheckoutUrl } from '@/lib/shopify/config'
 import { shopifyStorefrontFetch } from '@/lib/shopify/storefront-client'
 
 const CART_CREATE_MUTATION = /* GraphQL */ `
-  mutation GelosCartCreate($lines: [CartLineInput!]!, $buyerIdentity: CartBuyerIdentityInput) {
-    cartCreate(input: { lines: $lines, buyerIdentity: $buyerIdentity }) {
+  mutation GelosCartCreate(
+    $lines: [CartLineInput!]!
+    $buyerIdentity: CartBuyerIdentityInput
+    $attributes: [AttributeInput!]
+  ) {
+    cartCreate(
+      input: {
+        lines: $lines
+        buyerIdentity: $buyerIdentity
+        attributes: $attributes
+      }
+    ) {
       cart {
         id
         checkoutUrl
@@ -66,6 +76,8 @@ export async function createShopifyCheckout(input: {
   email?: string
   phone?: string
   countryCode?: string
+  /** Stable Gelos visitor id — carried into checkout for Meta external_id. */
+  visitorId?: string
 }): Promise<ShopifyCheckoutResult> {
   if (input.lines.length === 0) {
     throw new Error('Cart is empty')
@@ -101,9 +113,16 @@ export async function createShopifyCheckout(input: {
     buyerIdentity.countryCode = input.countryCode.trim().toUpperCase()
   }
 
+  const attributes: Array<{ key: string; value: string }> = []
+  const visitorId = input.visitorId?.trim()
+  if (visitorId) {
+    attributes.push({ key: 'gelos_visitor_id', value: visitorId })
+  }
+
   const data = await shopifyStorefrontFetch<CartCreateData>(CART_CREATE_MUTATION, {
     lines: cartLines,
     buyerIdentity: Object.keys(buyerIdentity).length ? buyerIdentity : undefined,
+    attributes: attributes.length ? attributes : undefined,
   })
 
   const errors = data.cartCreate.userErrors

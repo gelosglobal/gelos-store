@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { sendCapiInitiateCheckout } from '@/lib/meta-conversions-api'
 import { createShopifyCheckout } from '@/lib/shopify/cart'
 import { isShopifyCommerceEnabled } from '@/lib/shopify/config'
+import { readVisitorIdFromCookieHeader } from '@/lib/visitor-id'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,6 +64,9 @@ export async function POST(request: Request) {
 
     const email = parsed.data.email?.trim() || undefined
     const phone = parsed.data.phone?.trim() || undefined
+    const visitorId =
+      parsed.data.visitorId?.trim() ||
+      readVisitorIdFromCookieHeader(request.headers.get('cookie'))
     const locationId =
       parsed.data.locationId ??
       locationIdFromCountryCode(parsed.data.countryCode)
@@ -71,6 +75,7 @@ export async function POST(request: Request) {
       email,
       phone,
       countryCode: parsed.data.countryCode,
+      visitorId,
       lines: parsed.data.items.map((item) => ({
         productId: item.id,
         quantity: item.quantity,
@@ -95,7 +100,7 @@ export async function POST(request: Request) {
         customerPhone: phone,
         locationId,
         countryCode: parsed.data.countryCode,
-        externalId: parsed.data.visitorId,
+        externalId: visitorId,
         eventSourceUrl: parsed.data.eventSourceUrl,
         request,
       })
