@@ -17,7 +17,8 @@
     "db:backfill-order-items": "tsx --env-file=.env.local scripts/backfill-order-items.ts",
     "db:test": "tsx --env-file=.env.local scripts/test-db-connection.ts",
     "export:meta-catalog": "tsx --env-file=.env.local scripts/export-meta-catalog.ts",
-    "shopify:sync-catalog": "tsx --env-file=.env.local scripts/shopify-sync-catalog.ts"
+    "shopify:sync-catalog": "tsx --env-file=.env.local scripts/shopify-sync-catalog.ts",
+    "shopify:sync-new-arrivals": "tsx --env-file=.env.local scripts/shopify-sync-new-arrivals.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

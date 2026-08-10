@@ -258,6 +258,106 @@ const sonicBrushContent: ProductPdpContent = {
   faq: sonicBrushFaq,
 }
 
+const electricProBenefits = [
+  'Helps remove plaque more effectively than manual brushing',
+  'Reaches areas that may be hard to clean with a manual brush',
+  'Helps polish away everyday surface stains',
+  'Five specialised modes for sensitive gums through intense cleaning',
+  'Sleek, lightweight and rechargeable — ideal for home or travel',
+  'Simple one-button operation with clear mode indicators',
+]
+
+const electricProUsageSteps: ProductPdpContent['usageSteps'] = [
+  {
+    title: 'Apply',
+    body: 'Apply your preferred Gelos toothpaste to the brush head.',
+  },
+  {
+    title: 'Select mode',
+    body: 'Choose Gentle, Everyday, Intense, Whitening, or Custom with the one-button controls.',
+  },
+  {
+    title: 'Brush',
+    body: 'Guide the brush gently across all tooth surfaces — front, back, and chewing surfaces.',
+  },
+  {
+    title: 'Finish',
+    body: 'Rinse the brush head after use and return the handle to charge when needed.',
+  },
+]
+
+const electricProFaq: ProductPdpContent['faq'] = [
+  {
+    id: 'faq-modes',
+    title: 'What are the five brushing modes?',
+    content:
+      'Gentle for sensitive teeth and gums · Everyday for balanced daily brushing · Intense for stubborn plaque and buildup · Whitening to help polish everyday surface stains · Custom for a personalised brushing feel.',
+  },
+  {
+    id: 'faq-different',
+    title: 'What makes the Electric Toothbrush Pro different?',
+    content:
+      'It delivers consistent high-performance brushing with five specialised modes, clear mode indicators, and a sleek rechargeable design built for everyday use at home or while travelling.',
+  },
+  {
+    id: 'faq-sensitive',
+    title: 'Is it suitable for sensitive teeth?',
+    content:
+      'Yes. Use Gentle mode for a softer clean. If discomfort persists, pause use and consult your dentist.',
+  },
+  {
+    id: 'faq-replace',
+    title: 'How often should I replace the brush head?',
+    content:
+      'Dentists typically recommend replacing your brush head every 3 months, or sooner if bristles look frayed.',
+  },
+]
+
+const electricProContent: ProductPdpContent = {
+  galleryImages: [],
+  imageBadge: 'PRO',
+  headline: 'Gelos Electric Toothbrush Pro',
+  intro:
+    'Experience a smarter and more effective clean with the Gelos Electric Toothbrush Pro. Designed to deliver consistent, high-performance brushing, it helps remove plaque and everyday surface stains while reaching areas that may be difficult to clean properly with a manual toothbrush.\n\nChoose from five specialised brushing modes to suit your oral-care needs:\n\nGentle — a softer clean for sensitive teeth and gums\nEveryday — balanced performance for daily brushing\nIntense — a more powerful clean for stubborn plaque and buildup\nWhitening — helps polish away everyday surface stains for a brighter-looking smile\nCustom — a personalised brushing experience suited to your preference\n\nIts sleek, lightweight and rechargeable design makes it ideal for everyday use at home or while travelling. With simple one-button operation and clear mode indicators, switching between settings is quick and effortless.',
+  bullets: electricProBenefits,
+  highlights: [
+    { label: '5 brushing modes', emoji: '⚡' },
+    { label: 'Rechargeable', emoji: '🔋' },
+    { label: 'Travel-ready', emoji: '✈️' },
+  ],
+  usageSteps: electricProUsageSteps,
+  usageStepsTitle: 'How to use your Electric Toothbrush Pro',
+  usageStepsIntro:
+    'Use the Gelos Electric Toothbrush Pro twice daily with your preferred Gelos toothpaste for a cleaner, fresher and more confident smile.',
+  detailsAccordion: [
+    {
+      id: 'modes',
+      title: 'Five brushing modes',
+      content:
+        'Gentle — softer clean for sensitive teeth and gums · Everyday — balanced daily performance · Intense — stronger clean for stubborn plaque · Whitening — helps polish everyday surface stains · Custom — personalised to your preference',
+    },
+    {
+      id: 'features',
+      title: 'Key features',
+      content:
+        'Five specialised brushing modes · Helps remove plaque and everyday surface stains · Reaches areas manual brushing may miss · Sleek, lightweight rechargeable design · One-button operation with clear mode indicators · Ideal for home or travel',
+    },
+    {
+      id: 'included',
+      title: "*What's included?",
+      content:
+        'One Gelos Electric Toothbrush Pro handle, brush head, charging cable, and user manual. See packaging for full contents.',
+    },
+    {
+      id: 'care',
+      title: 'Head replacement & care',
+      content:
+        'Rinse the brush head after each use. Replace brush heads every 3 months or when bristles fray. Wipe the handle dry and recharge as needed.',
+    },
+  ],
+  faq: electricProFaq,
+}
+
 const defaultToothbrushContent = (product: Product): ProductPdpContent => ({
   galleryImages: [],
   headline: 'Brush better with Gelos',
@@ -289,6 +389,8 @@ const contentBySlug: Record<string, ProductPdpContent> = {
   'bamboo-toothbrush-set-3-pack': bambooSetContent,
   '3d-sonicwave-g1-electric-toothbrush': sonicBrushContent,
   'sonicwave-g1-series-electric-toothbrush': sonicBrushContent,
+  'electric-toothbrush-pro': electricProContent,
+  'gelos-electric-toothbrush-pro': electricProContent,
 }
 
 function mergeGallery(base: ProductPdpContent): ProductPdpContent {

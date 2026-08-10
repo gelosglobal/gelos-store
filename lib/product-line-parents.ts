@@ -80,11 +80,22 @@ export const MOUTHWASH_LINE_PARENT: ProductLineParentConfig = {
       .replace(/ Foaming Mouthwash$/i, '')
       .replace(/ Mouthwash$/i, '')
       .trim(),
-  // Mouth Spray shares the Mouthwash category but is a different product format.
-  excludeMember: (product) => isMouthSprayProduct(product),
+  // Only foaming flavour SKUs collapse here — Mouth Spray, ID Stain, etc. stay solo.
+  excludeMember: (product) => !isFoamingMouthwashFlavour(product),
 }
 
 const MOUTH_SPRAY_RE = /mouth\s*spray/i
+const ID_STAIN_RE = /\bid[\s-]*stain\b|\bid[\s-]*whitening\b/i
+
+/** Known foaming mouthwash handles that may omit "foaming" in the title. */
+const FOAMING_MOUTHWASH_HANDLES = new Set([
+  'watermelon-foaming-mouthwash',
+  'strawberry-foaming-mouthwash',
+  'strawberry-mouthwash',
+  'blue-raspberry-foaming-mouthwash',
+  'blue-raspberry-foaming-mouth-wash',
+  'grape-bubblegum-foaming-mouthwash',
+])
 
 export function isMouthSprayProduct(
   product: Pick<Product, 'name' | 'handle' | 'id'>,
@@ -100,6 +111,38 @@ export function isMouthSprayProduct(
   if (MOUTH_SPRAY_RE.test(product.name)) return true
   const id = product.id.toLowerCase()
   return id === 'mouth-spray' || id.includes('mouth-spray')
+}
+
+export function isIdStainMouthwashProduct(
+  product: Pick<Product, 'name' | 'handle' | 'id'>,
+): boolean {
+  const handle = (product.handle || '').toLowerCase()
+  if (
+    handle.includes('id-stain') ||
+    handle.includes('id-whitening') ||
+    handle.includes('idstain')
+  ) {
+    return true
+  }
+  if (ID_STAIN_RE.test(product.name)) return true
+  const id = product.id.toLowerCase()
+  return id.includes('id-stain') || id.includes('id-whitening')
+}
+
+/** True for foaming flavour SKUs that belong under Foaming Mouthwash. */
+export function isFoamingMouthwashFlavour(
+  product: Pick<Product, 'name' | 'handle' | 'id' | 'category'>,
+): boolean {
+  if (product.category !== 'Mouthwash') return false
+  if (isMouthSprayProduct(product)) return false
+  if (isIdStainMouthwashProduct(product)) return false
+
+  const handle = (product.handle || '').toLowerCase()
+  const slug = getProductSlug(product)
+  if (FOAMING_MOUTHWASH_HANDLES.has(handle) || FOAMING_MOUTHWASH_HANDLES.has(slug)) {
+    return true
+  }
+  return /foaming/i.test(product.name) || handle.includes('foaming')
 }
 
 const SONICWAVE_NAME_RE = /sonicwave\s*g1\s*series\s*electric\s*toothbrush/i

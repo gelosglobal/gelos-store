@@ -18,6 +18,11 @@ const CONTENT_SLUG_ALIASES: Record<string, string> = {
   // Mouthwash
   'blue-raspberry-foaming-mouth-wash': 'blue-raspberry-foaming-mouthwash',
   'strawberry-mouthwash': 'strawberry-foaming-mouthwash',
+  'id-stain-mouthwash': 'id-stain-whitening-mouthwash',
+  'id-stain': 'id-stain-whitening-mouthwash',
+  'gelos-id-stain-whitening-mouthwash': 'id-stain-whitening-mouthwash',
+  'id-whitening-mouthwash': 'id-stain-whitening-mouthwash',
+  'id-stain-whitening-mouth-wash': 'id-stain-whitening-mouthwash',
 
   // Tongue scrapers
   'tongue-scraper': 'stainless-steel-tongue-scraper',
@@ -35,6 +40,9 @@ const CONTENT_SLUG_ALIASES: Record<string, string> = {
   'green-electric-toothbrush': 'sonicwave-g1-series-electric-toothbrush',
   '3d-sonicwave-g1-electric-toothbrush':
     'sonicwave-g1-series-electric-toothbrush',
+  'gelos-electric-toothbrush-pro': 'electric-toothbrush-pro',
+  'electric-toothbrush-pro-1': 'electric-toothbrush-pro',
+  'toothbrush-pro': 'electric-toothbrush-pro',
 
   // Whitening
   'teeth-whitening-strips-pap': 'premium-whitening-strips-30-pairs',
@@ -44,6 +52,12 @@ const CONTENT_SLUG_ALIASES: Record<string, string> = {
 
   // Accessories (legacy content key reused tooth-tattoo copy)
   'tooth-tattoo': 'candy-cane-toothpaste',
+
+  // Water flossers
+  'gelos-hydrelle-pro-water-flosser': 'hydrelle-pro-water-flosser',
+  'hydrelle-pro': 'hydrelle-pro-water-flosser',
+  'hydrelle-pro-water-flosser-1': 'hydrelle-pro-water-flosser',
+  'water-flosser-hydrelle-pro': 'hydrelle-pro-water-flosser',
 }
 
 /** Wellness SKUs that use whitening PDP copy (serums, oils, powders). */

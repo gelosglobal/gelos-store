@@ -335,6 +335,108 @@ const mouthSprayContent: ProductPdpContent = {
   faq: mouthSprayFaq,
 }
 
+const idStainBenefits = [
+  'Targets hidden buildup and trapped debris',
+  'Helps clean areas brushing may miss',
+  'Helps remove everyday surface stains',
+  'Supports a brighter-looking smile',
+  'Freshens breath',
+  'Alcohol-free formula',
+  'Leaves the mouth feeling fresh and thoroughly clean',
+  '237ml bottle',
+]
+
+const idStainUsageSteps: ProductPdpContent['usageSteps'] = [
+  {
+    title: 'Brush',
+    body: 'Brush your teeth as usual with your preferred Gelos toothpaste.',
+  },
+  {
+    title: 'Pour',
+    body: 'Pour the recommended amount into the cap.',
+  },
+  {
+    title: 'Rinse',
+    body: 'Rinse thoroughly around the mouth, then spit out. Do not swallow.',
+  },
+  {
+    title: 'See the difference',
+    body: 'Look for loosened debris in the sink after rinsing — the stain-revealing action shows what has been removed.',
+  },
+]
+
+const idStainFaq: ProductPdpContent['faq'] = [
+  {
+    id: 'faq-different',
+    title: 'What makes iD Stain Whitening Mouthwash different?',
+    content:
+      'Its advanced formula is designed to bind to hidden buildup and loosen trapped debris from hard-to-reach areas. Unlike ordinary mouthwash, its unique stain-revealing action can make loosened debris visible in the sink after rinsing.',
+  },
+  {
+    id: 'faq-alcohol',
+    title: 'Is it alcohol-free?',
+    content:
+      'Yes. The alcohol-free formula provides a comfortable rinse while helping to freshen breath and maintain a cleaner-feeling mouth.',
+  },
+  {
+    id: 'faq-stains',
+    title: 'Can it help with surface stains?',
+    content:
+      'With regular use, it can help remove everyday surface stains for a brighter, fresher-looking smile.',
+  },
+  {
+    id: 'faq-use',
+    title: 'How should I use it?',
+    content:
+      'For best results, use after brushing. Pour the recommended amount into the cap, rinse thoroughly around the mouth, then spit out. Do not swallow.',
+  },
+]
+
+const idStainContent: ProductPdpContent = {
+  galleryImages: [],
+  imageBadge: '237ML',
+  headline: 'Gelos iD Stain Whitening Mouthwash',
+  intro:
+    'Discover what brushing can miss with the Gelos iD Stain Whitening Mouthwash. Its advanced formula is designed to bind to hidden buildup and loosen trapped debris from hard-to-reach areas, helping to reveal impurities left behind after brushing.\n\nThe alcohol-free formula provides a comfortable rinse while helping to freshen breath and maintain a cleaner-feeling mouth. With regular use, it can also help remove everyday surface stains for a brighter, fresher-looking smile.\n\nUnlike ordinary mouthwash, its unique stain-revealing action makes loosened debris visible in the sink after rinsing, so you can see what has been removed.',
+  bullets: idStainBenefits,
+  highlights: [
+    { label: 'Stain-revealing', emoji: '✨' },
+    { label: 'Alcohol-free', emoji: '🧪' },
+    { label: '237ml bottle', emoji: '🧴' },
+  ],
+  usageSteps: idStainUsageSteps,
+  usageStepsTitle: 'How to use iD Stain Whitening Mouthwash',
+  usageStepsIntro:
+    'For best results, use after brushing as part of your daily oral-care routine.',
+  detailsAccordion: [
+    {
+      id: 'benefits',
+      title: 'Key benefits',
+      content:
+        'Targets hidden buildup and trapped debris · Helps clean areas brushing may miss · Helps remove everyday surface stains · Supports a brighter-looking smile · Freshens breath · Alcohol-free formula · Leaves the mouth feeling fresh and thoroughly clean · 237ml bottle',
+    },
+    {
+      id: 'different',
+      title: 'What makes iD Stain different?',
+      content:
+        'A whitening mouthwash with stain-revealing action — designed to loosen trapped debris from hard-to-reach areas and help you see what brushing left behind.',
+    },
+    {
+      id: 'included',
+      title: "*What's included?",
+      content:
+        'One 237ml bottle of Gelos iD Stain Whitening Mouthwash. See packaging for full directions.',
+    },
+    {
+      id: 'care',
+      title: 'Important',
+      content:
+        'For oral use only. Do not swallow. Keep out of reach of children. Follow the directions on the packaging.',
+    },
+  ],
+  faq: idStainFaq,
+}
+
 const defaultMouthwashContent = (product: Product): ProductPdpContent => {
   const flavor = product.name
     .replace(/ Foaming Mouthwash$/i, '')
@@ -374,6 +476,9 @@ const contentBySlug: Record<string, ProductPdpContent> = {
   'grape-bubblegum-foaming-mouthwash': grapeBubblegumMouthwash,
   'mouth-spray': mouthSprayContent,
   'foaming-mouthwash': watermelonMouthwash,
+  'id-stain-whitening-mouthwash': idStainContent,
+  'id-stain-mouthwash': idStainContent,
+  'gelos-id-stain-whitening-mouthwash': idStainContent,
 }
 
 function mergeGallery(base: ProductPdpContent): ProductPdpContent {
