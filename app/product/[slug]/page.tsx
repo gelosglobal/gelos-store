@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { ProductPageClient } from '@/app/product/[slug]/product-page-client'
 import {
-  getCommunityFavoritesForCategory,
+  getCommunityFavoritesForProduct,
   getVariantsForCategory,
 } from '@/lib/product-page-data'
 import { getProductBySlugOrId, getAllProducts } from '@/lib/db/products'
@@ -46,7 +46,7 @@ export default async function ProductPage({ params }: PageProps) {
 
   const [variants, communityFavorites] = await Promise.all([
     getVariantsForCategory(product.category),
-    getCommunityFavoritesForCategory(product.category),
+    getCommunityFavoritesForProduct(product),
   ])
 
   return (

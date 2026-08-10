@@ -4,9 +4,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { AddToCartButton } from '@/components/add-to-cart-button'
+import { ProductPrice } from '@/components/product-price'
 import { ProductVariantChoiceDialog } from '@/components/product-variant-choice-dialog'
 import { useCart } from '@/components/cart-provider'
-import { useLocation } from '@/components/location-provider'
 import { useProducts } from '@/components/products-provider'
 import { ProductVariantThumbnails } from '@/components/product-variant-thumbnails'
 import { bestSellerMeta } from '@/lib/best-seller-meta'
@@ -32,6 +32,7 @@ type BestSellerCardProduct = {
   name: string
   category: string
   price: number
+  compareAtPrice?: number
   stock?: number
   image: string
   tags?: ProductTagId[]
@@ -45,7 +46,6 @@ type BestSellerCardProps = {
 
 export function BestSellerCard({ product }: BestSellerCardProps) {
   const { addItem } = useCart()
-  const { formatPrice } = useLocation()
   const { getProductById } = useProducts()
   const meta = bestSellerMeta[product.id]
   const variantImages = getEffectiveVariantImages(product)
@@ -128,9 +128,12 @@ export function BestSellerCard({ product }: BestSellerCardProps) {
         </h3>
       </Link>
 
-      <p className="mt-2 text-center text-2xl font-bold leading-none text-[#E91E8C]">
-        {formatPrice(product.price)}
-      </p>
+      <ProductPrice
+        price={product.price}
+        compareAtPrice={product.compareAtPrice}
+        size="md"
+        className="mt-2 justify-center"
+      />
 
       {needsVariantChoice && fullProduct ? (
         <>

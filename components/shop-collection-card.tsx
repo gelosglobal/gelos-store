@@ -4,10 +4,10 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { AddToCartButton } from '@/components/add-to-cart-button'
+import { ProductPrice } from '@/components/product-price'
 import { ProductVariantChoiceDialog } from '@/components/product-variant-choice-dialog'
 import { ProductVariantThumbnails } from '@/components/product-variant-thumbnails'
 import { useCart } from '@/components/cart-provider'
-import { useLocation } from '@/components/location-provider'
 import { useProducts } from '@/components/products-provider'
 import {
   getAvailableStockForVariant,
@@ -30,6 +30,7 @@ type ShopCollectionCardProps = {
     name: string
     category: string
     price: number
+    compareAtPrice?: number
     stock?: number
     image: string
     variantImages?: string[]
@@ -56,7 +57,6 @@ export function ShopCollectionCard({
   href,
 }: ShopCollectionCardProps) {
   const { addItem } = useCart()
-  const { formatPrice } = useLocation()
   const { getProductById } = useProducts()
   const flavourLocked = Boolean(lockedVariantImage)
   const productHref = href ?? getProductHref(product)
@@ -157,9 +157,12 @@ export function ShopCollectionCard({
             {displayName}
           </h3>
         </Link>
-        <p className="mt-1.5 text-sm font-bold text-[#E91E8C]">
-          {formatPrice(product.price)}
-        </p>
+        <ProductPrice
+          price={product.price}
+          compareAtPrice={product.compareAtPrice}
+          size="sm"
+          className="mt-1.5 justify-center"
+        />
 
         {needsVariantChoice && fullProduct ? (
           <>

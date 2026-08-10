@@ -6,6 +6,11 @@ export type Product = {
   name: string
   category: string
   price: number
+  /**
+   * Optional “was” price (Shopify compare-at). Shown struck through when
+   * greater than `price`.
+   */
+  compareAtPrice?: number
   rating: number
   reviews: number
   image: string

@@ -291,6 +291,10 @@ export function buildProductLineParent(
     name: config.name,
     category: config.category,
     price: primary.price,
+    ...(primary.compareAtPrice !== undefined &&
+    primary.compareAtPrice > primary.price
+      ? { compareAtPrice: primary.compareAtPrice }
+      : {}),
     rating: ratings.rating,
     reviews: ratings.reviews,
     image: options[0]?.url || primary.image,

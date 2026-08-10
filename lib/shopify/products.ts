@@ -34,6 +34,12 @@ const PRODUCT_FIELDS = /* GraphQL */ `
       currencyCode
     }
   }
+  compareAtPriceRange {
+    maxVariantPrice {
+      amount
+      currencyCode
+    }
+  }
   variants(first: 50) {
     nodes {
       id
@@ -44,6 +50,10 @@ const PRODUCT_FIELDS = /* GraphQL */ `
         altText
       }
       price {
+        amount
+        currencyCode
+      }
+      compareAtPrice {
         amount
         currencyCode
       }

@@ -38,6 +38,9 @@ export type ShopifyStorefrontProduct = {
   priceRange: {
     minVariantPrice: { amount: string; currencyCode: string }
   }
+  compareAtPriceRange?: {
+    maxVariantPrice?: { amount: string; currencyCode: string } | null
+  } | null
   variants: {
     nodes: Array<{
       id: string
@@ -45,6 +48,7 @@ export type ShopifyStorefrontProduct = {
       availableForSale: boolean
       image?: { url: string; altText?: string | null } | null
       price: { amount: string; currencyCode: string }
+      compareAtPrice?: { amount: string; currencyCode: string } | null
       selectedOptions: Array<{ name: string; value: string }>
     }>
   }
@@ -68,6 +72,19 @@ function gidToLegacyId(gid: string): string {
 function parseAmount(amount: string): number {
   const value = Number.parseFloat(amount)
   return Number.isFinite(value) ? value : 0
+}
+
+/** Prefer variant compare-at, then product range — only when above sale price. */
+function resolveCompareAtPrice(
+  salePrice: number,
+  variantCompareAt?: string | null,
+  rangeMaxCompareAt?: string | null,
+): number | undefined {
+  const candidates = [variantCompareAt, rangeMaxCompareAt]
+    .map((value) => (value ? parseAmount(value) : 0))
+    .filter((value) => value > salePrice)
+  if (candidates.length === 0) return undefined
+  return Math.max(...candidates)
 }
 
 /** Shopify admin tags → Gelos ProductTagId (hyphenated / plural variants). */
@@ -242,6 +259,15 @@ export function mapShopifyProduct(
       reviews: 0,
     })
 
+  const price = parseAmount(
+    defaultVariant.price.amount || node.priceRange.minVariantPrice.amount,
+  )
+  const compareAtPrice = resolveCompareAtPrice(
+    price,
+    defaultVariant.compareAtPrice?.amount,
+    node.compareAtPriceRange?.maxVariantPrice?.amount,
+  )
+
   return {
     id: gidToLegacyId(node.id),
     name: node.title,
@@ -250,9 +276,8 @@ export function mapShopifyProduct(
       node.title,
       node.handle,
     ),
-    price: parseAmount(
-      defaultVariant.price.amount || node.priceRange.minVariantPrice.amount,
-    ),
+    price,
+    ...(compareAtPrice !== undefined ? { compareAtPrice } : {}),
     rating: ratings.rating,
     reviews: ratings.reviews,
     image: featured,

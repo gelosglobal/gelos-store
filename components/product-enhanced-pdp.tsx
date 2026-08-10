@@ -4,13 +4,13 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useCart } from '@/components/cart-provider'
-import { useLocation } from '@/components/location-provider'
 import { ProductAccordionSection } from '@/components/product-accordion-section'
 import { ProductAdminVariantPicker } from '@/components/product-admin-variant-picker'
 import { ProductFeatureGallery } from '@/components/product-feature-gallery'
 import { ProductGallery } from '@/components/product-gallery'
 import { ProductRating } from '@/components/product-rating'
 import { ProductShareMenu } from '@/components/product-share-menu'
+import { ProductPrice } from '@/components/product-price'
 import { ProductVariantChoiceDialog } from '@/components/product-variant-choice-dialog'
 import {
   getAdminGalleryMedia,
@@ -69,7 +69,6 @@ export function ProductEnhancedPdp({
   flavorPicker,
 }: ProductEnhancedPdpProps) {
   const { addItem } = useCart()
-  const { formatPrice } = useLocation()
   const searchParams = useSearchParams()
   const flavourParam = searchParams.get('flavour')
   const [quantity, setQuantity] = useState(1)
@@ -284,9 +283,11 @@ export function ProductEnhancedPdp({
 
             <div className="rounded-3xl bg-white p-6 ring-1 ring-neutral-200 sm:p-8">
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <p className="text-3xl font-bold text-[#E91E8C] sm:text-4xl">
-                  {formatPrice(product.price)}
-                </p>
+                <ProductPrice
+                  price={product.price}
+                  compareAtPrice={product.compareAtPrice}
+                  size="lg"
+                />
                 <div className="inline-flex items-center rounded-lg border border-neutral-200 bg-neutral-50">
                   <button
                     type="button"

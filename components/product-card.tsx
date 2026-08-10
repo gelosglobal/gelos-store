@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { AddToCartButton } from '@/components/add-to-cart-button'
-import { formatPrice } from '@/lib/format-price'
+import { ProductPrice } from '@/components/product-price'
 import { getProductImageDisplayClass } from '@/lib/product-image-display'
 import { getProductHref } from '@/lib/product-utils'
 
@@ -11,6 +11,7 @@ type ProductCardProduct = {
   id: string
   name: string
   price: number
+  compareAtPrice?: number
   image: string
 }
 
@@ -46,9 +47,13 @@ export function ProductCard({ product }: ProductCardProps) {
             {product.name}
           </h3>
         </Link>
-        <p className="mt-1 text-left text-base font-medium text-foreground">
-          {formatPrice(product.price)}
-        </p>
+        <ProductPrice
+          price={product.price}
+          compareAtPrice={product.compareAtPrice}
+          size="sm"
+          className="mt-1"
+          priceClassName="font-medium text-foreground"
+        />
       </div>
 
       <div className="mt-auto flex flex-col">
