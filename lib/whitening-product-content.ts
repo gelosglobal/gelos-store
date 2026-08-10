@@ -232,52 +232,68 @@ const ledDeviceContent: ProductPdpContent = {
 }
 
 const stripsBenefits = [
-  'Helps reduce the appearance of surface stains',
-  'Supports a brighter, whiter-looking smile',
-  'Simple, quick, and mess-free application',
-  'Convenient whitening routine at home',
-  'Helps enhance overall smile appearance',
+  'Helps lift everyday surface stains',
+  'Purple colour-correcting technology reduces the appearance of yellow tones',
+  'Helps reveal a brighter-looking smile',
+  'Comfortable, secure fit',
+  'Easy peel-and-apply design',
+  '30-minute application',
+  'Hydrogen-peroxide-free formula',
+  'Convenient for use at home or while travelling',
+  'Contains 14 applications',
 ]
 
 const stripsUsageSteps: ProductPdpContent['usageSteps'] = [
   {
-    title: 'Peel',
-    body: 'Peel strips from the backing film.',
-  },
-  {
     title: 'Apply',
-    body: 'Apply to clean, dry teeth.',
+    body: 'Apply one strip to the upper teeth and one to the lower teeth.',
   },
   {
     title: 'Wait',
-    body: 'Leave on for the recommended time per session.',
+    body: 'Leave them on for 30 minutes.',
   },
   {
     title: 'Remove',
-    body: 'Remove and discard after use.',
+    body: 'Remove and discard the strips.',
+  },
+  {
+    title: 'Rinse',
+    body: 'Rinse or brush away any remaining gel.',
   },
   {
     title: 'Avoid',
-    body: 'Avoid eating or drinking during application.',
+    body: 'For best results, avoid eating or drinking during application.',
   },
   {
-    title: 'Routine',
-    body: 'Use 1 application per day or as directed — 7 total applications per pack.',
+    title: 'Follow pack',
+    body: 'Follow the directions provided on the packaging.',
   },
 ]
 
 const stripsFaq: ProductPdpContent['faq'] = [
   {
     id: 'faq-different',
-    title: 'What is the PAP+ formula?',
+    title: 'How do purple colour-correcting strips work?',
     content:
-      'Gelos PAP+ Teeth Whitening Strips use a PAP+ whitening formula designed to help reduce the appearance of stains and support a brighter-looking smile — in an easy peel-and-apply format.',
+      'Gelos V34 Purple Whitening Strips use a purple colour-correcting formula designed to help neutralise the appearance of yellow tones and lift everyday surface stains — for a brighter, refreshed look.',
   },
   {
     id: 'faq-how-many',
     title: 'How many applications are in the pack?',
     content:
-      '14 strips for 7 full applications (upper and lower per session). Use one application per day or as directed on pack.',
+      'Each pack contains 14 applications. Apply one strip to the upper teeth and one to the lower teeth per session.',
+  },
+  {
+    id: 'faq-how-long',
+    title: 'How long do I leave the strips on?',
+    content:
+      'Leave the strips on for 30 minutes, then remove and discard. Rinse or brush away any remaining gel.',
+  },
+  {
+    id: 'faq-peroxide',
+    title: 'Do these strips contain hydrogen peroxide?',
+    content:
+      'No. Gelos V34 Purple Whitening Strips use a hydrogen-peroxide-free formula.',
   },
   {
     id: 'faq-sensitive',
@@ -285,48 +301,42 @@ const stripsFaq: ProductPdpContent['faq'] = [
     content:
       'If you have sensitivity, follow pack directions and space treatments as needed. Stop use if discomfort persists and speak with your dentist.',
   },
-  {
-    id: 'faq-results',
-    title: 'When will I see results?',
-    content:
-      'Many customers notice a fresher, brighter look after consistent use as directed. Results vary by starting shade, diet, and how closely you follow the routine.',
-  },
 ]
 
 const stripsContent: ProductPdpContent = {
   galleryImages: [],
-  imageBadge: 'PAP+',
-  headline: 'Gelos PAP+ Teeth Whitening Strips',
+  imageBadge: 'V34',
+  headline: 'Gelos V34 Purple Whitening Strips',
   intro:
-    'The Gelos PAP+ Teeth Whitening Strips are a convenient at-home whitening solution designed to help reduce the appearance of stains and enhance a brighter-looking smile. Powered by a PAP+ formula, they offer an easy, mess-free way to support tooth whitening in your daily routine.',
+    'Brighten your smile from the comfort of home with Gelos V34 Purple Whitening Strips. Designed to fit comfortably over the teeth, these easy-to-use strips help lift everyday surface stains caused by coffee, tea, food and other staining habits. The purple colour-correcting formula helps neutralise the appearance of yellow tones, leaving teeth looking brighter and refreshed. Each treatment takes just 30 minutes, making it easy to add professional-style whitening to your regular oral-care routine.',
   bullets: stripsBenefits,
   highlights: [
-    { label: 'PAP+ formula', emoji: '✨' },
-    { label: '7 applications', emoji: '📅' },
-    { label: 'Mess-free', emoji: '🏠' },
+    { label: 'Colour-correcting', emoji: '💜' },
+    { label: '30 minutes', emoji: '⏱️' },
+    { label: '14 applications', emoji: '📅' },
   ],
   usageSteps: stripsUsageSteps,
   usageStepsTitle: 'How to use your whitening strips',
   usageStepsIntro:
-    'Use 1 application per day or as directed — 7 total applications per pack.',
+    'Apply one strip to the upper teeth and one to the lower teeth. Leave them on for 30 minutes, then remove and discard. Rinse or brush away any remaining gel.',
   detailsAccordion: [
     {
       id: 'features',
-      title: 'Key features',
+      title: 'Key benefits',
       content:
-        'PAP+ whitening formula · 14 strips (7 full applications) · Easy peel-and-apply design · Fits comfortably on teeth · Designed for at-home use',
+        'Helps lift everyday surface stains · Purple colour-correcting technology · Helps reveal a brighter-looking smile · Comfortable, secure fit · Easy peel-and-apply design · 30-minute application · Hydrogen-peroxide-free formula · Convenient at home or while travelling · 14 applications',
     },
     {
       id: 'different',
-      title: 'What makes Gelos PAP+ strips different?',
+      title: 'What makes Gelos V34 Purple strips different?',
       content:
-        'A mess-free at-home whitening option — peel, apply, and let the PAP+ formula work while you go about your day.',
+        'A purple colour-correcting formula that helps neutralise the appearance of yellow tones and lift everyday surface stains — in an easy 30-minute, peel-and-apply format.',
     },
     {
       id: 'included',
       title: "*What's included?",
       content:
-        '14 Gelos PAP+ Teeth Whitening Strips (7 full applications). See packaging for full directions and recommended wear time.',
+        'Gelos V34 Purple Whitening Strips with 14 applications. See packaging for full directions.',
     },
   ],
   faq: stripsFaq,

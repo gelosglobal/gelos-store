@@ -92,7 +92,7 @@ export const products = [
     reviews: 178,
     image: "/gelos/strips.png",
     description:
-      "Gelos PAP+ Teeth Whitening Strips — convenient at-home strips to help reduce stains and support a brighter-looking smile.",
+      "Gelos V34 Purple Whitening Strips — purple colour-correcting strips that help lift everyday surface stains in 30 minutes.",
     stock: 36,
   },
   {

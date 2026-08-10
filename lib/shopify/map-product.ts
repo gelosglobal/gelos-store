@@ -124,6 +124,8 @@ const SHOPIFY_CATEGORY_ALIASES: Record<string, string> = {
   'mouth spray': 'Mouthwash',
   'mouth sprays': 'Mouthwash',
   wellness: 'Wellness',
+  'wellness and care': 'Wellness',
+  'wellness & care': 'Wellness',
   'water flosser': 'Water Flossers',
   'water flossers': 'Water Flossers',
   'tooth tattoo': 'Accessories',
@@ -147,7 +149,6 @@ function normalizeShopifyCategory(
   const handleKey = handle.trim().toLowerCase()
   const HANDLE_CATEGORY_OVERRIDES: Record<string, string> = {
     'pulling-oil-coconut-mint-free-tongue-scraper': 'Whitening',
-    'hyaluronic-serum': 'Whitening',
   }
   if (HANDLE_CATEGORY_OVERRIDES[handleKey]) {
     return HANDLE_CATEGORY_OVERRIDES[handleKey]
@@ -166,8 +167,9 @@ function normalizeShopifyCategory(
 
   if (/water\s*flosser/.test(haystack)) return 'Water Flossers'
   if (/mouth\s*(wash|spray)|foaming\s*mouth/.test(haystack)) return 'Mouthwash'
-  // Pulling oil / serums before tongue-scraper (bundle titles often include both)
-  if (/pulling\s*oil|hyaluronic|enamel\s*care/.test(haystack)) {
+  if (/hyaluronic/.test(haystack)) return 'Wellness'
+  // Pulling oil / enamel care before tongue-scraper (bundle titles often include both)
+  if (/pulling\s*oil|enamel\s*care/.test(haystack)) {
     return 'Whitening'
   }
   if (/tongue\s*scraper/.test(haystack)) return 'Tongue Scraper'

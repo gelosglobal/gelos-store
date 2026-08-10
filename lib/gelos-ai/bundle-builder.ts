@@ -259,7 +259,7 @@ export const bundleProductBlurbs: Record<string, string> = {
   [BUNDLE_PRODUCT_IDS.whiteningKit]:
     'V34 shade correction for visible brightening at home.',
   [BUNDLE_PRODUCT_IDS.whiteningStrips]:
-    'Easy PAP+ strips — great between brush sessions.',
+    'Easy V34 purple strips — great between brush sessions.',
   [BUNDLE_PRODUCT_IDS.bambooBrush]:
     'Eco soft-bristle brush for gentle everyday gum care.',
   [BUNDLE_PRODUCT_IDS.electricBrush]:
