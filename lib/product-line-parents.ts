@@ -19,6 +19,13 @@ export type ProductLineParentConfig = {
    * collapse into this parent (e.g. SonicWave colours within Toothbrushes).
    */
   isMember?: (product: Pick<Product, 'id' | 'name' | 'handle' | 'category'>) => boolean
+  /**
+   * Optional exclusions within a whole-category line (e.g. Mouth Spray stays
+   * its own PDP while other Mouthwash SKUs collapse into Foaming Mouthwash).
+   */
+  excludeMember?: (
+    product: Pick<Product, 'id' | 'name' | 'handle' | 'category'>,
+  ) => boolean
 }
 
 export const TOOTHPASTE_LINE_PARENT: ProductLineParentConfig = {
@@ -67,14 +74,32 @@ export const MOUTHWASH_LINE_PARENT: ProductLineParentConfig = {
     'blue-raspberry-foaming-mouthwash',
     'blue-raspberry-foaming-mouth-wash',
     'grape-bubblegum-foaming-mouthwash',
-    'mouth-spray',
   ],
   labelFromName: (name) =>
     name
       .replace(/ Foaming Mouthwash$/i, '')
       .replace(/ Mouthwash$/i, '')
-      .replace(/ Mouth Spray$/i, 'Spray')
       .trim(),
+  // Mouth Spray shares the Mouthwash category but is a different product format.
+  excludeMember: (product) => isMouthSprayProduct(product),
+}
+
+const MOUTH_SPRAY_RE = /mouth\s*spray/i
+
+export function isMouthSprayProduct(
+  product: Pick<Product, 'name' | 'handle' | 'id'>,
+): boolean {
+  const handle = (product.handle || '').toLowerCase()
+  if (
+    handle === 'mouth-spray' ||
+    handle.includes('mouth-spray') ||
+    handle.includes('mouthspray')
+  ) {
+    return true
+  }
+  if (MOUTH_SPRAY_RE.test(product.name)) return true
+  const id = product.id.toLowerCase()
+  return id === 'mouth-spray' || id.includes('mouth-spray')
 }
 
 const SONICWAVE_NAME_RE = /sonicwave\s*g1\s*series\s*electric\s*toothbrush/i
@@ -160,7 +185,10 @@ export function getProductLineParentConfigForProduct(
 ): ProductLineParentConfig | null {
   const byMember = LINE_PARENTS.find((parent) => parent.isMember?.(product))
   if (byMember) return byMember
-  return getProductLineParentConfigForCategory(product.category)
+
+  const byCategory = getProductLineParentConfigForCategory(product.category)
+  if (byCategory?.excludeMember?.(product)) return null
+  return byCategory
 }
 
 function getLineMembers(
@@ -171,7 +199,8 @@ function getLineMembers(
     (product) =>
       product.category === config.category &&
       product.active !== false &&
-      (config.isMember ? config.isMember(product) : true),
+      (config.isMember ? config.isMember(product) : true) &&
+      !(config.excludeMember?.(product) ?? false),
   )
 }
 
