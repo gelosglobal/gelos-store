@@ -29,19 +29,18 @@ import {
 } from '@/lib/cart-upsells'
 
 export default function CartPage() {
-  const { items, isHydrated, removeItem, setQuantity, addItem } = useCart()
+  const { items, isHydrated, storedItemCount, removeItem, setQuantity, addItem } =
+    useCart()
   const { formatPrice, locationId, location } = useLocation()
-  const { products } = useProducts()
+  const { products, isLoading: productsLoading } = useProducts()
   const {
     promotions,
     appliedPromoCode,
     setAppliedPromoCode,
-    loading: promotionsLoading,
   } = useStorePromotions()
   const { applyShipping } = useMarketSettings()
   const checkoutPromotions = applyShipping(promotions)
-  const { settings: cartUpsellSettings, loading: cartUpsellsLoading } =
-    useCartUpsellSettings()
+  const { settings: cartUpsellSettings } = useCartUpsellSettings()
   const [promoCode, setPromoCode] = useState(appliedPromoCode)
   const [promoError, setPromoError] = useState('')
   const [smileRewardFreeShipping, setSmileRewardFreeShipping] = useState(false)
@@ -153,7 +152,10 @@ export default function CartPage() {
     .slice(0, 3)
     .map((promo) => promo.code)
 
-  if (!isHydrated || promotionsLoading || cartUpsellsLoading) {
+  const catalogPending =
+    productsLoading && storedItemCount > 0 && items.length === 0
+
+  if (!isHydrated || catalogPending) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center bg-neutral-50 text-neutral-500">
         Loading cart…

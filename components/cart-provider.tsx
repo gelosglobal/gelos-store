@@ -272,6 +272,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     () => ({
       items,
       itemCount,
+      storedItemCount,
       isHydrated,
       addItem,
       addItems,
@@ -282,6 +283,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [
       items,
       itemCount,
+      storedItemCount,
       isHydrated,
       addItem,
       addItems,

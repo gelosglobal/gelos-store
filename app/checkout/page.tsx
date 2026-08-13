@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { usePageResume } from '@/hooks/use-page-resume'
 import { Banknote, Loader2, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCart } from '@/components/cart-provider'
@@ -65,8 +66,19 @@ export default function CheckoutPage() {
 
   // Shopify mode: skip this page and go straight to hosted checkout.
   const shopifyRedirectStarted = useRef(false)
+  const returnedFromCheckout = useRef(false)
+
+  const resumeFromShopify = useCallback(() => {
+    returnedFromCheckout.current = true
+    shopifyRedirectStarted.current = false
+    setIsSubmitting(false)
+    router.replace('/cart')
+  }, [router])
+  usePageResume(resumeFromShopify)
+
   useEffect(() => {
     if (
+      returnedFromCheckout.current ||
       !shopifyCheckoutEnabled ||
       shopifyStatusLoading ||
       !isHydrated ||

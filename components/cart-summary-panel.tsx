@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import { ChevronDown, Loader2, Tag } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { usePageResume } from '@/hooks/use-page-resume'
 import { toast } from 'sonner'
 import { CartPaymentMethods } from '@/components/cart-payment-methods'
 import { WhatsAppOrderButton } from '@/components/whatsapp-order-button'
@@ -104,6 +105,11 @@ export function CartSummaryPanel({
     if (saved.email) setCheckoutEmail(saved.email)
     if (saved.phone) setCheckoutPhone(saved.phone)
   }, [])
+
+  const resetRedirecting = useCallback(() => {
+    setIsRedirecting(false)
+  }, [])
+  usePageResume(resetRedirecting)
 
   const handleShopifyCheckout = async () => {
     if (isRedirecting || items.length === 0) return
