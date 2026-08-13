@@ -265,9 +265,9 @@ export function MegaMenu({ onNavigate }: MegaMenuProps) {
 }
 
 function megaMenuImageClass(src: string) {
+  const path = src.split('?')[0].toLowerCase()
   const lower = src.toLowerCase()
   if (
-    lower.endsWith('.png') ||
     lower.includes('watermelon') ||
     lower.includes('grape-mint') ||
     lower.includes('energy-drink') ||
@@ -275,6 +275,12 @@ function megaMenuImageClass(src: string) {
     lower.includes('led-whitening') ||
     lower.includes('inhaler') ||
     lower.includes('-toothpaste')
+  ) {
+    return 'object-contain p-2'
+  }
+  if (
+    (path.endsWith('.png') || path.endsWith('.webp')) &&
+    (path.includes('/gelos/') || path.includes('/_next/'))
   ) {
     return 'object-contain p-2'
   }

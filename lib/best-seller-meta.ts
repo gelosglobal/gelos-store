@@ -11,11 +11,9 @@ export type BestSellerMeta = {
 
 function inferImageFit(src: string): 'contain' | 'cover' {
   const path = src.split('?')[0].toLowerCase()
-  if (path.endsWith('.png') || path.endsWith('.webp')) {
-    return 'contain'
-  }
-
   const lower = src.toLowerCase()
+
+  // Isolated pack shots (transparent PNG/WebP) — not full-bleed photos.
   if (
     lower.includes('watermelon-toothpaste') ||
     lower.includes('grape-mint-fruit-energy') ||
@@ -30,6 +28,16 @@ function inferImageFit(src: string): 'contain' | 'cover' {
   ) {
     return 'contain'
   }
+
+  // Local Gelos cutouts. Shopify CDN photos (often .png/.webp with a scene
+  // background) should fill the card with cover.
+  if (
+    (path.endsWith('.png') || path.endsWith('.webp')) &&
+    (path.includes('/gelos/') || path.includes('/_next/'))
+  ) {
+    return 'contain'
+  }
+
   return 'cover'
 }
 
