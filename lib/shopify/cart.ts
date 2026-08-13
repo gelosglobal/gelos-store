@@ -1,3 +1,9 @@
+import type { LocationId } from '@/lib/locations'
+import {
+  buildShopifyCheckoutDiscountCodes,
+  createShopifyDraftOrderCheckout,
+  resolveShopifyCheckoutPricing,
+} from '@/lib/shopify/checkout-discounts'
 import {
   mapShopifyProduct,
   resolveShopifyMerchandiseId,
@@ -12,18 +18,24 @@ const CART_CREATE_MUTATION = /* GraphQL */ `
     $lines: [CartLineInput!]!
     $buyerIdentity: CartBuyerIdentityInput
     $attributes: [AttributeInput!]
+    $discountCodes: [String!]
   ) {
     cartCreate(
       input: {
         lines: $lines
         buyerIdentity: $buyerIdentity
         attributes: $attributes
+        discountCodes: $discountCodes
       }
     ) {
       cart {
         id
         checkoutUrl
         totalQuantity
+        discountCodes {
+          code
+          applicable
+        }
       }
       userErrors {
         field
@@ -38,6 +50,7 @@ export type ShopifyCheckoutLineInput = {
   quantity: number
   variantLabel?: string
   variantImage?: string
+  unitPrice?: number
 }
 
 export type ShopifyCheckoutResult = {
@@ -52,6 +65,7 @@ type CartCreateData = {
       id: string
       checkoutUrl: string
       totalQuantity: number
+      discountCodes?: Array<{ code: string; applicable: boolean }> | null
     } | null
     userErrors: Array<{ field?: string[] | null; message: string }>
   }
@@ -76,6 +90,9 @@ export async function createShopifyCheckout(input: {
   email?: string
   phone?: string
   countryCode?: string
+  locationId?: LocationId
+  promoCode?: string
+  smileRewardFreeShipping?: boolean
   /** Stable Gelos visitor id — carried into checkout for Meta external_id. */
   visitorId?: string
 }): Promise<ShopifyCheckoutResult> {
@@ -119,10 +136,48 @@ export async function createShopifyCheckout(input: {
     attributes.push({ key: 'gelos_visitor_id', value: visitorId })
   }
 
+  const pricing = await resolveShopifyCheckoutPricing({
+    lines: input.lines,
+    productsById: byId,
+    promoCode: input.promoCode,
+    smileRewardFreeShipping: input.smileRewardFreeShipping,
+    locationId: input.locationId,
+  })
+
+  const needsHiddenDiscounts = pricing.amountOff >= 0.01 || pricing.freeShipping
+  if (needsHiddenDiscounts) {
+    try {
+      const draft = await createShopifyDraftOrderCheckout({
+        pricing,
+        email: input.email,
+        phone: input.phone,
+        countryCode: input.countryCode,
+        visitorId: input.visitorId,
+      })
+      if (draft) {
+        return {
+          cartId: draft.id,
+          checkoutUrl: draft.invoiceUrl,
+          totalQuantity: cartLines.reduce((sum, line) => sum + line.quantity, 0),
+        }
+      }
+    } catch (error) {
+      console.warn(
+        '[shopify-checkout] Draft order checkout unavailable, falling back to discount codes',
+        error,
+      )
+    }
+  }
+
+  const discountCodes = needsHiddenDiscounts
+    ? await buildShopifyCheckoutDiscountCodes(pricing)
+    : []
+
   const data = await shopifyStorefrontFetch<CartCreateData>(CART_CREATE_MUTATION, {
     lines: cartLines,
     buyerIdentity: Object.keys(buyerIdentity).length ? buyerIdentity : undefined,
     attributes: attributes.length ? attributes : undefined,
+    discountCodes: discountCodes.length ? discountCodes : undefined,
   })
 
   const errors = data.cartCreate.userErrors
@@ -133,6 +188,14 @@ export async function createShopifyCheckout(input: {
   const cart = data.cartCreate.cart
   if (!cart?.checkoutUrl) {
     throw new Error('Shopify did not return a checkout URL')
+  }
+
+  const skipped = (cart.discountCodes ?? []).filter((code) => !code.applicable)
+  if (skipped.length) {
+    console.warn(
+      '[shopify-checkout] Discount codes not applicable:',
+      skipped.map((code) => code.code).join(', '),
+    )
   }
 
   return {

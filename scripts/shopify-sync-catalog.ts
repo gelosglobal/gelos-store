@@ -2,7 +2,7 @@
  * Sync Gelos product copy/tags/PDP (+ optional gallery files) → Shopify.
  *
  * Prerequisites:
- * 1. SHOPIFY_STORE_DOMAIN + SHOPIFY_ADMIN_ACCESS_TOKEN in .env.local
+ * 1. SHOPIFY_STORE_DOMAIN + SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET in .env.local
  * 2. Metafields:
  *    - custom.pdp (JSON) + Storefront API access
  *    - custom.gallery (List of files) + Storefront API access
@@ -34,7 +34,8 @@ async function main() {
       'Missing Shopify Admin credentials.\n' +
         'Add to .env.local:\n' +
         '  SHOPIFY_STORE_DOMAIN=your-store.myshopify.com\n' +
-        '  SHOPIFY_ADMIN_ACCESS_TOKEN=shpat_...\n' +
+        '  SHOPIFY_CLIENT_ID=...\n' +
+        '  SHOPIFY_CLIENT_SECRET=...\n' +
         'Scopes: read_products, write_products' +
         (syncGallery ? ', read_files, write_files' : ''),
     )

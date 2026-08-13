@@ -108,6 +108,8 @@ export function normalizeShopifyCheckoutUrl(checkoutUrl: string): string {
 
   try {
     const url = new URL(checkoutUrl)
+    // Draft-order invoices stay on the Shopify shop domain.
+    if (url.pathname.includes('/invoices/')) return checkoutUrl
     if (url.hostname.toLowerCase() === checkoutDomain) return checkoutUrl
     url.protocol = 'https:'
     url.hostname = checkoutDomain

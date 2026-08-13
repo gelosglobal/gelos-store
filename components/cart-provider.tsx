@@ -53,6 +53,8 @@ type AddItemsOptions = {
 type CartContextValue = {
   items: CartLineItem[]
   itemCount: number
+  /** Quantities in localStorage, even before the catalog maps them to line items. */
+  storedItemCount: number
   isHydrated: boolean
   addItem: (
     productId: string,
@@ -157,6 +159,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const itemCount = useMemo(
     () => items.reduce((sum, item) => sum + item.quantity, 0),
     [items],
+  )
+  const storedItemCount = useMemo(
+    () => entries.reduce((sum, entry) => sum + entry.quantity, 0),
+    [entries],
   )
 
   const addItems = useCallback(

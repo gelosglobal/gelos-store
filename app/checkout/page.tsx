@@ -84,6 +84,9 @@ export default function CheckoutPage() {
         const checkoutUrl = await startShopifyCheckout({
           items,
           countryCode: shopifyCountryCodeFromLocation(locationId),
+          locationId,
+          promoCode: appliedPromoCode || undefined,
+          smileRewardFreeShipping,
         })
         window.location.href = checkoutUrl
       } catch (error) {
@@ -102,6 +105,8 @@ export default function CheckoutPage() {
     isHydrated,
     items,
     locationId,
+    appliedPromoCode,
+    smileRewardFreeShipping,
   ])
 
   const totals = useMemo(

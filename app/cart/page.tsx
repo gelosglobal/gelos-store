@@ -232,6 +232,7 @@ export default function CartPage() {
                 }}
                 onApplyPromo={applyPromo}
                 onClearPromo={clearPromo}
+                smileRewardFreeShipping={smileRewardFreeShipping}
               />
 
               {activeUpsell ? (

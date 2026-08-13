@@ -231,6 +231,7 @@ export function mapShopifyProduct(
       label: variantLabel(variant),
       stock: variant.availableForSale ? 99 : 0,
       shopifyVariantGid: variant.id,
+      price: parseAmount(variant.price.amount),
     }))
 
   // Attach shopifyVariantGid even when we only have a default variant (single SKU).
@@ -240,6 +241,7 @@ export function mapShopifyProduct(
       label: variantLabel(defaultVariant),
       stock: defaultVariant.availableForSale ? 99 : 0,
       shopifyVariantGid: defaultVariant.id,
+      price: parseAmount(defaultVariant.price.amount),
     })
   }
 
@@ -301,26 +303,44 @@ export function mapShopifyProduct(
   }
 }
 
+function findVariantOption(
+  product: ShopifyMappedProduct,
+  variantLabel?: string,
+  variantImage?: string,
+) {
+  if (!variantLabel && !variantImage) return undefined
+  return product.variantImageOptions.find((option) => {
+    const labelMatch =
+      variantLabel &&
+      option.label.toLowerCase() === variantLabel.trim().toLowerCase()
+    const imageMatch =
+      variantImage &&
+      normalizeImageUrl(option.url) === normalizeImageUrl(variantImage)
+    return Boolean(labelMatch || imageMatch)
+  })
+}
+
 export function resolveShopifyMerchandiseId(
   product: ShopifyMappedProduct,
   variantLabel?: string,
   variantImage?: string,
 ): string {
-  if (variantLabel || variantImage) {
-    const match = product.variantImageOptions.find((option) => {
-      const labelMatch =
-        variantLabel &&
-        option.label.toLowerCase() === variantLabel.trim().toLowerCase()
-      const imageMatch =
-        variantImage &&
-        normalizeImageUrl(option.url) === normalizeImageUrl(variantImage)
-      return Boolean(labelMatch || imageMatch)
-    })
-    if (match && 'shopifyVariantGid' in match && match.shopifyVariantGid) {
-      return String(match.shopifyVariantGid)
-    }
-  }
+  const match = findVariantOption(product, variantLabel, variantImage)
+  if (match?.shopifyVariantGid) return match.shopifyVariantGid
   return product.shopifyVariantGid
+}
+
+/** Catalog unit price for the Shopify variant that will be checked out. */
+export function resolveShopifyCatalogUnitPrice(
+  product: ShopifyMappedProduct,
+  variantLabel?: string,
+  variantImage?: string,
+): number {
+  const match = findVariantOption(product, variantLabel, variantImage)
+  if (typeof match?.price === 'number' && Number.isFinite(match.price)) {
+    return match.price
+  }
+  return product.price
 }
 
 /**

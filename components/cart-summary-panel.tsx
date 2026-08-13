@@ -70,6 +70,7 @@ type CartSummaryPanelProps = {
   onPromoCodeChange: (value: string) => void
   onApplyPromo: () => void
   onClearPromo: () => void
+  smileRewardFreeShipping?: boolean
 }
 
 export function CartSummaryPanel({
@@ -88,6 +89,7 @@ export function CartSummaryPanel({
   onPromoCodeChange,
   onApplyPromo,
   onClearPromo,
+  smileRewardFreeShipping = false,
 }: CartSummaryPanelProps) {
   const [promoOpen, setPromoOpen] = useState(Boolean(appliedPromo))
   const [isRedirecting, setIsRedirecting] = useState(false)
@@ -140,6 +142,8 @@ export function CartSummaryPanel({
           typeof window !== 'undefined' ? window.location.href : undefined,
         total: value,
         currency: location.currencyCode,
+        promoCode: appliedPromo?.code,
+        smileRewardFreeShipping,
       })
       window.location.href = checkoutUrl
     } catch (error) {

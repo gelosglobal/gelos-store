@@ -2,6 +2,7 @@ type StartShopifyCheckoutInput = {
   items: Array<{
     id: string
     quantity: number
+    price?: number
     variantImage?: string
     variantLabel?: string
   }>
@@ -14,6 +15,8 @@ type StartShopifyCheckoutInput = {
   eventSourceUrl?: string
   total?: number
   currency?: string
+  promoCode?: string
+  smileRewardFreeShipping?: boolean
 }
 
 /**
@@ -40,11 +43,14 @@ export async function startShopifyCheckout(
       eventSourceUrl: input.eventSourceUrl,
       total: input.total,
       currency: input.currency,
+      promoCode: input.promoCode?.trim() || undefined,
+      smileRewardFreeShipping: input.smileRewardFreeShipping || undefined,
       items: input.items.map((item) => ({
         id: item.id,
         quantity: item.quantity,
         variantImage: item.variantImage,
         variantLabel: item.variantLabel,
+        unitPrice: item.price,
       })),
     }),
   })

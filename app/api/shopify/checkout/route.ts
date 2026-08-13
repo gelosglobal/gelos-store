@@ -17,6 +17,8 @@ const bodySchema = z.object({
   eventSourceUrl: z.string().url().optional(),
   total: z.number().nonnegative().optional(),
   currency: z.string().trim().min(3).max(3).optional(),
+  promoCode: z.string().trim().max(40).optional(),
+  smileRewardFreeShipping: z.boolean().optional(),
   items: z
     .array(
       z.object({
@@ -24,6 +26,7 @@ const bodySchema = z.object({
         quantity: z.number().int().positive(),
         variantImage: z.string().optional(),
         variantLabel: z.string().optional(),
+        unitPrice: z.number().nonnegative().optional(),
       }),
     )
     .min(1),
@@ -75,12 +78,16 @@ export async function POST(request: Request) {
       email,
       phone,
       countryCode: parsed.data.countryCode,
+      locationId,
       visitorId,
+      promoCode: parsed.data.promoCode,
+      smileRewardFreeShipping: parsed.data.smileRewardFreeShipping,
       lines: parsed.data.items.map((item) => ({
         productId: item.id,
         quantity: item.quantity,
         variantImage: item.variantImage,
         variantLabel: item.variantLabel,
+        unitPrice: item.unitPrice,
       })),
     })
 
