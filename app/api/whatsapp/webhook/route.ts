@@ -1,4 +1,3 @@
-import { after } from 'next/server'
 import { NextRequest, NextResponse } from 'next/server'
 import {
   getWhatsappAgentConfig,
@@ -53,14 +52,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON.' }, { status: 400 })
   }
 
-  // Ack Meta quickly; finish AI + reply in the same invocation via after().
-  after(async () => {
-    try {
-      await handleWebhookPayload(payload, config)
-    } catch (error) {
-      console.error('[whatsapp-agent] webhook_background_failed', error)
-    }
-  })
+  // Process inline so Vercel keeps the function alive through OpenAI + send.
+  // (Background after()/setImmediate often exits before the reply is sent.)
+  try {
+    await handleWebhookPayload(payload, config)
+  } catch (error) {
+    console.error('[whatsapp-agent] webhook_failed', error)
+  }
 
   return NextResponse.json({
     received: true,
