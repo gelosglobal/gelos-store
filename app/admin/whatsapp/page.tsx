@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   Loader2,
   MessageCircle,
@@ -97,9 +98,11 @@ function threadLabel(thread: {
 }
 
 export default function AdminWhatsappPage() {
+  const searchParams = useSearchParams()
+  const deepLinkCustomer = searchParams.get('c')?.trim() || ''
   const [threads, setThreads] = useState<ThreadSummary[]>([])
   const [loadingThreads, setLoadingThreads] = useState(true)
-  const [activeId, setActiveId] = useState('')
+  const [activeId, setActiveId] = useState(deepLinkCustomer)
   const [detail, setDetail] = useState<ThreadDetail | null>(null)
   const [loadingThread, setLoadingThread] = useState(false)
   const [search, setSearch] = useState('')
@@ -107,13 +110,6 @@ export default function AdminWhatsappPage() {
   const [sending, setSending] = useState(false)
   const [pausing, setPausing] = useState(false)
   const [sendingLink, setSendingLink] = useState(false)
-  const [catalogStatus, setCatalogStatus] = useState<{
-    configured: boolean
-    catalogId: string | null
-    linkedToWaba?: boolean
-    productCount: number | null
-  } | null>(null)
-  const [syncingCatalog, setSyncingCatalog] = useState(false)
 
   const loadThreads = useCallback(async () => {
     setLoadingThreads(true)
@@ -123,7 +119,9 @@ export default function AdminWhatsappPage() {
       if (!res.ok) throw new Error(data.error ?? 'Failed to load chats')
       const next = (data.threads ?? []) as ThreadSummary[]
       setThreads(next)
-      if (!activeId && next.length > 0) {
+      if (deepLinkCustomer) {
+        setActiveId(deepLinkCustomer)
+      } else if (!activeId && next.length > 0) {
         setActiveId(next[0]!.whatsappId)
       }
     } catch (error) {
@@ -131,7 +129,7 @@ export default function AdminWhatsappPage() {
     } finally {
       setLoadingThreads(false)
     }
-  }, [activeId])
+  }, [activeId, deepLinkCustomer])
 
   const loadThread = useCallback(async (whatsappId: string) => {
     if (!whatsappId) return
@@ -152,46 +150,9 @@ export default function AdminWhatsappPage() {
     }
   }, [])
 
-  const loadCatalogStatus = useCallback(async () => {
-    try {
-      const res = await fetch('/api/admin/whatsapp/catalog', { cache: 'no-store' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Failed to load catalog')
-      setCatalogStatus(data)
-    } catch {
-      setCatalogStatus(null)
-    }
-  }, [])
-
   useEffect(() => {
     void loadThreads()
-    void loadCatalogStatus()
-  }, [loadThreads, loadCatalogStatus])
-
-  const handleSyncCatalog = async () => {
-    setSyncingCatalog(true)
-    try {
-      const res = await fetch('/api/admin/whatsapp/catalog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'sync' }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Sync failed')
-      const synced = data.sync?.synced ?? 0
-      const skipped = data.sync?.skipped?.length ?? 0
-      toast.success(
-        data.sync?.ok
-          ? `Synced ${synced} products to Meta (${skipped} skipped)`
-          : data.sync?.error || 'Sync finished with issues',
-      )
-      await loadCatalogStatus()
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Catalog sync failed')
-    } finally {
-      setSyncingCatalog(false)
-    }
-  }
+  }, [loadThreads])
 
   useEffect(() => {
     if (activeId) void loadThread(activeId)
@@ -296,58 +257,21 @@ export default function AdminWhatsappPage() {
         title="WhatsApp"
         description="Monitor live agent chats, pause the AI, and reply as Gelos."
       >
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9 gap-2"
-            onClick={handleSyncCatalog}
-            disabled={syncingCatalog}
-          >
-            {syncingCatalog ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <MessageCircle className="h-4 w-4" />
-            )}
-            Sync Meta catalog
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9 gap-2"
-            onClick={() => loadThreads()}
-            disabled={loadingThreads}
-          >
-            {loadingThreads ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            Refresh
-          </Button>
-        </div>
-      </AdminPageHeader>
-
-      {catalogStatus ? (
-        <p className="text-sm text-neutral-600">
-          Meta Catalog:{' '}
-          {catalogStatus.configured ? (
-            <>
-              <span className="font-medium text-neutral-900">
-                {catalogStatus.catalogId}
-              </span>
-              {catalogStatus.linkedToWaba ? ' · linked to WABA' : ' · not linked yet'}
-              {typeof catalogStatus.productCount === 'number'
-                ? ` · ~${catalogStatus.productCount} items in Meta`
-                : null}
-            </>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 gap-2"
+          onClick={() => loadThreads()}
+          disabled={loadingThreads}
+        >
+          {loadingThreads ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <span className="text-amber-700">
-              set META_CATALOG_ID to enable native product messages
-            </span>
+            <RefreshCw className="h-4 w-4" />
           )}
-        </p>
-      ) : null}
+          Refresh
+        </Button>
+      </AdminPageHeader>
 
       <div className="grid h-[min(72vh,calc(100dvh-11rem))] grid-cols-1 gap-4 lg:grid-cols-[360px_1fr]">
         <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white">

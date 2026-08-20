@@ -172,8 +172,8 @@ export function CheckoutOrderSummary({
 
   return (
     <aside className="h-fit w-full lg:sticky lg:top-24">
-      <div className="w-full overflow-hidden rounded-3xl border border-violet-100 bg-[#FFF7FA] shadow-sm">
-        <div className="border-b border-violet-100/80 px-5 py-4 sm:px-6">
+      <div className="w-full overflow-hidden rounded-2xl border border-violet-100 bg-[#FFF7FA] shadow-sm sm:rounded-3xl">
+        <div className="border-b border-violet-100/80 px-4 py-3.5 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-bold text-neutral-950 sm:text-lg">
               Your Order ({itemCount} {itemCount === 1 ? 'item' : 'items'})
@@ -187,7 +187,7 @@ export function CheckoutOrderSummary({
           </div>
         </div>
 
-        <ul className="px-5 sm:px-6">
+        <ul className="px-4 sm:px-6">
           {items.map((item) => (
             <SummaryLineItem
               key={item.lineKey}
@@ -197,7 +197,7 @@ export function CheckoutOrderSummary({
           ))}
         </ul>
 
-        <div className="space-y-4 border-t border-violet-100/80 px-5 py-5 sm:px-6">
+        <div className="space-y-4 border-t border-violet-100/80 px-4 py-4 sm:px-6 sm:py-5">
           <div className="flex gap-2">
             <div className="relative min-w-0 flex-1">
               <Tag className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-neutral-400" />

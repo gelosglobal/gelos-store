@@ -194,14 +194,14 @@ function StripeCardFieldsInner(
         <p className="mt-3 px-1 text-xs text-red-600">{error}</p>
       ) : null}
 
-      <label className="mt-4 flex cursor-pointer items-start gap-2.5 px-0.5">
+      <label className="mt-5 flex cursor-pointer items-start gap-2.5 border-t border-neutral-200 px-1 pt-4 pb-1">
         <input
           type="checkbox"
           checked={useShippingAsBilling}
           onChange={(e) => setUseShippingAsBilling(e.target.checked)}
           className="mt-0.5 size-4 shrink-0 rounded border-neutral-400 accent-neutral-950"
         />
-        <span className="text-sm text-neutral-800">
+        <span className="text-sm leading-snug text-neutral-800">
           Use shipping address as billing address
         </span>
       </label>
@@ -249,14 +249,13 @@ export function StripeElementsProvider({
   return <Elements stripe={promise}>{children}</Elements>
 }
 
-function CardBrandBadges() {
+function CardBrandBadges({ className }: { className?: string }) {
   const cardLogos = paymentProviderLogos.filter(
     (logo) => logo.id === 'visa' || logo.id === 'mastercard',
   )
-  const extraCount = Math.max(0, paymentProviderLogos.length - cardLogos.length)
 
   return (
-    <div className="flex items-center gap-1.5" aria-hidden>
+    <div className={cn('flex items-center gap-1.5', className)} aria-hidden>
       {cardLogos.map((logo) => (
         <span
           key={logo.id}
@@ -271,11 +270,6 @@ function CardBrandBadges() {
           />
         </span>
       ))}
-      {extraCount > 0 ? (
-        <span className="rounded border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 text-[10px] font-semibold text-neutral-600">
-          +{extraCount}
-        </span>
-      ) : null}
     </div>
   )
 }

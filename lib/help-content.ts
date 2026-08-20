@@ -143,7 +143,7 @@ export const paymentsSections: HelpContentSection[] = [
     title: 'Accepted methods',
     body: [
       'Visa and Mastercard debit/credit cards.',
-      'Mobile Money (MTN MoMo and other networks supported by Paystack at checkout).',
+      'Mobile Money (MTN MoMo, Telecel, and AirtelTigo via Paystack at checkout).',
       'Stripe card checkout (and Apple Pay / Google Pay where available) for USA inhaler orders.',
       'Additional payment options may appear at checkout depending on your device and location.',
     ],

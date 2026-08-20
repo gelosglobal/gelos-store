@@ -8,6 +8,12 @@ export type PaymentProviderLogo = {
 
 export const paymentProviderLogos: PaymentProviderLogo[] = [
   {
+    id: 'paystack',
+    label: 'Paystack',
+    src: '/gelos/pay-logo/IMG_2025.JPG',
+    className: 'max-h-5 max-w-[5.5rem]',
+  },
+  {
     id: 'visa',
     label: 'Visa',
     src: '/gelos/pay-logo/IMG_2026.PNG',
@@ -21,14 +27,8 @@ export const paymentProviderLogos: PaymentProviderLogo[] = [
   },
   {
     id: 'momo',
-    label: 'MoMo from MTN',
+    label: 'MTN MoMo',
     src: '/gelos/pay-logo/IMG_2023.PNG',
     className: 'max-h-6 max-w-[4.5rem]',
-  },
-  {
-    id: 'paystack',
-    label: 'Paystack',
-    src: '/gelos/pay-logo/IMG_2025.JPG',
-    className: 'max-h-5 max-w-[5.5rem]',
   },
 ]

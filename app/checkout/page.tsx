@@ -20,13 +20,13 @@ import {
   StripeElementsProvider,
   type StripeCardFieldsHandle,
 } from '@/components/stripe-card-fields'
+import { PaystackPaymentBadges } from '@/components/paystack-payment-badges'
 import { calculateCheckoutTotals } from '@/lib/checkout'
 import { convertForLocation } from '@/lib/exchange-rates'
 import { hasSmileRewardFreeShipping } from '@/lib/gelos-ai/smile-reward-storage'
 import { trackInitiateCheckout, trackPurchase, trackAddPaymentInfo } from '@/lib/meta-pixel'
 import { getInitiateCheckoutEventId } from '@/lib/meta-event-ids'
 import { saveCheckoutDraft } from '@/lib/checkout-draft'
-import { paymentProviderLogos } from '@/lib/payment-provider-logos'
 import {
   countryCodeFromLocation,
   INTERNATIONAL_COUNTRY_OPTIONS,
@@ -642,10 +642,10 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50 text-foreground">
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-        <div className="mb-8">
+      <div className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-10 lg:px-8 lg:py-14">
+        <div className="mb-5 sm:mb-8">
           <p className="text-sm text-neutral-500">Secure checkout</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight text-neutral-950">
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-neutral-950 sm:text-3xl">
             Checkout
           </h1>
           {affiliate && (
@@ -656,10 +656,10 @@ export default function CheckoutPage() {
           )}
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-2 lg:items-start lg:gap-12">
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-12">
           <form
             onSubmit={handleSubmit}
-            className="min-w-0 rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
+            className="order-2 min-w-0 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-8 lg:order-1"
           >
             <h2 className="text-lg font-semibold text-neutral-950">
               Contact & delivery
@@ -868,12 +868,12 @@ export default function CheckoutPage() {
                       <button
                         type="button"
                         onClick={() => setPaymentMethod('stripe')}
-                        className="flex w-full items-center justify-between gap-3 bg-white px-4 py-3.5 text-left"
+                        className="flex w-full flex-col gap-3 bg-white px-3.5 py-3.5 text-left sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4"
                       >
-                        <span className="flex items-center gap-3">
+                        <span className="flex min-w-0 items-center gap-3">
                           <span
                             className={cn(
-                              'flex size-4 items-center justify-center rounded-full border',
+                              'flex size-4 shrink-0 items-center justify-center rounded-full border',
                               paymentMethod === 'stripe'
                                 ? 'border-neutral-950'
                                 : 'border-neutral-400',
@@ -888,17 +888,19 @@ export default function CheckoutPage() {
                             Credit card
                           </span>
                         </span>
-                        <CardBrandBadges />
+                        <CardBrandBadges className="pl-7 sm:pl-0" />
                       </button>
 
                       {paymentMethod === 'stripe' ? (
-                        <StripeElementsProvider>
-                          <StripeCardFields
-                            ref={stripeCardRef}
-                            disabled={isSubmitting}
-                            defaultName={name}
-                          />
-                        </StripeElementsProvider>
+                        <div className="border-b border-neutral-200 bg-white px-3 pb-4 pt-2 sm:px-4 sm:pt-3">
+                          <StripeElementsProvider>
+                            <StripeCardFields
+                              ref={stripeCardRef}
+                              disabled={isSubmitting}
+                              defaultName={name}
+                            />
+                          </StripeElementsProvider>
+                        </div>
                       ) : null}
                     </div>
                   ) : null}
@@ -908,13 +910,13 @@ export default function CheckoutPage() {
                       type="button"
                       onClick={() => setPaymentMethod('paystack')}
                       className={cn(
-                        'flex w-full items-center justify-between gap-3 bg-white px-4 py-3.5 text-left',
+                        'flex w-full flex-col gap-3 bg-white px-3.5 py-3.5 text-left sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4',
                         market.payments.cod
                           ? 'border-b border-neutral-200'
                           : '',
                       )}
                     >
-                      <span className="flex items-center gap-3">
+                      <span className="flex min-w-0 items-center gap-3">
                         <span
                           className={cn(
                             'flex size-4 shrink-0 items-center justify-center rounded-full border',
@@ -928,42 +930,21 @@ export default function CheckoutPage() {
                             <span className="size-2 rounded-full bg-neutral-950" />
                           ) : null}
                         </span>
-                        <span>
+                        <span className="min-w-0">
                           <span className="block text-sm font-semibold text-neutral-950">
-                            Pay online
+                            Pay online with Paystack
                           </span>
-                          <span className="mt-0.5 block text-xs text-neutral-500">
-                            Card, mobile money & bank via Paystack
+                          <span className="mt-0.5 block text-xs leading-snug text-neutral-500">
+                            <span className="sm:hidden">
+                              Card &amp; mobile money
+                            </span>
+                            <span className="hidden sm:inline">
+                              Card, MTN MoMo, Telecel, AirtelTigo &amp; bank
+                            </span>
                           </span>
                         </span>
                       </span>
-                      <span className="flex shrink-0 items-center gap-1.5" aria-hidden>
-                        {(['visa', 'mastercard', 'momo'] as const)
-                          .map((id) =>
-                            paymentProviderLogos.find((logo) => logo.id === id),
-                          )
-                          .filter(
-                            (logo): logo is (typeof paymentProviderLogos)[number] =>
-                              Boolean(logo),
-                          )
-                          .map((logo) => (
-                            <span
-                              key={logo.id}
-                              className="inline-flex h-7 min-w-[2.75rem] items-center justify-center overflow-hidden rounded border border-neutral-200 bg-white px-1.5"
-                            >
-                              <Image
-                                src={logo.src}
-                                alt=""
-                                width={56}
-                                height={28}
-                                className={cn(
-                                  'h-5 w-auto object-contain',
-                                  logo.className,
-                                )}
-                              />
-                            </span>
-                          ))}
-                      </span>
+                      <PaystackPaymentBadges className="w-full justify-start pl-7 sm:w-auto sm:justify-end sm:pl-0" />
                     </button>
                   ) : null}
 
@@ -971,7 +952,7 @@ export default function CheckoutPage() {
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('cod')}
-                      className="flex w-full items-center gap-3 bg-white px-4 py-3.5 text-left"
+                      className="flex w-full items-center gap-3 bg-white px-3.5 py-3.5 text-left sm:px-4"
                     >
                       <span
                         className={cn(
@@ -1003,7 +984,7 @@ export default function CheckoutPage() {
             <button
               type="submit"
               disabled={isSubmitting || cartHasUnavailableItems}
-              className="mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-neutral-950 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-70"
+              className="sticky bottom-3 z-20 mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-neutral-950 py-3.5 text-sm font-semibold text-white shadow-[0_8px_30px_rgba(0,0,0,0.18)] transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-70 lg:static lg:shadow-none"
             >
               {isSubmitting ? (
                 <>
@@ -1067,7 +1048,7 @@ export default function CheckoutPage() {
             </p>
           </form>
 
-          <div className="w-full min-w-0 lg:min-w-[24rem]">
+          <div className="order-1 w-full min-w-0 lg:order-2 lg:min-w-[24rem]">
             <CheckoutOrderSummary
               items={items}
               totals={totals}
@@ -1076,7 +1057,7 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        <div className="mt-8 lg:mt-10">
+        <div className="mt-6 pb-[max(1rem,env(safe-area-inset-bottom))] sm:mt-8 lg:mt-10">
           {market.payments.stripe && !market.payments.paystack ? null : (
             <CheckoutUpsells cartItems={items} />
           )}

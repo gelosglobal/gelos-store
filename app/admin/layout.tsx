@@ -72,7 +72,15 @@ const navSections: NavSection[] = [
       { href: '/admin/customers', label: 'Customers', icon: Users },
       { href: '/admin/sessions', label: 'Sessions', icon: Activity },
       { href: '/admin/inbox', label: 'Inbox', icon: Inbox },
-      { href: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle },
+      {
+        href: '/admin/whatsapp',
+        label: 'WhatsApp',
+        icon: MessageCircle,
+        children: [
+          { href: '/admin/whatsapp', label: 'Inbox' },
+          { href: '/admin/whatsapp/orders', label: 'Orders' },
+        ],
+      },
       { href: '/admin/affiliates', label: 'Affiliates', icon: Share2 },
       { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
       { href: '/admin/smile-scans', label: 'Smile scans', icon: ScanFace },
@@ -189,7 +197,11 @@ export default function AdminLayout({
                     {sidebarOpen && item.children && item.children.length > 0 && (
                       <ul className="ml-4 mt-0.5 space-y-0.5 border-l border-neutral-200 pl-2">
                         {item.children.map((child) => {
-                          const childActive = pathname === child.href
+                          const childActive =
+                            child.href === item.href
+                              ? pathname === child.href
+                              : pathname === child.href ||
+                                pathname.startsWith(`${child.href}/`)
                           return (
                             <li key={child.href}>
                               <Link
