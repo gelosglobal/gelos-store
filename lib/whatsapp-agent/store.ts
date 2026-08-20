@@ -218,6 +218,18 @@ export async function getConversation(
   }))
 }
 
+export async function getLatestAssistantMessage(whatsappId: string) {
+  const row = await prisma.waAgentMessage.findFirst({
+    where: { whatsappId, role: 'assistant' },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (!row) return null
+  return {
+    content: row.content,
+    created_at: row.createdAt.toISOString(),
+  }
+}
+
 export async function ensureCart(whatsappId: string) {
   const existing = await prisma.waAgentCart.findUnique({ where: { whatsappId } })
   if (existing) return mapCart(existing)

@@ -23,6 +23,8 @@ if (schemaErrors.length) {
   throw new Error(`Invalid strict tool schemas: ${schemaErrors.join('; ')}`)
 }
 
+const DUPLICATE_RESEND_WINDOW_MS = 15 * 60 * 1000
+
 function customerRef(whatsappId: string) {
   const value = String(whatsappId || '')
   return value.length <= 4 ? '****' : `***${value.slice(-4)}`
@@ -86,6 +88,31 @@ async function syncOrder(
   }
 }
 
+async function sendCustomerReply(
+  whatsappId: string,
+  text: string,
+  currentConfig: WhatsappAgentConfig,
+) {
+  if (
+    !currentConfig.whatsappEnabled ||
+    !getWhatsappAgentReadiness(currentConfig).whatsappCredentialsReady
+  ) {
+    return { sent: false as const, reason: 'whatsapp_not_live' }
+  }
+  try {
+    await sendTextMessage(whatsappId, text, currentConfig.meta)
+    return { sent: true as const }
+  } catch (error) {
+    console.error('[whatsapp-agent] send_reply_failed', {
+      customer: customerRef(whatsappId),
+      phoneNumberId: currentConfig.meta.phoneNumberId,
+      error: error instanceof Error ? error.message : String(error),
+    })
+    await sendTextMessage(whatsappId, text, currentConfig.meta)
+    return { sent: true as const }
+  }
+}
+
 export async function processIncomingMessage(
   message: Pick<
     IncomingWhatsappMessage,
@@ -102,8 +129,27 @@ export async function processIncomingMessage(
   if (!message.from || !message.text) {
     throw new Error('Incoming message requires from and text.')
   }
-  if (!(await store.markEventProcessed(message.id))) {
-    return { duplicate: true as const }
+
+  const isNewEvent = await store.markEventProcessed(message.id)
+  if (!isNewEvent) {
+    // Meta often retries after a timeout. We may have saved the AI reply but
+    // died before WhatsApp send — resend the latest assistant text.
+    if (source === 'whatsapp') {
+      const latest = await store.getLatestAssistantMessage(message.from)
+      const createdAt = latest ? Date.parse(latest.created_at) : NaN
+      if (
+        latest &&
+        Number.isFinite(createdAt) &&
+        Date.now() - createdAt < DUPLICATE_RESEND_WINDOW_MS
+      ) {
+        await sendCustomerReply(message.from, latest.content, currentConfig)
+        console.info('[whatsapp-agent] duplicate_resent_assistant_reply', {
+          customer: customerRef(message.from),
+        })
+        return { duplicate: true as const, resent: true as const, text: latest.content }
+      }
+    }
+    return { duplicate: true as const, resent: false as const }
   }
 
   const catalog = getWhatsappCatalog()
@@ -127,6 +173,9 @@ export async function processIncomingMessage(
       role: 'assistant',
       content: text,
     })
+    if (source === 'whatsapp') {
+      await sendCustomerReply(message.from, text, currentConfig)
+    }
     return { text, events: [], setupRequired: ['OPENAI_API_KEY'] }
   }
 
@@ -147,6 +196,11 @@ export async function processIncomingMessage(
     role: 'assistant',
     content: result.text,
   })
+
+  // Send to WhatsApp before slower side effects (Excel / staff fan-out).
+  if (source === 'whatsapp') {
+    await sendCustomerReply(message.from, result.text, currentConfig)
+  }
 
   for (const event of result.events) {
     if (event.event === 'order_created' && event.order) {
@@ -169,14 +223,6 @@ export async function processIncomingMessage(
     }
   }
 
-  if (
-    source === 'whatsapp' &&
-    currentConfig.whatsappEnabled &&
-    getWhatsappAgentReadiness(currentConfig).whatsappCredentialsReady
-  ) {
-    await sendTextMessage(message.from, result.text, currentConfig.meta)
-  }
-
   return result
 }
 
@@ -187,6 +233,11 @@ export async function handleWebhookPayload(
   const messages = extractIncomingMessages(payload)
   for (const message of messages) {
     try {
+      const result = await processIncomingMessage(message, {
+        source: 'whatsapp',
+        config: currentConfig,
+      })
+      // Mark read after reply work so it cannot delay/block the customer send.
       if (
         currentConfig.whatsappEnabled &&
         getWhatsappAgentReadiness(currentConfig).whatsappCredentialsReady
@@ -198,15 +249,12 @@ export async function handleWebhookPayload(
           }),
         )
       }
-      const result = await processIncomingMessage(message, {
-        source: 'whatsapp',
-        config: currentConfig,
-      })
       console.info('[whatsapp-agent] message_processed', {
         customer: customerRef(message.from),
         duplicate: Boolean(
           result && 'duplicate' in result && result.duplicate,
         ),
+        resent: Boolean(result && 'resent' in result && result.resent),
         events:
           result && 'events' in result
             ? result.events?.map((event) => event.event) || []
