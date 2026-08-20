@@ -279,12 +279,28 @@ export function getProductCarouselImages(input: ProductCarouselInput): string[] 
 
   for (const src of sources) {
     const url = normalizeImageUrl(src)
-    if (seen.has(url) || featureSet.has(url)) continue
+    if (!url || url === '/placeholder.svg') continue
+    if (seen.has(url)) continue
+    // Feature gallery can reuse the hero shot — still keep it in the main strip.
+    if (
+      featureSet.has(url) &&
+      url !== normalizeImageUrl(input.activeImage) &&
+      url !== normalizeImageUrl(input.product.image)
+    ) {
+      continue
+    }
     seen.add(url)
     merged.push(url)
   }
 
-  return merged.length > 0 ? merged : ['/placeholder.svg']
+  if (merged.length > 0) return merged
+
+  const fallback = normalizeImageUrl(
+    input.activeImage || input.product.image || '',
+  )
+  return fallback && fallback !== '/placeholder.svg'
+    ? [fallback]
+    : ['/placeholder.svg']
 }
 
 /** Built-in PDP carousel extras from code defaults only (not admin uploads). */

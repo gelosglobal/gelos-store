@@ -46,6 +46,9 @@ import { getWellnessLineVariants } from '@/lib/wellness-flavor-covers'
 import { remapBundleProductIds } from '@/lib/product-bundle-id-map'
 import {
   getProductLineParentConfigForProduct,
+  isFoamingMouthwashFlavour,
+  isIdStainMouthwashProduct,
+  isMouthSprayProduct,
   presentProductsForStorefrontSections,
 } from '@/lib/product-line-parents'
 import { productHasTag } from '@/lib/product-tags'
@@ -129,6 +132,16 @@ export function getProductLineVariants(
   }
   if (product.category === 'Wellness') {
     return getWellnessLineVariants(product, categoryVariants)
+  }
+  if (product.category === 'Mouthwash') {
+    // ID Stain + Mouth Spray are standalone SKUs — never share the foaming picker.
+    if (isIdStainMouthwashProduct(product) || isMouthSprayProduct(product)) {
+      return [product]
+    }
+    const foaming = categoryVariants.filter((item) =>
+      isFoamingMouthwashFlavour(item),
+    )
+    return foaming.length > 0 ? foaming : [product]
   }
   return categoryVariants
 }

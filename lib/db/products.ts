@@ -95,6 +95,21 @@ export async function getProductBySlugOrId(
     try {
       const all = await getAllProducts()
       const parent = buildProductLineParent(all, lineParentConfig)
+
+      // Prefer the curated admin product (rich colour/flavour tiles) when the
+      // live line rebuild is thinner — same rule as homepage carousels.
+      const curated = all.find(
+        (product) =>
+          product.id === lineParentConfig.id ||
+          (product.handle || getProductSlug(product)) ===
+            lineParentConfig.handle ||
+          getProductSlug(product) === lineParentConfig.handle,
+      )
+      const curatedVariants = curated?.variantImageOptions?.length ?? 0
+      const parentVariants = parent?.variantImageOptions?.length ?? 0
+      if (curated && curatedVariants > 1 && curatedVariants >= parentVariants) {
+        return curated
+      }
       if (parent) return parent
     } catch (error) {
       console.error('[getProductBySlugOrId] line parent failed', error)

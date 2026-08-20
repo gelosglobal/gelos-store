@@ -65,22 +65,40 @@ export function ShopCollectionCard({
     !flavourLocked && productNeedsVariantChoice(product)
   const [variantDialogOpen, setVariantDialogOpen] = useState(false)
   const [activeImage, setActiveImage] = useState(() =>
-    lockedVariantImage ?? getDefaultVariantDisplayImage(product),
+    normalizeImageUrl(
+      lockedVariantImage ?? getDefaultVariantDisplayImage(product),
+    ),
   )
 
-  useEffect(() => {
-    setActiveImage(lockedVariantImage ?? getDefaultVariantDisplayImage(product))
-  }, [
-    lockedVariantImage,
+  const variantSignature = [
+    product.id,
+    lockedVariantImage ?? '',
     product.image,
-    product.variantImageOptions,
-    product.variantImages,
-  ])
+    ...(product.variantImageOptions ?? []).map((option) => option.url),
+    ...(product.variantImages ?? []),
+  ].join('|')
 
-  const displayImage =
-    displayImageOverride ||
-    activeImage ||
-    normalizeImageUrl(product.image)
+  useEffect(() => {
+    setActiveImage(
+      normalizeImageUrl(
+        lockedVariantImage ?? getDefaultVariantDisplayImage(product),
+      ),
+    )
+    // Reset only when the underlying catalogue identity/options change — not on
+    // every new array reference from the parent render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- variantSignature
+  }, [variantSignature, lockedVariantImage])
+
+  // `displayImage` prop is only for flavour-locked expanded cards. Interactive
+  // variant cards must follow `activeImage` or thumbnails cannot switch the hero.
+  const displayImage = flavourLocked
+    ? normalizeImageUrl(
+        displayImageOverride ||
+          lockedVariantImage ||
+          activeImage ||
+          product.image,
+      )
+    : normalizeImageUrl(activeImage || product.image)
   // Storefront always uses the catalogue product name. Flavour-specific titles
   // are reserved for the product page after the shopper picks a flavour.
   const displayName = displayNameOverride || product.name
@@ -131,7 +149,7 @@ export function ShopCollectionCard({
             productId={product.id}
             variantImages={variantImages}
             activeImage={activeImage}
-            onSelect={setActiveImage}
+            onSelect={(src) => setActiveImage(normalizeImageUrl(src))}
             isImageDisabled={(src) =>
               getAvailableStockForVariant(
                 {

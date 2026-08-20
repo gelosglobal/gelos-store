@@ -20,17 +20,31 @@ export const whiteningStandaloneKeys = [
   'premium-whitening-strips-30-pairs',
   'teeth-whitening-strips-pap',
   'activated-charcoal-powder',
+  'led-whitening-device',
+  'teeth-whitening-kit',
+  // V34 kit + serum are separate PDPs — do not share a treatment picker
+  // (covers were identical lifestyle shots and looked like broken variants).
+  'v34-shade-correction-kit',
+  'v34-teeth-whitening-kit',
+  'v34-3-in-1-shade-correction-kit',
+  'v34-colour-correcting-serum',
+  'v34-color-correcting-serum',
   '7',
   '10',
+  '3',
+  '39',
 ] as const
 
-export const whiteningStandaloneProductIds = ['7', '10'] as const
+export const whiteningStandaloneProductIds = [
+  '7',
+  '10',
+  '3',
+  '39',
+] as const
 
 export const whiteningTreatmentOrder = [
   'v34-shade-correction-kit',
   'v34-teeth-whitening-kit',
-  'v34-colour-correcting-serum',
-  'v34-color-correcting-serum',
   'v34-3-in-1-shade-correction-kit',
   '3',
 ] as const

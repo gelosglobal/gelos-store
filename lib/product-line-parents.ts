@@ -35,23 +35,41 @@ export const TOOTHPASTE_LINE_PARENT: ProductLineParentConfig = {
   category: 'Toothpaste',
   order: [
     'watermelon-toothpaste',
+    '1',
     'strawberry-toothpaste',
     'strawberry-toothpaste-1',
+    '15',
     'coconut-whip-toothpaste',
+    '13',
     'grape-bubblegum-toothpaste',
+    '17',
     'banana-toothpaste',
+    '14',
+    'smooth-mint-toothpaste',
     'smooth-mint-toothpaste-1',
+    '37',
     'mango-toothpaste',
+    'mango-sorbet-toothpaste',
+    '34',
     'peach-iced-tea-toothpaste',
+    '33',
     'passion-fruit-toothpaste',
     'passion-fruit-toothapaste',
+    '16',
     'red-velvet-toothpaste',
     'toothpaste',
+    '19',
     'vanilla-toothpaste',
+    '18',
     'energy-drink-toothpaste',
+    '11',
     'candy-cane-tooth-paste',
     'candy-cane-toothpaste',
+    '6',
     'chocolate-toothpaste',
+    '32',
+    'cola-toothpaste',
+    '23',
     'untitled-oct15_11-07',
   ],
   labelFromName: (name) =>
@@ -60,6 +78,17 @@ export const TOOTHPASTE_LINE_PARENT: ProductLineParentConfig = {
       .replace(/ Tooth Paste$/i, '')
       .replace(/ Toothpaste$/i, '')
       .trim(),
+  // Product "1" is the storefront aggregator card — not a flavour SKU.
+  excludeMember: (product) => {
+    const handle = (product.handle || '').toLowerCase()
+    const id = product.id.toLowerCase()
+    return (
+      id === '1' ||
+      id === 'line:flavored-toothpaste' ||
+      handle === 'flavored-toothpaste' ||
+      /^flavored\s+toothpaste$/i.test(product.name.trim())
+    )
+  },
 }
 
 export const MOUTHWASH_LINE_PARENT: ProductLineParentConfig = {
@@ -386,6 +415,9 @@ export function isProductLineParentProduct(
 /**
  * For homepage carousels (best sellers, new arrivals): if any selected product
  * belongs to a flavour/colour line, replace those SKUs with one parent card.
+ *
+ * Prefer a rich admin variant picker on the selected product when the live
+ * catalogue does not yet have enough active flavour SKUs to rebuild the line.
  */
 export function presentProductsForStorefrontSections(
   selected: Product[],
@@ -405,10 +437,25 @@ export function presentProductsForStorefrontSections(
 
     if (insertedLineIds.has(config.id)) continue
 
+    const adminVariants = product.variantImageOptions ?? []
     const parent = buildProductLineParent(allProducts, config)
-    if (!parent) {
-      result.push(product)
-      continue
+
+    // Keep curated admin tiles (e.g. Flavored Toothpaste with 15 flavours)
+    // when the line cannot be rebuilt from active SKUs yet.
+    if (
+      !parent ||
+      (adminVariants.length > 1 &&
+        adminVariants.length > (parent.variantImageOptions?.length ?? 0))
+    ) {
+      if (adminVariants.length > 1) {
+        result.push(product)
+        insertedLineIds.add(config.id)
+        continue
+      }
+      if (!parent) {
+        result.push(product)
+        continue
+      }
     }
 
     const selectedInLine = selected.filter((item) =>

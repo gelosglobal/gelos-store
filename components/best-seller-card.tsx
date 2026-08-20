@@ -52,18 +52,26 @@ export function BestSellerCard({ product }: BestSellerCardProps) {
   const needsVariantChoice = productNeedsVariantChoice(product)
   const [variantDialogOpen, setVariantDialogOpen] = useState(false)
   const [activeImage, setActiveImage] = useState(() =>
-    getDefaultVariantDisplayImage(product),
+    normalizeImageUrl(getDefaultVariantDisplayImage(product)),
   )
 
+  const variantSignature = [
+    product.id,
+    product.image,
+    ...(product.variantImageOptions ?? []).map((option) => option.url),
+    ...(product.variantImages ?? []),
+  ].join('|')
+
   useEffect(() => {
-    setActiveImage(getDefaultVariantDisplayImage(product))
-  }, [product.image, product.variantImageOptions, product.variantImages])
+    setActiveImage(normalizeImageUrl(getDefaultVariantDisplayImage(product)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- variantSignature
+  }, [variantSignature])
 
   const badge =
     getProductDisplayBadge({ ...product, tags: product.tags ?? [] }) ??
     meta?.badge
 
-  const displayImage = activeImage || normalizeImageUrl(product.image)
+  const displayImage = normalizeImageUrl(activeImage || product.image)
   // Keep catalogue name on storefront cards; PDP handles flavour title swaps.
   const displayName = product.name
   const variantSelection = getVariantSelectionForCart(product, displayImage)
@@ -103,7 +111,7 @@ export function BestSellerCard({ product }: BestSellerCardProps) {
           productId={product.id}
           variantImages={variantImages}
           activeImage={activeImage}
-          onSelect={setActiveImage}
+          onSelect={(src) => setActiveImage(normalizeImageUrl(src))}
           isImageDisabled={(src) =>
             getAvailableStockForVariant(
               {

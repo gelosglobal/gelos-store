@@ -9,8 +9,20 @@ import {
   productTagDefinitions,
   type ProductTagId,
 } from '@/lib/product-tags'
+import { isShopifyCatalogEnabled } from '@/lib/shopify/config'
 
 const tagIds = productTagDefinitions.map((t) => t.id)
+
+/** Shopify numeric product IDs — ignore when Gelos/Prisma catalog is active. */
+function isShopifyProductIdList(ids: string[]): boolean {
+  return ids.length > 0 && ids.every((id) => /^\d{10,}$/.test(id))
+}
+
+function usableProductIds(ids: string[] | undefined | null): string[] | null {
+  if (!ids?.length) return null
+  if (!isShopifyCatalogEnabled() && isShopifyProductIdList(ids)) return null
+  return ids
+}
 
 export async function getTagCollectionOrder(
   tagId: ProductTagId,
@@ -23,7 +35,8 @@ export async function getTagCollectionOrder(
     const doc = await prisma.tagCollection.findUnique({
       where: { tagId },
     })
-    if (doc?.productIds.length) return doc.productIds
+    const usable = usableProductIds(doc?.productIds)
+    if (usable) return usable
     return getDefaultTagCollectionOrder(tagId)
   } catch (error) {
     console.error('[getTagCollectionOrder]', error)
@@ -48,11 +61,8 @@ export async function getAllTagCollectionOrders(): Promise<
     const byTag = new Map(docs.map((d) => [d.tagId, d.productIds]))
 
     for (const tagId of tagIds) {
-      const stored = byTag.get(tagId)
-      result[tagId] =
-        stored && stored.length > 0
-          ? stored
-          : getDefaultTagCollectionOrder(tagId)
+      const usable = usableProductIds(byTag.get(tagId))
+      result[tagId] = usable ?? getDefaultTagCollectionOrder(tagId)
     }
     return result
   } catch (error) {

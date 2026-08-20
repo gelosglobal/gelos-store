@@ -327,15 +327,35 @@ export function ProductEnhancedPdp({
 
               {!awaitingFlavourChoice && isOutOfStock ? (
                 <p className="mt-4 text-sm font-medium text-red-600">
-                  This flavour is currently out of stock. Pick another flavour.
+                  This{' '}
+                  {product.category === 'Toothbrushes'
+                    ? 'colour'
+                    : product.category === 'Whitening'
+                      ? 'option'
+                      : 'flavour'}{' '}
+                  is currently out of stock. Pick another.
                 </p>
               ) : !awaitingFlavourChoice && availableStock <= 5 ? (
                 <p className="mt-4 text-sm text-neutral-600">
-                  Only {availableStock} left for this flavour.
+                  Only {availableStock} left for this{' '}
+                  {product.category === 'Toothbrushes'
+                    ? 'colour'
+                    : product.category === 'Whitening'
+                      ? 'option'
+                      : 'flavour'}
+                  .
                 </p>
               ) : awaitingFlavourChoice ? (
                 <p className="mt-4 text-sm text-neutral-600">
-                  You&apos;ll choose your flavour in the next step.
+                  You&apos;ll choose your{' '}
+                  {product.category === 'Toothbrushes'
+                    ? 'colour'
+                    : product.category === 'Whitening'
+                      ? 'treatment'
+                      : product.category === 'Water Flossers'
+                        ? 'style'
+                        : 'flavour'}{' '}
+                  in the next step.
                 </p>
               ) : null}
 
