@@ -64,9 +64,13 @@ export class WhatsappOrderService {
       }
     >()
     for (const requested of requestedItems) {
-      const product = this.catalog.get(requested.product_id)
+      const product =
+        this.catalog.resolve(requested.product_id) ||
+        this.catalog.get(requested.product_id)
       if (!product) {
-        throw new Error(`Unknown or inactive product: ${requested.product_id}`)
+        throw new Error(
+          `Unknown or inactive product: ${requested.product_id}. Search the catalogue and use the exact product id (e.g. flavored-toothpaste).`,
+        )
       }
       const quantity = Number.parseInt(String(requested.quantity), 10)
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) {

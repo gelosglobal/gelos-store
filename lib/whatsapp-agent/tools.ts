@@ -154,16 +154,55 @@ export const toolDefinitions = [
       additionalProperties: false,
     },
   },
+  {
+    type: 'function' as const,
+    name: 'offer_variant_picker',
+    description:
+      'Send a WhatsApp list picker for a product that has variants (e.g. toothpaste flavours). Use after search_products when the customer needs to choose a variant.',
+    strict: true,
+    parameters: {
+      type: 'object',
+      properties: {
+        product_id: { type: 'string' },
+        body_text: {
+          type: ['string', 'null'],
+          description: 'Optional short message above the list.',
+        },
+      },
+      required: ['product_id', 'body_text'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function' as const,
+    name: 'offer_payment_buttons',
+    description:
+      'Send WhatsApp buttons for Cash on delivery, Mobile Money, and Card. Use when asking for payment method.',
+    strict: true,
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: [],
+      additionalProperties: false,
+    },
+  },
 ]
 
 export function createToolRunner({
   orderService,
   whatsappId,
   rawCustomerMessage,
+  offerVariantPicker,
+  offerPaymentButtons,
 }: {
   orderService: WhatsappOrderService
   whatsappId: string
   rawCustomerMessage: string
+  offerVariantPicker?: (
+    productId: string,
+    bodyText?: string | null,
+  ) => Promise<unknown>
+  offerPaymentButtons?: () => Promise<unknown>
 }) {
   return async function runTool(name: string, args: Record<string, unknown>) {
     switch (name) {
@@ -214,6 +253,34 @@ export function createToolRunner({
       case 'request_human_handoff': {
         const handoff = await orderService.requestHandoff(whatsappId, args as never)
         return { ok: true, event: 'handoff_created', handoff }
+      }
+      case 'offer_variant_picker': {
+        if (!offerVariantPicker) {
+          return {
+            ok: false,
+            error:
+              'Variant picker is only available on live WhatsApp chats. List the variants in text instead.',
+          }
+        }
+        const pickerResult = await offerVariantPicker(
+          String(args.product_id),
+          (args.body_text as string | null) ?? null,
+        )
+        return {
+          ok: true,
+          ...(pickerResult as Record<string, unknown>),
+        }
+      }
+      case 'offer_payment_buttons': {
+        if (!offerPaymentButtons) {
+          return {
+            ok: false,
+            error:
+              'Payment buttons are only available on live WhatsApp chats. Ask for the method in text instead.',
+          }
+        }
+        const buttonsResult = await offerPaymentButtons()
+        return { ok: true, ...(buttonsResult as Record<string, unknown>) }
       }
       default:
         throw new Error(`Unknown tool: ${name}`)

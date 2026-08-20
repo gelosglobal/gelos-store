@@ -1,5 +1,6 @@
 import type { WaCatalogProduct } from '@/lib/whatsapp-agent/types'
 import catalogJson from '@/lib/whatsapp-agent/data/catalog.json'
+import { loadWhatsappCatalogFromStore } from '@/lib/whatsapp-agent/catalog-from-store'
 
 function normalize(value: unknown): string {
   return String(value ?? '')
@@ -13,13 +14,19 @@ type CatalogFile = {
   products: WaCatalogProduct[]
 }
 
-const data = catalogJson as CatalogFile
+const staticData = catalogJson as CatalogFile
+
+const CACHE_TTL_MS = 5 * 60 * 1000
 
 export class WhatsappCatalog {
   currency: string
   products: WaCatalogProduct[]
+  source: 'store' | 'static'
 
-  constructor(file: CatalogFile = data) {
+  constructor(
+    file: CatalogFile = staticData,
+    source: 'store' | 'static' = 'static',
+  ) {
     if (!Array.isArray(file.products)) {
       throw new Error('Catalog must contain a products array.')
     }
@@ -39,6 +46,7 @@ export class WhatsappCatalog {
     }
     this.currency = file.currency || 'GHS'
     this.products = file.products
+    this.source = source
   }
 
   listActive() {
@@ -51,6 +59,35 @@ export class WhatsappCatalog {
         (product) => product.id === productId && product.active !== false,
       ) ?? null
     )
+  }
+
+  /** Resolve exact id, or a close name/id slug the model might invent. */
+  resolve(productIdOrName: string) {
+    const exact = this.get(productIdOrName)
+    if (exact) return exact
+    const needle = normalize(productIdOrName)
+    if (!needle) return null
+    const active = this.listActive()
+    const byIdSlug = active.find((product) => normalize(product.id) === needle)
+    if (byIdSlug) return byIdSlug
+    const byName = active.find((product) => normalize(product.name) === needle)
+    if (byName) return byName
+    const contains = active.filter((product) => {
+      const haystack = normalize(
+        `${product.id} ${product.name} ${product.category} ${(product.variants || []).join(' ')}`,
+      )
+      return haystack.includes(needle) || needle.includes(normalize(product.id))
+    })
+    if (contains.length === 1) return contains[0]
+    // Prefer toothpaste parent when needle is just "toothpaste"
+    if (needle === 'toothpaste' || needle.includes('flavored toothpaste')) {
+      return (
+        this.get('flavored-toothpaste') ||
+        contains.find((p) => p.id.includes('toothpaste')) ||
+        null
+      )
+    }
+    return null
   }
 
   search(query = '', category: string | null = null, limit = 8) {
@@ -114,13 +151,35 @@ export class WhatsappCatalog {
       missingPrices,
       stockToConfirm,
       readyForAutomaticCheckout: !missingPrices.length,
+      source: this.source,
     }
   }
 }
 
-let catalogSingleton: WhatsappCatalog | null = null
+let cached: { catalog: WhatsappCatalog; expiresAt: number } | null = null
 
 export function getWhatsappCatalog() {
-  if (!catalogSingleton) catalogSingleton = new WhatsappCatalog()
-  return catalogSingleton
+  if (cached && cached.expiresAt > Date.now()) return cached.catalog
+  return new WhatsappCatalog(staticData, 'static')
+}
+
+/** Prefer live storefront catalog; cache briefly; fall back to static JSON. */
+export async function getWhatsappCatalogAsync() {
+  if (cached && cached.expiresAt > Date.now()) return cached.catalog
+  try {
+    const products = await loadWhatsappCatalogFromStore()
+    if (products.length > 0) {
+      const catalog = new WhatsappCatalog(
+        { currency: 'GHS', products },
+        'store',
+      )
+      cached = { catalog, expiresAt: Date.now() + CACHE_TTL_MS }
+      return catalog
+    }
+  } catch (error) {
+    console.warn('[whatsapp-agent] live catalog load failed; using static', error)
+  }
+  const catalog = new WhatsappCatalog(staticData, 'static')
+  cached = { catalog, expiresAt: Date.now() + CACHE_TTL_MS }
+  return catalog
 }

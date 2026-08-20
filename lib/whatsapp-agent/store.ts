@@ -130,6 +130,26 @@ export async function markEventProcessed(eventId: string | null | undefined) {
   }
 }
 
+export async function markReplySent(eventId: string | null | undefined) {
+  if (!eventId) return
+  try {
+    await prisma.waAgentProcessedEvent.update({
+      where: { eventId },
+      data: { replySentAt: new Date() },
+    })
+  } catch {
+    // Event may be missing for simulations without ids — ignore.
+  }
+}
+
+export async function wasReplySent(eventId: string | null | undefined) {
+  if (!eventId) return false
+  const row = await prisma.waAgentProcessedEvent.findUnique({
+    where: { eventId },
+  })
+  return Boolean(row?.replySentAt)
+}
+
 export async function ensureCustomer(
   whatsappId: string,
   displayName: string | null = null,

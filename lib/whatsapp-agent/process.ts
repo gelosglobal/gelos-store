@@ -3,7 +3,7 @@ import {
   getWhatsappAgentReadiness,
   type WhatsappAgentConfig,
 } from '@/lib/whatsapp-agent/config'
-import { getWhatsappCatalog } from '@/lib/whatsapp-agent/catalog'
+import { getWhatsappCatalogAsync } from '@/lib/whatsapp-agent/catalog'
 import { getWhatsappShop } from '@/lib/whatsapp-agent/shop'
 import { WhatsappOrderService } from '@/lib/whatsapp-agent/order-service'
 import { createToolRunner, validateStrictToolSchemas } from '@/lib/whatsapp-agent/tools'
@@ -12,7 +12,9 @@ import { appendOrderToExcel } from '@/lib/whatsapp-agent/excel'
 import {
   extractIncomingMessages,
   markMessageRead,
+  sendPaymentMethodButtons,
   sendTextMessage,
+  sendVariantPickerList,
   type IncomingWhatsappMessage,
 } from '@/lib/whatsapp-agent/whatsapp'
 import * as store from '@/lib/whatsapp-agent/store'
@@ -28,6 +30,20 @@ const DUPLICATE_RESEND_WINDOW_MS = 15 * 60 * 1000
 function customerRef(whatsappId: string) {
   const value = String(whatsappId || '')
   return value.length <= 4 ? '****' : `***${value.slice(-4)}`
+}
+
+function digitsOnly(value: string) {
+  return String(value || '').replace(/\D/g, '')
+}
+
+function isStaffSender(
+  whatsappId: string,
+  currentConfig: WhatsappAgentConfig,
+) {
+  const staff = digitsOnly(currentConfig.meta.staffNumber)
+  const from = digitsOnly(whatsappId)
+  if (!staff || !from) return false
+  return from === staff || from.endsWith(staff) || staff.endsWith(from)
 }
 
 async function notifyStaff(
@@ -92,6 +108,7 @@ async function sendCustomerReply(
   whatsappId: string,
   text: string,
   currentConfig: WhatsappAgentConfig,
+  eventId?: string | null,
 ) {
   if (
     !currentConfig.whatsappEnabled ||
@@ -101,6 +118,7 @@ async function sendCustomerReply(
   }
   try {
     await sendTextMessage(whatsappId, text, currentConfig.meta)
+    await store.markReplySent(eventId)
     return { sent: true as const }
   } catch (error) {
     console.error('[whatsapp-agent] send_reply_failed', {
@@ -109,6 +127,7 @@ async function sendCustomerReply(
       error: error instanceof Error ? error.message : String(error),
     })
     await sendTextMessage(whatsappId, text, currentConfig.meta)
+    await store.markReplySent(eventId)
     return { sent: true as const }
   }
 }
@@ -132,9 +151,10 @@ export async function processIncomingMessage(
 
   const isNewEvent = await store.markEventProcessed(message.id)
   if (!isNewEvent) {
-    // Meta often retries after a timeout. We may have saved the AI reply but
-    // died before WhatsApp send — resend the latest assistant text.
     if (source === 'whatsapp') {
+      if (await store.wasReplySent(message.id)) {
+        return { duplicate: true as const, resent: false as const }
+      }
       const latest = await store.getLatestAssistantMessage(message.from)
       const createdAt = latest ? Date.parse(latest.created_at) : NaN
       if (
@@ -142,17 +162,26 @@ export async function processIncomingMessage(
         Number.isFinite(createdAt) &&
         Date.now() - createdAt < DUPLICATE_RESEND_WINDOW_MS
       ) {
-        await sendCustomerReply(message.from, latest.content, currentConfig)
+        await sendCustomerReply(
+          message.from,
+          latest.content,
+          currentConfig,
+          message.id,
+        )
         console.info('[whatsapp-agent] duplicate_resent_assistant_reply', {
           customer: customerRef(message.from),
         })
-        return { duplicate: true as const, resent: true as const, text: latest.content }
+        return {
+          duplicate: true as const,
+          resent: true as const,
+          text: latest.content,
+        }
       }
     }
     return { duplicate: true as const, resent: false as const }
   }
 
-  const catalog = getWhatsappCatalog()
+  const catalog = await getWhatsappCatalogAsync()
   const shop = getWhatsappShop()
   const orderService = new WhatsappOrderService(catalog, shop)
 
@@ -174,16 +203,60 @@ export async function processIncomingMessage(
       content: text,
     })
     if (source === 'whatsapp') {
-      await sendCustomerReply(message.from, text, currentConfig)
+      await sendCustomerReply(message.from, text, currentConfig, message.id)
     }
     return { text, events: [], setupRequired: ['OPENAI_API_KEY'] }
   }
 
   const conversation = await store.getConversation(message.from, 20)
+  const liveWhatsapp =
+    source === 'whatsapp' &&
+    currentConfig.whatsappEnabled &&
+    getWhatsappAgentReadiness(currentConfig).whatsappCredentialsReady
+
   const runTool = createToolRunner({
     orderService,
     whatsappId: message.from,
     rawCustomerMessage: message.text,
+    offerVariantPicker: liveWhatsapp
+      ? async (productId, bodyText) => {
+          const product = catalog.resolve(productId) || catalog.get(productId)
+          if (!product) {
+            return { sent: false, error: `Unknown product: ${productId}` }
+          }
+          if (!product.variants?.length) {
+            return {
+              sent: false,
+              error: `${product.name} has no variants to pick.`,
+            }
+          }
+          await sendVariantPickerList(
+            message.from,
+            {
+              productId: product.id,
+              productName: product.name,
+              variants: product.variants,
+              bodyText: bodyText || undefined,
+            },
+            currentConfig.meta,
+          )
+          return {
+            sent: true,
+            product_id: product.id,
+            variant_count: product.variants.length,
+            note: 'WhatsApp list sent. Wait for the customer list reply before set_cart_items.',
+          }
+        }
+      : undefined,
+    offerPaymentButtons: liveWhatsapp
+      ? async () => {
+          await sendPaymentMethodButtons(message.from, currentConfig.meta)
+          return {
+            sent: true,
+            note: 'Payment buttons sent. Wait for the customer tap before set_payment_method.',
+          }
+        }
+      : undefined,
   })
   const result = await runOrderAgent({
     settings: currentConfig.openai,
@@ -197,9 +270,13 @@ export async function processIncomingMessage(
     content: result.text,
   })
 
-  // Send to WhatsApp before slower side effects (Excel / staff fan-out).
   if (source === 'whatsapp') {
-    await sendCustomerReply(message.from, result.text, currentConfig)
+    await sendCustomerReply(
+      message.from,
+      result.text,
+      currentConfig,
+      message.id,
+    )
   }
 
   for (const event of result.events) {
@@ -233,11 +310,29 @@ export async function handleWebhookPayload(
   const messages = extractIncomingMessages(payload)
   for (const message of messages) {
     try {
+      if (isStaffSender(message.from, currentConfig)) {
+        console.info('[whatsapp-agent] staff_message_ignored', {
+          customer: customerRef(message.from),
+        })
+        if (
+          currentConfig.whatsappEnabled &&
+          getWhatsappAgentReadiness(currentConfig).whatsappCredentialsReady
+        ) {
+          await sendTextMessage(
+            message.from,
+            'This chat is for Gelos order/handoff alerts only. Customer orders happen in separate chats — I won’t take staff messages as orders here.',
+            currentConfig.meta,
+          ).catch((error) =>
+            console.warn('[whatsapp-agent] staff_ack_failed', { error }),
+          )
+        }
+        continue
+      }
+
       const result = await processIncomingMessage(message, {
         source: 'whatsapp',
         config: currentConfig,
       })
-      // Mark read after reply work so it cannot delay/block the customer send.
       if (
         currentConfig.whatsappEnabled &&
         getWhatsappAgentReadiness(currentConfig).whatsappCredentialsReady

@@ -401,9 +401,10 @@ model WhatsappOrder {
 
 /** WhatsApp Cloud API order-agent state (serverless / Vercel). */
 model WaAgentProcessedEvent {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  eventId     String   @unique
-  processedAt DateTime @default(now())
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  eventId     String    @unique
+  processedAt DateTime  @default(now())
+  replySentAt DateTime?
 
   @@map("wa_agent_processed_events")
 }

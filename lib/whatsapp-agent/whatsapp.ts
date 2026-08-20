@@ -32,11 +32,27 @@ function interactiveText(message: {
     return message.button?.text || message.button?.payload || ''
   }
   if (message.type !== 'interactive') return ''
+
+  const listId = message.interactive?.list_reply?.id || ''
+  const listTitle = message.interactive?.list_reply?.title || ''
+  if (listId.startsWith('var|')) {
+    const [, productId, ...variantParts] = listId.split('|')
+    const variant = variantParts.join('|') || listTitle
+    return `Customer selected variant "${variant}" for product_id "${productId}" from the options list. Call set_cart_items with that product_id, variant, and quantity 1 (or ask quantity if unclear).`
+  }
+
+  const buttonId = message.interactive?.button_reply?.id || ''
+  const buttonTitle = message.interactive?.button_reply?.title || ''
+  if (buttonId.startsWith('pay|')) {
+    const method = buttonId.slice(4)
+    return `Customer selected payment method "${method}" (${buttonTitle}). Call set_payment_method with method=${method}.`
+  }
+
   return (
-    message.interactive?.button_reply?.title ||
-    message.interactive?.button_reply?.id ||
-    message.interactive?.list_reply?.title ||
-    message.interactive?.list_reply?.id ||
+    listTitle ||
+    listId ||
+    buttonTitle ||
+    buttonId ||
     ''
   )
 }
@@ -155,6 +171,110 @@ export async function sendTextMessage(
     to,
     type: 'text',
     text: { preview_url: false, body: String(text).slice(0, 4096) },
+  })
+}
+
+/** Meta interactive list — max 10 rows. Row id encodes product + variant. */
+export function buildVariantListRows(
+  productId: string,
+  variants: string[],
+  offset = 0,
+) {
+  const slice = variants.slice(offset, offset + 10)
+  return slice.map((variant, index) => {
+    const title = variant.slice(0, 24)
+    return {
+      id: `var|${productId}|${variant}`.slice(0, 200),
+      title,
+      description: index === 9 && offset + 10 < variants.length
+        ? 'More flavours available — ask for more'
+        : undefined,
+    }
+  })
+}
+
+export async function sendVariantPickerList(
+  to: string,
+  {
+    productId,
+    productName,
+    variants,
+    bodyText,
+    offset = 0,
+  }: {
+    productId: string
+    productName: string
+    variants: string[]
+    bodyText?: string
+    offset?: number
+  },
+  settings: WhatsappAgentConfig['meta'],
+) {
+  const rows = buildVariantListRows(productId, variants, offset).map((row) => ({
+    id: row.id,
+    title: row.title,
+    ...(row.description ? { description: row.description.slice(0, 72) } : {}),
+  }))
+  if (!rows.length) {
+    throw new Error('No variants available for this product.')
+  }
+  return graphRequest(settings, `${settings.phoneNumberId}/messages`, {
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to,
+    type: 'interactive',
+    interactive: {
+      type: 'list',
+      body: {
+        text: (
+          bodyText ||
+          `Pick a ${productName} option:`
+        ).slice(0, 1024),
+      },
+      action: {
+        button: 'See options',
+        sections: [
+          {
+            title: productName.slice(0, 24),
+            rows,
+          },
+        ],
+      },
+    },
+  })
+}
+
+export async function sendPaymentMethodButtons(
+  to: string,
+  settings: WhatsappAgentConfig['meta'],
+) {
+  return graphRequest(settings, `${settings.phoneNumberId}/messages`, {
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to,
+    type: 'interactive',
+    interactive: {
+      type: 'button',
+      body: {
+        text: 'How would you like to pay?',
+      },
+      action: {
+        buttons: [
+          {
+            type: 'reply',
+            reply: { id: 'pay|cash_on_delivery', title: 'Cash on delivery' },
+          },
+          {
+            type: 'reply',
+            reply: { id: 'pay|mobile_money', title: 'Mobile Money' },
+          },
+          {
+            type: 'reply',
+            reply: { id: 'pay|card', title: 'Card' },
+          },
+        ],
+      },
+    },
   })
 }
 
