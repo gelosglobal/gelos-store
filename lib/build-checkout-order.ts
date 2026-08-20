@@ -21,6 +21,9 @@ import { calculateAffiliateCommission } from '@/lib/affiliates'
 import { findActivePromo } from '@/lib/store-promotions'
 import type { LocationId } from '@/lib/locations'
 import { getCartDisplayName } from '@/lib/variant-display'
+import { isDhlConfigured } from '@/lib/dhl/config'
+import { fetchDhlRates } from '@/lib/dhl/rates'
+import { countryCodeFromLocation } from '@/lib/shipping-destination'
 
 export const checkoutLineItemSchema = z.object({
   id: z.string().min(1),
@@ -29,12 +32,36 @@ export const checkoutLineItemSchema = z.object({
   variantLabel: z.string().optional(),
 })
 
+export const checkoutShippingSchema = z.object({
+  countryCode: z.string().trim().length(2),
+  city: z.string().trim().min(2).max(80),
+  postalCode: z
+    .string()
+    .trim()
+    .max(20)
+    .optional()
+    .transform((value) => value || undefined),
+  addressLine1: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .transform((value) => (value && value.length >= 3 ? value : undefined)),
+  productCode: z
+    .string()
+    .trim()
+    .max(10)
+    .optional()
+    .transform((value) => value || undefined),
+})
+
 export const checkoutRequestSchema = z.object({
   visitorId: z.string().min(8).max(120).optional(),
   email: z.string().email(),
   name: z.string().min(2).max(120),
   phone: z.string().max(30).optional(),
   shippingAddress: z.string().max(300).optional(),
+  shipping: checkoutShippingSchema.optional(),
   locationId: z.enum(['international', 'nigeria', 'ghana', 'usa']),
   items: z.array(checkoutLineItemSchema).min(1),
   promoCode: z.string().max(40).optional(),
@@ -45,6 +72,16 @@ export const checkoutRequestSchema = z.object({
 })
 
 export type CheckoutRequestBody = z.infer<typeof checkoutRequestSchema>
+
+function resolveDestinationCountry(
+  locationId: LocationId,
+  shippingCountry?: string,
+): string | undefined {
+  const fromMarket = countryCodeFromLocation(locationId)
+  if (fromMarket) return fromMarket
+  const code = shippingCountry?.trim().toUpperCase()
+  return code && code.length === 2 ? code : undefined
+}
 
 export async function buildLocalizedCheckoutOrder(body: CheckoutRequestBody) {
   const locationId = body.locationId as LocationId
@@ -102,11 +139,54 @@ export async function buildLocalizedCheckoutOrder(body: CheckoutRequestBody) {
     throw new Error('Invalid or inactive affiliate code')
   }
 
+  let shippingOverride: number | undefined
+  let dhl:
+    | {
+        productCode: string
+        productName: string
+        totalPrice: number
+        currency: string
+      }
+    | undefined
+
+  const destinationCountry = resolveDestinationCountry(
+    locationId,
+    body.shipping?.countryCode,
+  )
+  const destinationCity = body.shipping?.city?.trim()
+
+  if (isDhlConfigured() && destinationCountry && destinationCity) {
+    try {
+      const itemCount = checkoutItems.reduce(
+        (sum, item) => sum + item.quantity,
+        0,
+      )
+      const rates = await fetchDhlRates({
+        destinationCountryCode: destinationCountry,
+        destinationCityName: destinationCity,
+        destinationPostalCode: body.shipping?.postalCode,
+        itemCount,
+        productCode: body.shipping?.productCode,
+      })
+      shippingOverride = rates.selected.totalPriceBase
+      dhl = {
+        productCode: rates.selected.productCode,
+        productName: rates.selected.productName,
+        totalPrice: rates.selected.totalPrice,
+        currency: rates.selected.currency,
+      }
+    } catch (error) {
+      console.error('[buildLocalizedCheckoutOrder] DHL rates failed', error)
+      // Fall back to flat market shipping fee.
+    }
+  }
+
   // Totals are computed in base GHS, then converted for the shopper's currency.
   const baseTotals = calculateCheckoutTotals(checkoutItems, {
     promoCode,
     promotions,
     smileRewardFreeShipping: body.smileRewardFreeShipping === true,
+    shippingOverride,
   })
   const totals = {
     subtotal: convertFromBase(baseTotals.subtotal, currency),
@@ -126,6 +206,7 @@ export async function buildLocalizedCheckoutOrder(body: CheckoutRequestBody) {
     totals,
     currency,
     promoCode: promoCode || undefined,
+    dhl,
     affiliate: affiliate
       ? {
           affiliateId: affiliate.affiliateId,

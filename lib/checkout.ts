@@ -33,6 +33,8 @@ export type CalculateCheckoutTotalsOptions = {
   locationId?: LocationId
   promotions?: StorePromotions
   smileRewardFreeShipping?: boolean
+  /** When set (e.g. live DHL quote in GHS), replaces the flat market shipping fee. */
+  shippingOverride?: number
 }
 
 /**
@@ -55,16 +57,23 @@ export function calculateCheckoutTotals(
   )
   const afterDiscount = subtotal - discount
 
+  const flatShipping = promotions.shippingFee
+  const baseShipping =
+    typeof options.shippingOverride === 'number' &&
+    Number.isFinite(options.shippingOverride)
+      ? Math.max(0, options.shippingOverride)
+      : flatShipping
+
   const shipping =
     items.length === 0
       ? 0
       : options.smileRewardFreeShipping
         ? 0
         : !promotions.freeShippingEnabled
-          ? promotions.shippingFee
+          ? baseShipping
           : afterDiscount >= promotions.freeShippingThreshold
             ? 0
-            : promotions.shippingFee
+            : baseShipping
 
   return {
     subtotal,

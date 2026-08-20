@@ -1,0 +1,311 @@
+{
+  "currency": "GHS",
+  "catalog_status": "READY FOR KEYS — prices from live Shopify; re-verify stock before WhatsApp launch",
+  "products": [
+    {
+      "id": "flavored-toothpaste",
+      "name": "Gelos Flavored Toothpaste",
+      "category": "Toothpaste",
+      "description": "Premium sugar-free Fluoride+ flavoured toothpaste for everyday brushing.",
+      "price_ghs": 50,
+      "stock_status": "in_stock",
+      "variants": [
+        "Red Velvet",
+        "Mango Sorbet",
+        "Watermelon",
+        "Banana",
+        "Vanilla",
+        "Grape Bubblegum",
+        "Strawberry",
+        "Candy Cane",
+        "Coconut Whip",
+        "Peach Iced Tea",
+        "Smooth Mint",
+        "Energy Drink",
+        "Cola",
+        "Passion Fruit",
+        "Chocolate"
+      ],
+      "active": true
+    },
+    {
+      "id": "foaming-mouthwash",
+      "name": "Gelos Foaming Mouthwash",
+      "category": "Mouthwash",
+      "description": "Alcohol-free foaming mouthwash for fresh breath and a clean feel.",
+      "price_ghs": 88,
+      "stock_status": "in_stock",
+      "variants": ["Blue Raspberry", "Watermelon", "Grape Bubblegum", "Strawberry"],
+      "active": true
+    },
+    {
+      "id": "id-stain-mouthwash",
+      "name": "ID Stain Mouthwash",
+      "category": "Mouthwash",
+      "description": "Stain-care mouthwash. Follow pack directions; not medical advice.",
+      "price_ghs": 250,
+      "stock_status": "in_stock",
+      "variants": [],
+      "active": true
+    },
+    {
+      "id": "mouth-spray",
+      "name": "Gelos Mouth Spray",
+      "category": "Fresh Breath",
+      "description": "On-the-go mouth spray for fresh breath.",
+      "price_ghs": 30,
+      "stock_status": "in_stock",
+      "variants": ["Peach", "Mint", "Grape", "Strawberry"],
+      "active": true
+    },
+    {
+      "id": "sonicwave-g1",
+      "name": "SonicWave G1 Series Electric Toothbrush",
+      "category": "Electric Toothbrush",
+      "description": "Sonic electric toothbrush with multiple cleaning modes.",
+      "price_ghs": 250,
+      "stock_status": "in_stock",
+      "variants": ["Black", "White", "Pink", "Blue", "Green"],
+      "active": true
+    },
+    {
+      "id": "electric-toothbrush-pro",
+      "name": "Gelos Electric Toothbrush Pro",
+      "category": "Electric Toothbrush",
+      "description": "Pro electric toothbrush for daily oral care.",
+      "price_ghs": 500,
+      "stock_status": "in_stock",
+      "variants": ["Green", "Purple", "Pink"],
+      "active": true
+    },
+    {
+      "id": "kids-electric-toothbrush",
+      "name": "Kids Electric Toothbrush",
+      "category": "Electric Toothbrush",
+      "description": "Kids electric toothbrush for supervised brushing.",
+      "price_ghs": 100,
+      "stock_status": "in_stock",
+      "variants": ["Pink", "Blue"],
+      "active": true
+    },
+    {
+      "id": "bamboo-toothbrush",
+      "name": "Gelos Bamboo Toothbrush (3-pack)",
+      "category": "Toothbrushes",
+      "description": "Eco-friendly bamboo handle toothbrush set with soft bristles.",
+      "price_ghs": 40,
+      "stock_status": "in_stock",
+      "variants": [],
+      "active": true
+    },
+    {
+      "id": "interdental-brush-5pcs",
+      "name": "Interdental Brush (5pcs)",
+      "category": "Toothbrushes",
+      "description": "Interdental brushes for cleaning between teeth.",
+      "price_ghs": 30,
+      "stock_status": "in_stock",
+      "variants": [],
+      "active": true
+    },
+    {
+      "id": "interdental-brush-10pcs",
+      "name": "Interdental Brush (10pcs)",
+      "category": "Toothbrushes",
+      "description": "Interdental brushes for cleaning between teeth.",
+      "price_ghs": 50,
+      "stock_status": "in_stock",
+      "variants": [],
+      "active": true
+    },
+    {
+      "id": "sonicwave-brush-heads",
+      "name": "SonicWave G1 Replaceable Brush Heads",
+      "category": "Toothbrushes",
+      "description": "Replacement brush heads for SonicWave G1.",
+      "price_ghs": 40,
+      "stock_status": "in_stock",
+      "variants": ["White", "Blue", "Pink", "Green", "Black"],
+      "active": true
+    },
+    {
+      "id": "water-flosser",
+      "name": "Gelos Water Flosser",
+      "category": "Water Flosser",
+      "description": "Electric water flosser for cleaning between teeth.",
+      "price_ghs": 400,
+      "stock_status": "in_stock",
+      "variants": ["Pink", "White", "Green", "Orange"],
+      "active": true
+    },
+    {
+      "id": "hydrelle-pro-water-flosser",
+      "name": "Hydrelle Pro Water Flosser",
+      "category": "Water Flosser",
+      "description": "Hydrelle Pro water flosser for thorough between-teeth cleaning.",
+      "price_ghs": 600,
+      "stock_status": "in_stock",
+      "variants": ["Purple", "Green", "Pink"],
+      "active": true
+    },
+    {
+      "id": "portable-water-flosser-cs1",
+      "name": "Portable Water Flosser CS1",
+      "category": "Water Flosser",
+      "description": "Portable water flosser for travel and daily use.",
+      "price_ghs": 220,
+      "stock_status": "in_stock",
+      "variants": [],
+      "active": true
+    },
+    {
+      "id": "tongue-scraper",
+      "name": "Gelos 3-in-1 Tongue Scraper",
+      "category": "Oral Care Accessory",
+      "description": "Stainless steel tongue scraper for fresher breath.",
+      "price_ghs": 150,
+      "stock_status": "in_stock",
+      "variants": ["Blue black", "Burgundy", "Green", "Silver", "Rose gold", "Black"],
+      "active": true
+    },
+    {
+      "id": "tongue-scraper-plastic-handle",
+      "name": "Tongue Scraper With Plastic Handle",
+      "category": "Oral Care Accessory",
+      "description": "Tongue scraper with plastic handle.",
+      "price_ghs": 40,
+      "stock_status": "in_stock",
+      "variants": ["Orange", "Black", "Green", "Blue"],
+      "active": true
+    },
+    {
+      "id": "double-nasal-inhaler",
+      "name": "Double Nasal Fruit Energy Inhaler",
+      "category": "Personal Care",
+      "description": "Aromatic nasal inhaler for a cooling refresh. Not a medicine; follow pack use.",
+      "price_ghs": 100,
+      "stock_status": "in_stock",
+      "variants": [
+        "Mango mint",
+        "Cool mint",
+        "Strawberry mint",
+        "Watermelon mint",
+        "Grape mint",
+        "Red energy mint",
+        "Cherry mint",
+        "Pineapple mint"
+      ],
+      "active": true
+    },
+    {
+      "id": "led-whitening-kit",
+      "name": "Gelos Teeth Whitening LED Kit",
+      "category": "Whitening",
+      "description": "At-home LED whitening kit for surface stains. Cosmetic use only; follow directions and stop if sensitive.",
+      "price_ghs": 650,
+      "stock_status": "in_stock",
+      "variants": [],
+      "active": true
+    },
+    {
+      "id": "v34-whitening-kit",
+      "name": "V34 Teeth Whitening Kit",
+      "category": "Whitening",
+      "description": "V34 colour-correcting whitening kit. Cosmetic use only; follow pack directions.",
+      "price_ghs": 600,
+      "stock_status": "in_stock",
+      "variants": [],
+      "active": true
+    },
+    {
+      "id": "v34-serum",
+      "name": "V34 Colour Correcting Serum",
+      "category": "Whitening",
+      "description": "V34 colour correcting serum. Cosmetic use only.",
+      "price_ghs": 250,
+      "stock_status": "in_stock",
+      "variants": [],
+      "active": true
+    },
+    {
+      "id": "whitening-strips",
+      "name": "Gelos Purple Teeth Whitening Strips",
+      "category": "Whitening",
+      "description": "Purple whitening strips for surface stains. Follow usage guide; stop if sensitive.",
+      "price_ghs": 150,
+      "stock_status": "in_stock",
+      "variants": [],
+      "active": true
+    },
+    {
+      "id": "activated-charcoal-powder",
+      "name": "Activated Charcoal Powder",
+      "category": "Whitening",
+      "description": "Charcoal powder to help lift surface stains. Cosmetic use only.",
+      "price_ghs": 130,
+      "stock_status": "in_stock",
+      "variants": [],
+      "active": true
+    },
+    {
+      "id": "turmeric-whitening-powder",
+      "name": "Turmeric Teeth Whitening Powder",
+      "category": "Whitening",
+      "description": "Turmeric whitening powder. Cosmetic use only.",
+      "price_ghs": 130,
+      "stock_status": "in_stock",
+      "variants": [],
+      "active": true
+    },
+    {
+      "id": "pulling-oil",
+      "name": "Pulling Oil (Coconut + Mint) + Free Tongue Scraper",
+      "category": "Whitening",
+      "description": "Oil pulling kit with complimentary tongue scraper.",
+      "price_ghs": 200,
+      "stock_status": "in_stock",
+      "variants": [],
+      "active": true
+    },
+    {
+      "id": "hyaluronic-serum",
+      "name": "Hyaluronic Serum",
+      "category": "Wellness",
+      "description": "Oral care hyaluronic serum for gum comfort. Follow pack directions; not medical advice.",
+      "price_ghs": 250,
+      "stock_status": "in_stock",
+      "variants": [],
+      "active": true
+    },
+    {
+      "id": "nhpro-enamel-care",
+      "name": "NHpro Enamel Care",
+      "category": "Wellness",
+      "description": "Enamel care serum. Follow pack directions; not medical advice.",
+      "price_ghs": 250,
+      "stock_status": "in_stock",
+      "variants": [],
+      "active": true
+    },
+    {
+      "id": "tooth-tattoo",
+      "name": "Tooth Tattoo",
+      "category": "Accessories",
+      "description": "Temporary metallic tooth tattoos for fun smile decoration.",
+      "price_ghs": 38,
+      "stock_status": "in_stock",
+      "variants": [],
+      "active": true
+    },
+    {
+      "id": "dental-floss-picks",
+      "name": "Traditional Dental Floss Picks",
+      "category": "Accessories",
+      "description": "Floss picks for cleaning between teeth.",
+      "price_ghs": 30,
+      "stock_status": "in_stock",
+      "variants": [],
+      "active": true
+    }
+  ]
+}

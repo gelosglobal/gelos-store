@@ -70,9 +70,24 @@ export function isShopifyStorefrontConfigured(): boolean {
 }
 
 /**
- * When true, storefront catalog and checkout use Shopify.
- * Defaults to on whenever Storefront credentials exist.
- * Set SHOPIFY_COMMERCE_ENABLED=false to force Prisma/Paystack/Stripe rails.
+ * When true, product catalog is loaded from Shopify Storefront.
+ * Defaults on whenever Storefront credentials exist.
+ * Set SHOPIFY_CATALOG_ENABLED=false to force Prisma/mock products.
+ */
+export function isShopifyCatalogEnabled(): boolean {
+  const flag = process.env.SHOPIFY_CATALOG_ENABLED?.trim().toLowerCase()
+  if (flag === 'false' || flag === '0' || flag === 'off') return false
+  if (flag === 'true' || flag === '1' || flag === 'on') {
+    return isShopifyStorefrontConfigured()
+  }
+  return isShopifyStorefrontConfigured()
+}
+
+/**
+ * When true, cart/checkout redirect to hosted Shopify Checkout.
+ * Defaults on whenever Storefront credentials exist.
+ * Set SHOPIFY_COMMERCE_ENABLED=false for Gelos /checkout (Paystack/Stripe/COD).
+ * Catalog can stay on Shopify via isShopifyCatalogEnabled().
  */
 export function isShopifyCommerceEnabled(): boolean {
   const flag = process.env.SHOPIFY_COMMERCE_ENABLED?.trim().toLowerCase()

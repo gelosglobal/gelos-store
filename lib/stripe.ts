@@ -138,3 +138,66 @@ export async function createStripeCheckoutSession(
 export async function retrieveStripeCheckoutSession(sessionId: string) {
   return getStripe().checkout.sessions.retrieve(sessionId)
 }
+
+export type CreateStripePaymentIntentInput = {
+  email: string
+  name: string
+  phone?: string
+  shippingAddress?: string
+  locationId: string
+  totals: {
+    subtotal: number
+    discount: number
+    shipping: number
+    total: number
+  }
+  currency: string
+  promoCode?: string
+  affiliateCode?: string
+  affiliateId?: string
+  commissionAmount?: number
+}
+
+export async function createStripePaymentIntent(
+  input: CreateStripePaymentIntentInput,
+): Promise<{ paymentIntentId: string; clientSecret: string }> {
+  const stripe = getStripe()
+  const currency = input.currency.toLowerCase()
+
+  const intent = await stripe.paymentIntents.create({
+    amount: toStripeAmount(input.totals.total),
+    currency,
+    payment_method_types: ['card'],
+    receipt_email: input.email,
+    description: `Gelos order — ${input.name}`,
+    metadata: {
+      customer_name: input.name,
+      customer_email: input.email,
+      customer_phone: input.phone ?? '',
+      shipping_address: input.shippingAddress ?? '',
+      location_id: input.locationId,
+      promo_code: input.promoCode ?? '',
+      affiliate_code: input.affiliateCode ?? '',
+      affiliate_id: input.affiliateId ?? '',
+      commission_amount: String(input.commissionAmount ?? 0),
+      subtotal: String(input.totals.subtotal),
+      discount: String(input.totals.discount),
+      shipping: String(input.totals.shipping),
+      total: String(input.totals.total),
+      currency: input.currency,
+    },
+  })
+
+  if (!intent.client_secret) {
+    throw new Error('Stripe did not return a client secret')
+  }
+
+  return {
+    paymentIntentId: intent.id,
+    clientSecret: intent.client_secret,
+  }
+}
+
+export async function retrieveStripePaymentIntent(paymentIntentId: string) {
+  return getStripe().paymentIntents.retrieve(paymentIntentId)
+}

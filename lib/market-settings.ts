@@ -49,11 +49,16 @@ function defaultPayments(locationId: LocationId): MarketPayments {
   if (locationId === 'usa') {
     return { paystack: false, stripe: true, cod: false }
   }
-  return { paystack: true, stripe: false, cod: true }
+  // Stripe available in every market; Paystack + COD remain for GH/NG/intl.
+  return { paystack: true, stripe: true, cod: true }
 }
 
 function defaultPaymentMethod(locationId: LocationId): MarketPaymentMethod {
-  return locationId === 'usa' ? 'stripe' : 'paystack'
+  // Credit card (Stripe) first when available for the market.
+  const payments = defaultPayments(locationId)
+  if (payments.stripe) return 'stripe'
+  if (payments.paystack) return 'paystack'
+  return 'cod'
 }
 
 export function createDefaultMarketSettings(
@@ -111,7 +116,8 @@ function sanitizePayments(
   const raw = input as Partial<MarketPayments>
   return {
     paystack: asBool(raw.paystack, fallback.paystack),
-    stripe: asBool(raw.stripe, fallback.stripe),
+    // Prefer Stripe on for all markets when unset (older saves often omitted it).
+    stripe: typeof raw.stripe === 'boolean' ? raw.stripe : true,
     cod: asBool(raw.cod, fallback.cod),
   }
 }

@@ -1,0 +1,89 @@
+{
+  "business_name": "Gelos Global",
+  "assistant_name": "Gelos automated order assistant",
+  "currency": "GHS",
+  "business_profile": {
+    "address": "Osabu Link, HSE 9, GW-063-1043 Adenta, Accra, Ghana",
+    "email": "hello@gelosglobal.com",
+    "website": "https://www.gelosglobal.com",
+    "whatsapp": "233539621338",
+    "opening_hours": "Support: Monday–Friday, 9am–5pm (Ghana time). Delivery courier hours may vary."
+  },
+  "default_delivery_fee_ghs": 40,
+  "delivery_zones": [
+    {
+      "name": "Adenta",
+      "aliases": ["Adenta Housing Down", "Osabu Link"],
+      "fee_ghs": 40
+    },
+    {
+      "name": "Accra — other areas",
+      "aliases": ["Accra", "Greater Accra"],
+      "fee_ghs": 40
+    },
+    {
+      "name": "Other Ghana regions",
+      "aliases": ["Kumasi", "Tema", "Cape Coast", "Takoradi"],
+      "fee_ghs": 40
+    }
+  ],
+  "payment_methods": [
+    {
+      "id": "cash_on_delivery",
+      "label": "Cash on delivery",
+      "instructions": "Pay the courier in cash when your order arrives. Confirm the total (products + delivery) before handover."
+    },
+    {
+      "id": "mobile_money",
+      "label": "Mobile Money",
+      "instructions": "Pay via MTN MoMo or other networks through a secure payment link sent by staff. Never share your PIN or OTP in chat."
+    },
+    {
+      "id": "card",
+      "label": "Card (Paystack / Stripe)",
+      "instructions": "Pay with Visa/Mastercard via an approved secure payment link only. Never send card numbers in WhatsApp."
+    },
+    {
+      "id": "bank_transfer",
+      "label": "Bank transfer",
+      "instructions": "Ask for staff confirmation — they will share approved account details and confirm payment."
+    },
+    {
+      "id": "other",
+      "label": "Other / staff confirmation",
+      "instructions": "Escalate to staff."
+    }
+  ],
+  "policies": {
+    "delivery": "We deliver across Ghana. Standard shipping is GH₵40 per order. Orders are typically processed in 1–2 business days; delivery usually takes 2–5 business days depending on location. Accra and major cities are usually faster.",
+    "returns": "Contact us within 14 days of delivery. Unopened items in original packaging may qualify for return or exchange. Opened oral care products generally cannot be returned for hygiene reasons unless damaged, defective, or incorrect. Email hello@gelosglobal.com with your order number and photos if needed.",
+    "privacy": "We use your name, phone, and delivery details only to fulfil WhatsApp orders and customer support. Contact hello@gelosglobal.com for privacy questions."
+  },
+  "faqs": [
+    {
+      "question": "Where is Gelos located?",
+      "answer": "Osabu Link, HSE 9, GW-063-1043 Adenta, Accra, Ghana."
+    },
+    {
+      "question": "How much is delivery?",
+      "answer": "Standard delivery across Ghana is GH₵40 per order. Ask staff if your area needs a special courier quote."
+    },
+    {
+      "question": "What payment methods do you accept?",
+      "answer": "Cash on delivery, Mobile Money, and card via secure Paystack or Stripe links. Never share PINs, OTPs, or full card details in chat."
+    },
+    {
+      "question": "How do I track my order?",
+      "answer": "Share your order number and delivery city with support. We aim to reply within one business day (Mon–Fri, 9am–5pm)."
+    },
+    {
+      "question": "Can I speak to a person?",
+      "answer": "Yes. Ask for a staff handoff anytime and a team member will continue the chat."
+    },
+    {
+      "question": "How do I confirm my order?",
+      "answer": "After you review the order summary, type exactly: CONFIRM ORDER"
+    }
+  ],
+  "agent_unavailable_message": "The Gelos automated assistant is being set up. A team member will help you shortly. You can also email hello@gelosglobal.com or WhatsApp +233 53 962 1338."
+}

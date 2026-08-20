@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePageResume } from '@/hooks/use-page-resume'
@@ -13,12 +14,23 @@ import { useLocation } from '@/components/location-provider'
 import { useStorePromotions } from '@/components/store-promotions-provider'
 import { useAffiliate } from '@/components/affiliate-provider'
 import { useMarketSettings } from '@/components/market-settings-provider'
+import {
+  CardBrandBadges,
+  StripeCardFields,
+  StripeElementsProvider,
+  type StripeCardFieldsHandle,
+} from '@/components/stripe-card-fields'
 import { calculateCheckoutTotals } from '@/lib/checkout'
 import { convertForLocation } from '@/lib/exchange-rates'
 import { hasSmileRewardFreeShipping } from '@/lib/gelos-ai/smile-reward-storage'
 import { trackInitiateCheckout, trackPurchase, trackAddPaymentInfo } from '@/lib/meta-pixel'
 import { getInitiateCheckoutEventId } from '@/lib/meta-event-ids'
 import { saveCheckoutDraft } from '@/lib/checkout-draft'
+import { paymentProviderLogos } from '@/lib/payment-provider-logos'
+import {
+  countryCodeFromLocation,
+  INTERNATIONAL_COUNTRY_OPTIONS,
+} from '@/lib/shipping-destination'
 import { trackVisitorFunnelEvent } from '@/lib/visitor-funnel'
 import { getOrCreateVisitorId } from '@/lib/visitor-id'
 import {
@@ -42,14 +54,41 @@ export default function CheckoutPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
-  const [shippingAddress, setShippingAddress] = useState('')
+  const [addressLine, setAddressLine] = useState('')
+  const [city, setCity] = useState('')
+  const [postalCode, setPostalCode] = useState('')
+  const [countryCode, setCountryCode] = useState(
+    () => countryCodeFromLocation(locationId) ?? '',
+  )
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('paystack')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [smileRewardFreeShipping, setSmileRewardFreeShipping] = useState(false)
+  const [dhlConfigured, setDhlConfigured] = useState(false)
+  const [dhlLoading, setDhlLoading] = useState(false)
+  const [dhlError, setDhlError] = useState('')
+  const [dhlShippingBase, setDhlShippingBase] = useState<number | null>(null)
+  const [dhlProductCode, setDhlProductCode] = useState<string | undefined>()
+  const [dhlProductName, setDhlProductName] = useState<string | undefined>()
   const checkoutTracked = useRef(false)
+  const stripeCardRef = useRef<StripeCardFieldsHandle>(null)
   const checkoutPromotions = applyShipping(promotions)
   const cartHasUnavailableItems = items.some(
     (item) => !isProductAvailable(item.id),
+  )
+
+  const shippingAddress = useMemo(() => {
+    const parts = [
+      addressLine.trim(),
+      city.trim(),
+      postalCode.trim(),
+      (countryCode || countryCodeFromLocation(locationId) || '').trim(),
+    ].filter(Boolean)
+    return parts.join(', ')
+  }, [addressLine, city, postalCode, countryCode, locationId])
+
+  const itemCount = useMemo(
+    () => items.reduce((sum, item) => sum + item.quantity, 0),
+    [items],
   )
 
   useEffect(() => {
@@ -57,12 +96,133 @@ export default function CheckoutPage() {
   }, [])
 
   useEffect(() => {
+    const marketCountry = countryCodeFromLocation(locationId)
+    if (marketCountry) setCountryCode(marketCountry)
+    else if (locationId === 'international' && !countryCode) {
+      setCountryCode('GB')
+    }
+  }, [locationId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    let cancelled = false
+    void fetch('/api/dhl/rates', { cache: 'no-store' })
+      .then(async (res) => {
+        const data = (await res.json()) as { configured?: boolean }
+        if (!cancelled) setDhlConfigured(Boolean(data.configured))
+      })
+      .catch(() => {
+        if (!cancelled) setDhlConfigured(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!dhlConfigured) {
+      setDhlShippingBase(null)
+      setDhlProductCode(undefined)
+      setDhlProductName(undefined)
+      setDhlError('')
+      return
+    }
+
+    const destination =
+      countryCode.trim().toUpperCase() ||
+      countryCodeFromLocation(locationId) ||
+      ''
+    const cityName = city.trim()
+
+    if (!destination || cityName.length < 2) {
+      setDhlShippingBase(null)
+      setDhlProductCode(undefined)
+      setDhlProductName(undefined)
+      setDhlError('')
+      return
+    }
+
+    if (destination === 'US' && postalCode.trim().length < 3) {
+      setDhlShippingBase(null)
+      setDhlError('Enter a ZIP code for US delivery rates')
+      return
+    }
+
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => {
+      setDhlLoading(true)
+      setDhlError('')
+      void fetch('/api/dhl/rates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          destinationCountryCode: destination,
+          destinationCityName: cityName,
+          destinationPostalCode: postalCode.trim() || undefined,
+          itemCount,
+          productCode: dhlProductCode,
+        }),
+      })
+        .then(async (res) => {
+          const data = (await res.json()) as {
+            ok?: boolean
+            error?: string
+            selected?: {
+              productCode: string
+              productName: string
+              totalPriceBase: number
+            }
+          }
+          if (!res.ok || !data.ok || !data.selected) {
+            throw new Error(data.error ?? 'Could not get DHL rates')
+          }
+          setDhlShippingBase(data.selected.totalPriceBase)
+          setDhlProductCode(data.selected.productCode)
+          setDhlProductName(data.selected.productName)
+        })
+        .catch((error: unknown) => {
+          if (controller.signal.aborted) return
+          setDhlShippingBase(null)
+          setDhlError(
+            error instanceof Error ? error.message : 'Could not get DHL rates',
+          )
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setDhlLoading(false)
+        })
+    }, 500)
+
+    return () => {
+      controller.abort()
+      window.clearTimeout(timer)
+    }
+  }, [
+    dhlConfigured,
+    countryCode,
+    city,
+    postalCode,
+    itemCount,
+    locationId,
+    // intentionally omit dhlProductCode to avoid requote loops; server picks cheapest
+  ])
+
+  useEffect(() => {
     if (shopifyCheckoutEnabled) {
       setPaymentMethod('shopify')
       return
     }
+    // Prefer Credit card (Stripe) first when enabled for this market.
+    if (market.payments.stripe) {
+      setPaymentMethod('stripe')
+      return
+    }
     setPaymentMethod(market.defaultPaymentMethod)
-  }, [market.defaultPaymentMethod, locationId, shopifyCheckoutEnabled])
+  }, [
+    market.defaultPaymentMethod,
+    market.payments.stripe,
+    locationId,
+    shopifyCheckoutEnabled,
+  ])
 
   // Shopify mode: skip this page and go straight to hosted checkout.
   const shopifyRedirectStarted = useRef(false)
@@ -127,8 +287,16 @@ export default function CheckoutPage() {
         promoCode: appliedPromoCode,
         promotions: checkoutPromotions,
         smileRewardFreeShipping,
+        shippingOverride:
+          dhlShippingBase != null ? dhlShippingBase : undefined,
       }),
-    [items, appliedPromoCode, checkoutPromotions, smileRewardFreeShipping],
+    [
+      items,
+      appliedPromoCode,
+      checkoutPromotions,
+      smileRewardFreeShipping,
+      dhlShippingBase,
+    ],
   )
 
   useEffect(() => {
@@ -182,6 +350,25 @@ export default function CheckoutPage() {
     email: email.trim(),
     phone: phone.trim() || undefined,
     shippingAddress: shippingAddress.trim() || undefined,
+    shipping:
+      city.trim().length >= 2 &&
+      (
+        countryCode.trim() ||
+        countryCodeFromLocation(locationId) ||
+        ''
+      ).length === 2
+        ? {
+            countryCode: (
+              countryCode.trim() ||
+              countryCodeFromLocation(locationId) ||
+              ''
+            ).toUpperCase(),
+            city: city.trim(),
+            postalCode: postalCode.trim() || undefined,
+            addressLine1: addressLine.trim() || undefined,
+            productCode: dhlProductCode,
+          }
+        : undefined,
     locationId,
     items: items.map((item) => ({
       id: item.id,
@@ -329,22 +516,77 @@ export default function CheckoutPage() {
       }
 
       if (paymentMethod === 'stripe') {
-        const response = await fetch('/api/stripe/checkout', {
+        if (!stripeCardRef.current) {
+          throw new Error('Card fields are still loading. Please try again.')
+        }
+
+        const intentResponse = await fetch('/api/stripe/payment-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(checkoutPayload),
         })
 
-        const data = (await response.json()) as {
-          url?: string
+        const intentData = (await intentResponse.json()) as {
+          clientSecret?: string
+          paymentIntentId?: string
           error?: string
         }
 
-        if (!response.ok || !data.url) {
-          throw new Error(data.error ?? 'Could not start Stripe payment')
+        if (
+          !intentResponse.ok ||
+          !intentData.clientSecret ||
+          !intentData.paymentIntentId
+        ) {
+          throw new Error(intentData.error ?? 'Could not start Stripe payment')
         }
 
-        window.location.href = data.url
+        const { paymentIntentId } = await stripeCardRef.current.confirmPayment(
+          intentData.clientSecret,
+          {
+            name: name.trim(),
+            email: email.trim(),
+            phone: phone.trim() || undefined,
+          },
+        )
+
+        const verifyResponse = await fetch('/api/stripe/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            paymentIntentId,
+            visitorId: checkoutPayload.visitorId,
+            eventSourceUrl: checkoutPayload.eventSourceUrl,
+          }),
+        })
+
+        const verifyData = (await verifyResponse.json()) as {
+          ok?: boolean
+          error?: string
+          order?: {
+            orderNumber: string
+            total: number
+            currency: string
+          }
+        }
+
+        if (!verifyResponse.ok || !verifyData.ok || !verifyData.order) {
+          throw new Error(verifyData.error ?? 'Could not confirm Stripe payment')
+        }
+
+        trackPurchase({
+          value: verifyData.order.total,
+          currency: verifyData.order.currency,
+          orderId: verifyData.order.orderNumber,
+          items: items.map((item) => ({
+            id: item.id,
+            quantity: item.quantity,
+          })),
+        })
+
+        clearCart()
+        router.push(
+          `/checkout/success?method=stripe&order=${encodeURIComponent(verifyData.order.orderNumber)}&total=${verifyData.order.total}`,
+        )
         return
       }
 
@@ -471,25 +713,108 @@ export default function CheckoutPage() {
 
               <div>
                 <label htmlFor="checkout-address" className="text-sm font-medium">
-                  Delivery address
+                  Street address
                   {paymentMethod === 'cod' || paymentMethod === 'stripe' ? (
                     <span className="text-[#E91E8C]"> *</span>
                   ) : null}
                 </label>
-                <textarea
+                <input
                   id="checkout-address"
-                  rows={3}
                   required={paymentMethod === 'cod' || paymentMethod === 'stripe'}
-                  value={shippingAddress}
-                  onChange={(e) => setShippingAddress(e.target.value)}
-                  placeholder={
-                    paymentMethod === 'stripe'
-                      ? 'Street, city, state, ZIP'
-                      : 'Street, city, region'
-                  }
-                  className="mt-1.5 w-full resize-none rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950"
+                  value={addressLine}
+                  onChange={(e) => setAddressLine(e.target.value)}
+                  placeholder="House number and street"
+                  className="mt-1.5 w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950"
                 />
               </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="checkout-city" className="text-sm font-medium">
+                    City
+                    <span className="text-[#E91E8C]"> *</span>
+                  </label>
+                  <input
+                    id="checkout-city"
+                    required
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="City"
+                    className="mt-1.5 w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="checkout-postal"
+                    className="text-sm font-medium"
+                  >
+                    {locationId === 'usa' ? 'ZIP code' : 'Postal code'}
+                    {locationId === 'usa' ? (
+                      <span className="text-[#E91E8C]"> *</span>
+                    ) : null}
+                  </label>
+                  <input
+                    id="checkout-postal"
+                    required={locationId === 'usa'}
+                    value={postalCode}
+                    onChange={(e) => setPostalCode(e.target.value)}
+                    placeholder={locationId === 'usa' ? '10001' : 'Optional'}
+                    className="mt-1.5 w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950"
+                  />
+                </div>
+              </div>
+
+              {locationId === 'international' ? (
+                <div>
+                  <label
+                    htmlFor="checkout-country"
+                    className="text-sm font-medium"
+                  >
+                    Country
+                    <span className="text-[#E91E8C]"> *</span>
+                  </label>
+                  <select
+                    id="checkout-country"
+                    required
+                    value={countryCode}
+                    onChange={(e) => setCountryCode(e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950"
+                  >
+                    {INTERNATIONAL_COUNTRY_OPTIONS.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+
+              {dhlConfigured ? (
+                <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
+                  {dhlLoading ? (
+                    <p className="flex items-center gap-2">
+                      <Loader2 className="size-3.5 animate-spin" />
+                      Calculating DHL Express shipping…
+                    </p>
+                  ) : dhlShippingBase != null && dhlProductName ? (
+                    <p>
+                      DHL Express:{' '}
+                      <span className="font-medium text-neutral-950">
+                        {dhlProductName}
+                      </span>{' '}
+                      — rate applied in your order summary.
+                    </p>
+                  ) : dhlError ? (
+                    <p className="text-amber-800">
+                      {dhlError}. Using standard shipping for now.
+                    </p>
+                  ) : (
+                    <p className="text-neutral-500">
+                      Enter city (and ZIP for USA) to get a live DHL rate.
+                    </p>
+                  )}
+                </div>
+              ) : null}
             </div>
 
             {cartHasUnavailableItems ? (
@@ -501,99 +826,178 @@ export default function CheckoutPage() {
 
             <div className="mt-8">
               <h2 className="text-lg font-semibold text-neutral-950">
-                Payment method
+                Payment
               </h2>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {shopifyCheckoutEnabled || shopifyStatusLoading ? (
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('shopify')}
-                    className={cn(
-                      'rounded-2xl border px-4 py-4 text-left transition-colors sm:col-span-2',
-                      paymentMethod === 'shopify'
-                        ? 'border-neutral-950 bg-neutral-50'
-                        : 'border-neutral-200 hover:border-neutral-400',
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Lock className="size-4" />
-                      <span className="text-sm font-semibold">
-                        Checkout securely
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      Paystack, cash on delivery & more via Shopify Checkout
-                    </p>
-                  </button>
-                ) : (
-                  <>
-                {market.payments.paystack ? (
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('paystack')}
-                    className={cn(
-                      'rounded-2xl border px-4 py-4 text-left transition-colors',
-                      paymentMethod === 'paystack'
-                        ? 'border-neutral-950 bg-neutral-50'
-                        : 'border-neutral-200 hover:border-neutral-400',
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Lock className="size-4" />
-                      <span className="text-sm font-semibold">Pay online</span>
-                    </div>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      Card, mobile money & bank via Paystack
-                    </p>
-                  </button>
-                ) : null}
+              <p className="mt-1 text-sm text-neutral-500">
+                All transactions are secure and encrypted.
+              </p>
 
-                {market.payments.stripe ? (
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('stripe')}
-                    className={cn(
-                      'rounded-2xl border px-4 py-4 text-left transition-colors',
-                      paymentMethod === 'stripe'
-                        ? 'border-neutral-950 bg-neutral-50'
-                        : 'border-neutral-200 hover:border-neutral-400',
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Lock className="size-4" />
-                      <span className="text-sm font-semibold">Pay with Stripe</span>
-                    </div>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      Secure card checkout
-                    </p>
-                  </button>
-                ) : null}
+              {shopifyCheckoutEnabled || shopifyStatusLoading ? (
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('shopify')}
+                  className={cn(
+                    'mt-4 w-full rounded-2xl border px-4 py-4 text-left transition-colors',
+                    paymentMethod === 'shopify'
+                      ? 'border-neutral-950 bg-neutral-50'
+                      : 'border-neutral-200 hover:border-neutral-400',
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <Lock className="size-4" />
+                    <span className="text-sm font-semibold">
+                      Checkout securely
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    Paystack, cash on delivery & more via Shopify Checkout
+                  </p>
+                </button>
+              ) : (
+                <div className="mt-4 overflow-hidden rounded-xl border border-neutral-300">
+                  {market.payments.stripe ? (
+                    <div
+                      className={cn(
+                        paymentMethod === 'stripe'
+                          ? 'border-b border-neutral-300'
+                          : market.payments.paystack || market.payments.cod
+                            ? 'border-b border-neutral-200'
+                            : '',
+                      )}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('stripe')}
+                        className="flex w-full items-center justify-between gap-3 bg-white px-4 py-3.5 text-left"
+                      >
+                        <span className="flex items-center gap-3">
+                          <span
+                            className={cn(
+                              'flex size-4 items-center justify-center rounded-full border',
+                              paymentMethod === 'stripe'
+                                ? 'border-neutral-950'
+                                : 'border-neutral-400',
+                            )}
+                            aria-hidden
+                          >
+                            {paymentMethod === 'stripe' ? (
+                              <span className="size-2 rounded-full bg-neutral-950" />
+                            ) : null}
+                          </span>
+                          <span className="text-sm font-semibold text-neutral-950">
+                            Credit card
+                          </span>
+                        </span>
+                        <CardBrandBadges />
+                      </button>
 
-                {market.payments.cod ? (
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('cod')}
-                    className={cn(
-                      'rounded-2xl border px-4 py-4 text-left transition-colors',
-                      paymentMethod === 'cod'
-                        ? 'border-neutral-950 bg-neutral-50'
-                        : 'border-neutral-200 hover:border-neutral-400',
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Banknote className="size-4" />
-                      <span className="text-sm font-semibold">
-                        Cash on delivery
-                      </span>
+                      {paymentMethod === 'stripe' ? (
+                        <StripeElementsProvider>
+                          <StripeCardFields
+                            ref={stripeCardRef}
+                            disabled={isSubmitting}
+                            defaultName={name}
+                          />
+                        </StripeElementsProvider>
+                      ) : null}
                     </div>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      Pay with cash when your order arrives
-                    </p>
-                  </button>
-                ) : null}
-                  </>
-                )}
-              </div>
+                  ) : null}
+
+                  {market.payments.paystack ? (
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('paystack')}
+                      className={cn(
+                        'flex w-full items-center justify-between gap-3 bg-white px-4 py-3.5 text-left',
+                        market.payments.cod
+                          ? 'border-b border-neutral-200'
+                          : '',
+                      )}
+                    >
+                      <span className="flex items-center gap-3">
+                        <span
+                          className={cn(
+                            'flex size-4 shrink-0 items-center justify-center rounded-full border',
+                            paymentMethod === 'paystack'
+                              ? 'border-neutral-950'
+                              : 'border-neutral-400',
+                          )}
+                          aria-hidden
+                        >
+                          {paymentMethod === 'paystack' ? (
+                            <span className="size-2 rounded-full bg-neutral-950" />
+                          ) : null}
+                        </span>
+                        <span>
+                          <span className="block text-sm font-semibold text-neutral-950">
+                            Pay online
+                          </span>
+                          <span className="mt-0.5 block text-xs text-neutral-500">
+                            Card, mobile money & bank via Paystack
+                          </span>
+                        </span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-1.5" aria-hidden>
+                        {(['visa', 'mastercard', 'momo'] as const)
+                          .map((id) =>
+                            paymentProviderLogos.find((logo) => logo.id === id),
+                          )
+                          .filter(
+                            (logo): logo is (typeof paymentProviderLogos)[number] =>
+                              Boolean(logo),
+                          )
+                          .map((logo) => (
+                            <span
+                              key={logo.id}
+                              className="inline-flex h-7 min-w-[2.75rem] items-center justify-center overflow-hidden rounded border border-neutral-200 bg-white px-1.5"
+                            >
+                              <Image
+                                src={logo.src}
+                                alt=""
+                                width={56}
+                                height={28}
+                                className={cn(
+                                  'h-5 w-auto object-contain',
+                                  logo.className,
+                                )}
+                              />
+                            </span>
+                          ))}
+                      </span>
+                    </button>
+                  ) : null}
+
+                  {market.payments.cod ? (
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('cod')}
+                      className="flex w-full items-center gap-3 bg-white px-4 py-3.5 text-left"
+                    >
+                      <span
+                        className={cn(
+                          'flex size-4 items-center justify-center rounded-full border',
+                          paymentMethod === 'cod'
+                            ? 'border-neutral-950'
+                            : 'border-neutral-400',
+                        )}
+                        aria-hidden
+                      >
+                        {paymentMethod === 'cod' ? (
+                          <span className="size-2 rounded-full bg-neutral-950" />
+                        ) : null}
+                      </span>
+                      <span>
+                        <span className="block text-sm font-semibold text-neutral-950">
+                          Cash on delivery
+                        </span>
+                        <span className="mt-0.5 block text-xs text-neutral-500">
+                          Pay with cash when your order arrives
+                        </span>
+                      </span>
+                    </button>
+                  ) : null}
+                </div>
+              )}
             </div>
 
             <button
@@ -609,7 +1013,7 @@ export default function CheckoutPage() {
                     : paymentMethod === 'shopify'
                       ? 'Redirecting to Shopify…'
                       : paymentMethod === 'stripe'
-                        ? 'Redirecting to Stripe…'
+                        ? 'Processing card…'
                         : 'Redirecting to Paystack…'}
                 </>
               ) : paymentMethod === 'cod' ? (
@@ -625,7 +1029,7 @@ export default function CheckoutPage() {
               ) : paymentMethod === 'stripe' ? (
                 <>
                   <Lock className="size-4" />
-                  Pay with Stripe
+                  Pay securely
                 </>
               ) : (
                 <>
@@ -645,11 +1049,11 @@ export default function CheckoutPage() {
                 </>
               ) : paymentMethod === 'stripe' ? (
                 <>
-                  You&apos;ll be charged in{' '}
+                  Enter your card details above. You&apos;ll be charged in{' '}
                   <span className="font-medium text-neutral-700">
                     {market.currencyCode}
                   </span>{' '}
-                  via Stripe ({location.label}).
+                  ({location.label}).
                 </>
               ) : (
                 <>

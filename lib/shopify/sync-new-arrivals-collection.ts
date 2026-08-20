@@ -4,7 +4,7 @@ import {
   isShopifyAdminConfigured,
   shopifyAdminFetch,
 } from '@/lib/shopify/admin-client'
-import { isShopifyCommerceEnabled } from '@/lib/shopify/config'
+import { isShopifyCatalogEnabled } from '@/lib/shopify/config'
 import { shopifyStorefrontFetch } from '@/lib/shopify/storefront-client'
 
 export const DEFAULT_NEW_ARRIVALS_COLLECTION_ID = '304713334983'
@@ -186,7 +186,7 @@ export async function fetchShopifyCollectionProductIds(
 }> {
   const collectionId = collectionGid(collectionIdOrGid)
 
-  if (isShopifyCommerceEnabled()) {
+  if (isShopifyCatalogEnabled()) {
     try {
       const page = await fetchViaStorefront(collectionId)
       return {

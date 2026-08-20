@@ -1,6 +1,7 @@
 export {
   getShopifyStoreDomain,
   getShopifyStorefrontToken,
+  isShopifyCatalogEnabled,
   isShopifyCommerceEnabled,
   isShopifyStorefrontConfigured,
   SHOPIFY_STOREFRONT_API_VERSION,

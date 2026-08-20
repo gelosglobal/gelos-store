@@ -398,3 +398,95 @@ model WhatsappOrder {
 
   @@map("whatsapp_orders")
 }
+
+/** WhatsApp Cloud API order-agent state (serverless / Vercel). */
+model WaAgentProcessedEvent {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  eventId     String   @unique
+  processedAt DateTime @default(now())
+
+  @@map("wa_agent_processed_events")
+}
+
+model WaAgentCustomer {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  whatsappId     String   @unique
+  displayName    String?
+  alternatePhone String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("wa_agent_customers")
+}
+
+model WaAgentMessage {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  whatsappId        String
+  role              String
+  content           String
+  externalMessageId String?
+  createdAt         DateTime @default(now())
+
+  @@index([whatsappId, createdAt])
+  @@map("wa_agent_messages")
+}
+
+model WaAgentCart {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  whatsappId    String   @unique
+  deliveryArea  String?
+  landmark      String?
+  latitude      Float?
+  longitude     Float?
+  locationUrl   String?
+  paymentMethod String?
+  paymentNotes  String?
+  orderNotes    String?
+  items         Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("wa_agent_carts")
+}
+
+model WaAgentOrder {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId           String   @unique
+  whatsappId        String
+  customerName      String
+  alternatePhone    String?
+  deliveryArea      String
+  landmark          String?
+  latitude          Float?
+  longitude         Float?
+  locationUrl       String?
+  paymentMethod     String
+  paymentStatus     String   @default("Pending")
+  subtotalGhs       Float
+  deliveryFeeGhs    Float
+  totalGhs          Float
+  orderStatus       String   @default("New")
+  notes             String?
+  customerConfirmed Boolean  @default(true)
+  excelSyncStatus   String   @default("Pending")
+  excelSyncError    String?
+  items             Json
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([createdAt])
+  @@map("wa_agent_orders")
+}
+
+model WaAgentHandoff {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  whatsappId String
+  reason     String
+  summary    String?
+  urgency    String
+  status     String   @default("Open")
+  createdAt  DateTime @default(now())
+
+  @@map("wa_agent_handoffs")
+}

@@ -43,19 +43,10 @@ export function useShopifyCommerce() {
   }
 }
 
+import { countryCodeFromLocation } from '@/lib/shipping-destination'
+
 export function shopifyCountryCodeFromLocation(
   locationId: string,
 ): string | undefined {
-  switch (locationId) {
-    case 'ghana':
-      return 'GH'
-    case 'nigeria':
-      return 'NG'
-    case 'usa':
-      return 'US'
-    case 'international':
-      return undefined
-    default:
-      return undefined
-  }
+  return countryCodeFromLocation(locationId)
 }

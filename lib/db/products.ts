@@ -10,7 +10,7 @@ import {
   normalizeVariantImageOptions,
   normalizeVariantImages,
 } from '@/lib/product-variant-images'
-import { isShopifyCommerceEnabled } from '@/lib/shopify/config'
+import { isShopifyCatalogEnabled } from '@/lib/shopify/config'
 import {
   getShopifyProductBySlugOrId,
   getShopifyProducts,
@@ -60,7 +60,7 @@ function mockFallback(): Product[] {
 }
 
 export async function getAllProducts(): Promise<Product[]> {
-  if (isShopifyCommerceEnabled()) {
+  if (isShopifyCatalogEnabled()) {
     try {
       return await getShopifyProducts()
     } catch (error) {
@@ -101,7 +101,7 @@ export async function getProductBySlugOrId(
     }
   }
 
-  if (isShopifyCommerceEnabled()) {
+  if (isShopifyCatalogEnabled()) {
     try {
       const shopifyProduct = await getShopifyProductBySlugOrId(slugOrId)
       if (shopifyProduct) return shopifyProduct

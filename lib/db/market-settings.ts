@@ -16,16 +16,29 @@ function parseMarkets(value: unknown): AllMarketSettings {
   return sanitizeAllMarketSettings(value)
 }
 
+function withStripeEnabled(markets: AllMarketSettings): AllMarketSettings {
+  const enable = (market: MarketSettings): MarketSettings => ({
+    ...market,
+    payments: { ...market.payments, stripe: true },
+  })
+  return {
+    ghana: enable(markets.ghana),
+    nigeria: enable(markets.nigeria),
+    usa: enable(markets.usa),
+    international: enable(markets.international),
+  }
+}
+
 export async function getAllMarketSettings(): Promise<AllMarketSettings> {
-  if (!isDatabaseConfigured()) return DEFAULT_ALL_MARKET_SETTINGS
+  if (!isDatabaseConfigured()) return withStripeEnabled(DEFAULT_ALL_MARKET_SETTINGS)
 
   const doc = await prisma.storeSettings.findUnique({
     where: { key: SETTINGS_KEY },
     select: { markets: true },
   })
 
-  if (!doc) return DEFAULT_ALL_MARKET_SETTINGS
-  return parseMarkets(doc.markets)
+  if (!doc) return withStripeEnabled(DEFAULT_ALL_MARKET_SETTINGS)
+  return withStripeEnabled(parseMarkets(doc.markets))
 }
 
 export async function getMarketSettings(
