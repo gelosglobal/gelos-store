@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   Loader2,
@@ -98,6 +98,21 @@ function threadLabel(thread: {
 }
 
 export default function AdminWhatsappPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center gap-2 p-6 text-sm text-neutral-500">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading WhatsApp…
+        </div>
+      }
+    >
+      <AdminWhatsappPageContent />
+    </Suspense>
+  )
+}
+
+function AdminWhatsappPageContent() {
   const searchParams = useSearchParams()
   const deepLinkCustomer = searchParams.get('c')?.trim() || ''
   const [threads, setThreads] = useState<ThreadSummary[]>([])
