@@ -36,12 +36,12 @@
     {
       "id": "mobile_money",
       "label": "Mobile Money",
-      "instructions": "Pay via MTN MoMo or other networks through a secure payment link sent by staff. Never share your PIN or OTP in chat."
+      "instructions": "After order confirmation, a secure Paystack link is sent in chat for MTN MoMo and other networks. Never share your PIN or OTP in chat."
     },
     {
       "id": "card",
-      "label": "Card (Paystack / Stripe)",
-      "instructions": "Pay with Visa/Mastercard via an approved secure payment link only. Never send card numbers in WhatsApp."
+      "label": "Card (Paystack)",
+      "instructions": "After order confirmation, a secure Paystack card checkout link is sent in chat. Never send card numbers in WhatsApp."
     },
     {
       "id": "bank_transfer",
@@ -70,7 +70,7 @@
     },
     {
       "question": "What payment methods do you accept?",
-      "answer": "Cash on delivery, Mobile Money, and card via secure Paystack or Stripe links. Never share PINs, OTPs, or full card details in chat."
+      "answer": "Cash on delivery, Mobile Money, and card via a secure Paystack link sent after you confirm your order. Never share PINs, OTPs, or full card details in chat."
     },
     {
       "question": "How do I track my order?",

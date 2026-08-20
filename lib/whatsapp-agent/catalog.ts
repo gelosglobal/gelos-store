@@ -132,6 +132,8 @@ export class WhatsappCatalog {
       price_ghs: product.price_ghs,
       stock_status: product.stock_status || 'confirm',
       variants: product.variants || [],
+      image: product.image || null,
+      has_image: Boolean(product.image),
     }
   }
 

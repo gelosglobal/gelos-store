@@ -410,13 +410,17 @@ model WaAgentProcessedEvent {
 }
 
 model WaAgentCustomer {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  whatsappId     String   @unique
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  whatsappId     String    @unique
   displayName    String?
   alternatePhone String?
   notes          String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  /** When true, inbound messages are stored but the AI agent does not reply. */
+  aiPaused       Boolean   @default(false)
+  aiPausedAt     DateTime?
+  aiPausedReason String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@map("wa_agent_customers")
 }
@@ -464,6 +468,8 @@ model WaAgentOrder {
   locationUrl       String?
   paymentMethod     String
   paymentStatus     String   @default("Pending")
+  paymentLink       String?
+  paymentReference  String?
   subtotalGhs       Float
   deliveryFeeGhs    Float
   totalGhs          Float
@@ -477,6 +483,7 @@ model WaAgentOrder {
   updatedAt         DateTime @updatedAt
 
   @@index([createdAt])
+  @@index([paymentReference])
   @@map("wa_agent_orders")
 }
 

@@ -17,7 +17,10 @@ export async function GET() {
     service: 'gelos-whatsapp-order-agent',
     host: 'vercel',
     webhookPath: '/api/whatsapp/webhook',
-    readiness,
+    readiness: {
+      ...readiness,
+      metaCatalogId: config.meta.catalogId || null,
+    },
     catalog: catalog.completeness(),
     timestamp: new Date().toISOString(),
   })

@@ -1,4 +1,6 @@
 import { getAllProducts } from '@/lib/db/products'
+import { getPublicAppUrl } from '@/lib/env'
+import { isExternalImageUrl, normalizeImageUrl } from '@/lib/image-url'
 import { collapseProductsIntoLineParents } from '@/lib/product-line-parents'
 import type { WaCatalogProduct } from '@/lib/whatsapp-agent/types'
 import type { Product } from '@/lib/types/product'
@@ -9,6 +11,18 @@ function stockStatus(stock: number | undefined): string {
   return 'in_stock'
 }
 
+/** WhatsApp image messages require a public https URL. */
+export function toPublicImageUrl(image: string | undefined | null): string | null {
+  if (!image) return null
+  const normalized = normalizeImageUrl(image)
+  if (!normalized || normalized === '/placeholder.svg') return null
+  if (isExternalImageUrl(normalized)) return normalized
+  if (normalized.startsWith('/')) {
+    return `${getPublicAppUrl()}${normalized}`
+  }
+  return null
+}
+
 function toWaProduct(product: Product): WaCatalogProduct {
   const id = (product.handle || product.id.replace(/^line:/, '')).trim()
   const variants =
@@ -16,8 +30,10 @@ function toWaProduct(product: Product): WaCatalogProduct {
       ?.map((option) => option.label?.trim())
       .filter((label): label is string => Boolean(label)) || []
 
-  // Prefer unique variant labels; drop empties / dupes.
   const uniqueVariants = [...new Set(variants)]
+  const image =
+    toPublicImageUrl(product.image) ||
+    toPublicImageUrl(product.variantImageOptions?.[0]?.url)
 
   return {
     id,
@@ -27,6 +43,7 @@ function toWaProduct(product: Product): WaCatalogProduct {
     price_ghs: Number.isFinite(product.price) ? product.price : null,
     stock_status: stockStatus(product.stock),
     variants: uniqueVariants,
+    image,
     active: product.active !== false,
   }
 }
@@ -44,7 +61,6 @@ export async function loadWhatsappCatalogFromStore(): Promise<WaCatalogProduct[]
     .map(toWaProduct)
     .filter((product) => Boolean(product.id && product.name))
 
-  // Ensure stable unique ids (handle collisions by keeping first).
   const seen = new Set<string>()
   const unique: WaCatalogProduct[] = []
   for (const product of mapped) {

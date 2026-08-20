@@ -95,6 +95,15 @@ export async function POST(request: Request) {
         request,
       })
 
+      try {
+        const { markWaOrderPaidByReference } = await import(
+          '@/lib/whatsapp-agent/store'
+        )
+        await markWaOrderPaidByReference(reference)
+      } catch (waError) {
+        console.warn('[POST /api/paystack/verify] wa order sync skipped', waError)
+      }
+
       return NextResponse.json({
         ok: true,
         order: {

@@ -26,6 +26,13 @@ export type WhatsappAgentConfig = {
     phoneNumberId: string
     wabaId: string
     staffNumber: string
+    /** Meta Commerce Catalog ID connected to the WABA (for product messages). */
+    catalogId: string
+    /**
+     * When true, prefer native Meta single/multi-product + catalog browse messages.
+     * Leave false to use image product cards (recommended until catalog perms are ready).
+     */
+    catalogMessagesEnabled: boolean
   }
   microsoft: {
     tenantId: string
@@ -61,6 +68,8 @@ export function getWhatsappAgentConfig(): WhatsappAgentConfig {
       phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID?.trim() || '',
       wabaId: process.env.WHATSAPP_BUSINESS_ACCOUNT_ID?.trim() || '',
       staffNumber: process.env.STAFF_WHATSAPP_NUMBER?.trim() || '',
+      catalogId: process.env.META_CATALOG_ID?.trim() || '',
+      catalogMessagesEnabled: bool(process.env.WHATSAPP_META_CATALOG_MESSAGES),
     },
     microsoft: {
       tenantId: process.env.MICROSOFT_TENANT_ID?.trim() || '',
@@ -104,6 +113,11 @@ export function getWhatsappAgentReadiness(
       currentConfig.whatsappEnabled &&
       whatsappCredentialsReady &&
       openaiReady,
+    metaCatalogReady: Boolean(
+      currentConfig.meta.catalogId &&
+        currentConfig.meta.accessToken &&
+        currentConfig.meta.catalogMessagesEnabled,
+    ),
     excelCredentialsReady,
     excelLive: currentConfig.excelSyncEnabled && excelCredentialsReady,
     adminProtected: Boolean(currentConfig.adminApiToken),

@@ -186,6 +186,63 @@ export const toolDefinitions = [
       additionalProperties: false,
     },
   },
+  {
+    type: 'function' as const,
+    name: 'send_payment_link',
+    description:
+      'Create or resend a secure Paystack payment link for Mobile Money or Card. Prefer after create_order; can also target the latest order. Do not use for cash on delivery.',
+    strict: true,
+    parameters: {
+      type: 'object',
+      properties: {
+        order_id: {
+          type: ['string', 'null'],
+          description:
+            'WhatsApp order id (e.g. GELOS-...). Null uses the customer latest order.',
+        },
+      },
+      required: ['order_id'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function' as const,
+    name: 'show_products',
+    description:
+      'Send WhatsApp product cards (image + price + short caption) so the customer can browse. Use when they ask to see products, options, photos, or the catalogue. Pass product_ids from search_products (max 3).',
+    strict: true,
+    parameters: {
+      type: 'object',
+      properties: {
+        product_ids: {
+          type: 'array',
+          minItems: 1,
+          maxItems: 3,
+          items: { type: 'string' },
+        },
+      },
+      required: ['product_ids'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function' as const,
+    name: 'offer_catalog_browse',
+    description:
+      'Send a WhatsApp “View catalog” message for the full Meta Commerce Catalog. Only works when WHATSAPP_META_CATALOG_MESSAGES is enabled. Prefer show_products for normal browsing.',
+    strict: true,
+    parameters: {
+      type: 'object',
+      properties: {
+        body_text: {
+          type: ['string', 'null'],
+          description: 'Optional short message above the View catalog button.',
+        },
+      },
+      required: ['body_text'],
+      additionalProperties: false,
+    },
+  },
 ]
 
 export function createToolRunner({
@@ -194,6 +251,9 @@ export function createToolRunner({
   rawCustomerMessage,
   offerVariantPicker,
   offerPaymentButtons,
+  showProducts,
+  sendPaymentLink,
+  offerCatalogBrowse,
 }: {
   orderService: WhatsappOrderService
   whatsappId: string
@@ -203,6 +263,9 @@ export function createToolRunner({
     bodyText?: string | null,
   ) => Promise<unknown>
   offerPaymentButtons?: () => Promise<unknown>
+  showProducts?: (productIds: string[]) => Promise<unknown>
+  sendPaymentLink?: (orderId?: string | null) => Promise<unknown>
+  offerCatalogBrowse?: (bodyText?: string | null) => Promise<unknown>
 }) {
   return async function runTool(name: string, args: Record<string, unknown>) {
     switch (name) {
@@ -281,6 +344,46 @@ export function createToolRunner({
         }
         const buttonsResult = await offerPaymentButtons()
         return { ok: true, ...(buttonsResult as Record<string, unknown>) }
+      }
+      case 'send_payment_link': {
+        if (!sendPaymentLink) {
+          return {
+            ok: false,
+            error:
+              'Payment links are only available on live WhatsApp chats. Tell the customer staff will send a secure link.',
+          }
+        }
+        const linkResult = await sendPaymentLink(
+          (args.order_id as string | null) ?? null,
+        )
+        return { ok: true, ...(linkResult as Record<string, unknown>) }
+      }
+      case 'show_products': {
+        if (!showProducts) {
+          return {
+            ok: false,
+            error:
+              'Product photos are only available on live WhatsApp chats. Describe products in text instead.',
+          }
+        }
+        const ids = Array.isArray(args.product_ids)
+          ? (args.product_ids as string[]).map(String).slice(0, 3)
+          : []
+        const showResult = await showProducts(ids)
+        return { ok: true, ...(showResult as Record<string, unknown>) }
+      }
+      case 'offer_catalog_browse': {
+        if (!offerCatalogBrowse) {
+          return {
+            ok: false,
+            error:
+              'Catalog browse is only available on live WhatsApp when Meta Catalog is connected. List a few products with show_products instead.',
+          }
+        }
+        const browseResult = await offerCatalogBrowse(
+          (args.body_text as string | null) ?? null,
+        )
+        return { ok: true, ...(browseResult as Record<string, unknown>) }
       }
       default:
         throw new Error(`Unknown tool: ${name}`)

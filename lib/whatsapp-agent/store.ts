@@ -24,12 +24,18 @@ function mapCustomer(doc: {
   displayName: string | null
   alternatePhone: string | null
   notes: string | null
+  aiPaused?: boolean | null
+  aiPausedAt?: Date | null
+  aiPausedReason?: string | null
 }): WaCustomerRecord {
   return {
     whatsapp_id: doc.whatsappId,
     display_name: doc.displayName,
     alternate_phone: doc.alternatePhone,
     notes: doc.notes,
+    ai_paused: Boolean(doc.aiPaused),
+    ai_paused_at: doc.aiPausedAt?.toISOString() ?? null,
+    ai_paused_reason: doc.aiPausedReason ?? null,
   }
 }
 
@@ -71,6 +77,8 @@ function mapOrder(doc: {
   locationUrl: string | null
   paymentMethod: string
   paymentStatus: string
+  paymentLink?: string | null
+  paymentReference?: string | null
   subtotalGhs: number
   deliveryFeeGhs: number
   totalGhs: number
@@ -95,6 +103,8 @@ function mapOrder(doc: {
     location_url: doc.locationUrl,
     payment_method: doc.paymentMethod,
     payment_status: doc.paymentStatus,
+    payment_link: doc.paymentLink ?? null,
+    payment_reference: doc.paymentReference ?? null,
     subtotal_ghs: doc.subtotalGhs,
     delivery_fee_ghs: doc.deliveryFeeGhs,
     total_ghs: doc.totalGhs,
@@ -208,7 +218,7 @@ export async function saveMessage({
   externalMessageId = null,
 }: {
   whatsappId: string
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | 'staff'
   content: string
   externalMessageId?: string | null
 }) {
@@ -220,6 +230,29 @@ export async function saveMessage({
       externalMessageId,
     },
   })
+  await prisma.waAgentCustomer
+    .update({
+      where: { whatsappId },
+      data: { updatedAt: new Date() },
+    })
+    .catch(() => undefined)
+}
+
+export async function setCustomerAiPaused(
+  whatsappId: string,
+  paused: boolean,
+  reason?: string | null,
+) {
+  await ensureCustomer(whatsappId)
+  const updated = await prisma.waAgentCustomer.update({
+    where: { whatsappId },
+    data: {
+      aiPaused: paused,
+      aiPausedAt: paused ? new Date() : null,
+      aiPausedReason: paused ? reason || 'Paused by staff' : null,
+    },
+  })
+  return mapCustomer(updated)
 }
 
 export async function getConversation(
@@ -227,13 +260,17 @@ export async function getConversation(
   limit = 20,
 ): Promise<WaConversationMessage[]> {
   const rows = await prisma.waAgentMessage.findMany({
-    where: { whatsappId },
+    where: {
+      whatsappId,
+      role: { in: ['user', 'assistant', 'staff'] },
+    },
     orderBy: { createdAt: 'desc' },
     take: limit,
   })
   return rows.reverse().map((row) => ({
-    role: row.role as 'user' | 'assistant',
-    content: row.content,
+    role: row.role === 'user' ? 'user' : 'assistant',
+    content:
+      row.role === 'staff' ? `[Staff reply] ${row.content}` : row.content,
     created_at: row.createdAt.toISOString(),
   }))
 }
@@ -376,6 +413,42 @@ export async function saveOrder(order: {
 export async function getOrder(orderId: string) {
   const doc = await prisma.waAgentOrder.findUnique({ where: { orderId } })
   return doc ? mapOrder(doc) : null
+}
+
+export async function getLatestOrderForCustomer(whatsappId: string) {
+  const doc = await prisma.waAgentOrder.findFirst({
+    where: { whatsappId },
+    orderBy: { createdAt: 'desc' },
+  })
+  return doc ? mapOrder(doc) : null
+}
+
+export async function attachOrderPaymentLink(
+  orderId: string,
+  details: { paymentLink: string; paymentReference: string },
+) {
+  const updated = await prisma.waAgentOrder.update({
+    where: { orderId },
+    data: {
+      paymentLink: details.paymentLink,
+      paymentReference: details.paymentReference,
+      paymentStatus: 'Awaiting payment',
+    },
+  })
+  return mapOrder(updated)
+}
+
+export async function markWaOrderPaidByReference(reference: string) {
+  const doc = await prisma.waAgentOrder.findFirst({
+    where: { paymentReference: reference },
+  })
+  if (!doc) return null
+  if (doc.paymentStatus === 'Paid') return mapOrder(doc)
+  const updated = await prisma.waAgentOrder.update({
+    where: { orderId: doc.orderId },
+    data: { paymentStatus: 'Paid' },
+  })
+  return mapOrder(updated)
 }
 
 export async function listOrders(limit = 100) {

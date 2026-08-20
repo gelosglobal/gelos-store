@@ -15,6 +15,9 @@ export type WaCustomerRecord = {
   display_name: string | null
   alternate_phone: string | null
   notes: string | null
+  ai_paused: boolean
+  ai_paused_at: string | null
+  ai_paused_reason: string | null
 }
 
 export type WaCartRecord = {
@@ -42,6 +45,8 @@ export type WaOrderRecord = {
   location_url: string | null
   payment_method: string
   payment_status: string
+  payment_link: string | null
+  payment_reference: string | null
   subtotal_ghs: number
   delivery_fee_ghs: number
   total_ghs: number
@@ -79,6 +84,8 @@ export type WaCatalogProduct = {
   price_ghs: number | null
   stock_status?: string
   variants: string[]
+  /** Public HTTPS image URL when available (for WhatsApp product cards). */
+  image?: string | null
   active?: boolean
 }
 
