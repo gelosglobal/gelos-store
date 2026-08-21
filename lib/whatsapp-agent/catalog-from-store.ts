@@ -2,6 +2,7 @@ import { getAllProducts } from '@/lib/db/products'
 import { getPublicAppUrl } from '@/lib/env'
 import { isExternalImageUrl, normalizeImageUrl } from '@/lib/image-url'
 import { collapseProductsIntoLineParents } from '@/lib/product-line-parents'
+import { getProductSlug } from '@/lib/product-utils'
 import type { WaCatalogProduct } from '@/lib/whatsapp-agent/types'
 import type { Product } from '@/lib/types/product'
 
@@ -24,7 +25,14 @@ export function toPublicImageUrl(image: string | undefined | null): string | nul
 }
 
 function toWaProduct(product: Product): WaCatalogProduct {
-  const id = (product.handle || product.id.replace(/^line:/, '')).trim()
+  // Prefer storefront slug/handle so agent tools match catalog.json + PDP URLs
+  // (e.g. flavored-toothpaste), not raw Prisma numeric ids.
+  const id = (
+    product.handle ||
+    getProductSlug(product) ||
+    product.id.replace(/^line:/, '')
+  ).trim()
+
   const variants =
     product.variantImageOptions
       ?.map((option) => option.label?.trim())

@@ -308,7 +308,7 @@ export async function processIncomingMessage(
   if (!currentConfig.openai.apiKey) {
     const text =
       shop.agent_unavailable_message ||
-      'The Gelos automated assistant is not configured yet. A team member will help you shortly.'
+      'Thanks for messaging Gelos! Someone from the team will get back to you shortly.'
     await store.saveMessage({
       whatsappId: message.from,
       role: 'assistant',

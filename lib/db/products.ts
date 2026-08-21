@@ -43,6 +43,8 @@ function prismaToProduct(doc: PrismaProduct): Product {
     galleryImages: normalizeGalleryImages(doc.galleryImages),
     carouselImages: normalizeGalleryImages(doc.carouselImages),
     active: doc.active !== false,
+    // Storefront slug — WhatsApp agent + PDP URLs use this as the stable id/handle.
+    handle: doc.slug?.trim() || undefined,
   }
 }
 

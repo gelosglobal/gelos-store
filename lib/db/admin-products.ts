@@ -14,6 +14,7 @@ import {
 } from '@/lib/product-variant-images'
 import type { Product } from '@/lib/types/product'
 import { products as mockProducts } from '@/lib/mock-data'
+import { clearWhatsappCatalogCache } from '@/lib/whatsapp-agent/catalog'
 
 function prismaToProduct(doc: PrismaProduct): Product {
   const variantImageOptions = normalizeVariantImageOptions(
@@ -37,6 +38,7 @@ function prismaToProduct(doc: PrismaProduct): Product {
     galleryImages: normalizeGalleryImages(doc.galleryImages),
     carouselImages: normalizeGalleryImages(doc.carouselImages),
     active: doc.active !== false,
+    handle: doc.slug?.trim() || undefined,
   }
 }
 
@@ -137,6 +139,7 @@ export async function createAdminProduct(
     },
   })
 
+  clearWhatsappCatalogCache()
   return prismaToProduct(doc)
 }
 
@@ -183,6 +186,7 @@ export async function updateAdminProduct(
     update: data,
   })
 
+  clearWhatsappCatalogCache()
   return prismaToProduct(doc)
 }
 
@@ -201,6 +205,7 @@ export async function setAdminProductActive(
     data: { active },
   })
 
+  clearWhatsappCatalogCache()
   return prismaToProduct(doc)
 }
 
@@ -214,6 +219,7 @@ export async function deleteAdminProduct(productId: string): Promise<void> {
   await prisma.product.delete({
     where: { productId },
   })
+  clearWhatsappCatalogCache()
 }
 
 export async function getAdminDashboardStats(): Promise<{

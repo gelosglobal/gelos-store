@@ -1,6 +1,6 @@
 {
   "business_name": "Gelos Global",
-  "assistant_name": "Gelos automated order assistant",
+  "assistant_name": "Ama",
   "currency": "GHS",
   "business_profile": {
     "address": "Osabu Link, HSE 9, GW-063-1043 Adenta, Accra, Ghana",
@@ -85,5 +85,5 @@
       "answer": "After you review the order summary, type exactly: CONFIRM ORDER"
     }
   ],
-  "agent_unavailable_message": "The Gelos automated assistant is being set up. A team member will help you shortly. You can also email hello@gelosglobal.com or WhatsApp +233 53 962 1338."
+  "agent_unavailable_message": "Thanks for messaging Gelos! Someone from the team will get back to you shortly. You can also email hello@gelosglobal.com or WhatsApp +233 53 962 1338."
 }

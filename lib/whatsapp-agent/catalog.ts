@@ -87,6 +87,15 @@ export class WhatsappCatalog {
         null
       )
     }
+    // Short aliases used in prompts / static catalog
+    if (needle === 'sonicwave' || needle === 'sonicwave g1' || needle === 'sonicwave-g1') {
+      return (
+        this.get('sonicwave-g1-series-electric-toothbrush') ||
+        this.get('sonicwave-g1') ||
+        contains.find((p) => normalize(p.name).includes('sonicwave')) ||
+        null
+      )
+    }
     return null
   }
 
@@ -159,6 +168,10 @@ export class WhatsappCatalog {
 }
 
 let cached: { catalog: WhatsappCatalog; expiresAt: number } | null = null
+
+export function clearWhatsappCatalogCache() {
+  cached = null
+}
 
 export function getWhatsappCatalog() {
   if (cached && cached.expiresAt > Date.now()) return cached.catalog

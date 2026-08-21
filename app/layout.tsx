@@ -11,6 +11,7 @@ import { ProductsProvider } from '@/components/products-provider'
 import { StorefrontChatDock } from '@/components/storefront-chat-dock'
 import { LiveVisitorsTracker } from '@/components/live-visitors-tracker'
 import { MetaPixel } from '@/components/meta-pixel'
+import { MetaParamBuilder } from '@/components/meta-param-builder'
 import { SiteNavbar } from '@/components/site-navbar'
 import { SiteFooterShell } from '@/components/site-footer-shell'
 import { Toaster } from 'sonner'
@@ -72,6 +73,7 @@ export default function RootLayout({
               <SiteNavbar />
               <LiveVisitorsTracker />
               <MetaPixel />
+              <MetaParamBuilder />
               {children}
               <SiteFooterShell />
               <StorefrontChatDock />
