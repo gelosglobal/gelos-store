@@ -36,7 +36,9 @@ export async function POST(request: Request) {
       )
     }
 
-    const body = (await request.json()) as AdminProductInput
+    const body = (await request.json()) as AdminProductInput & {
+      compareAtPrice?: number | string | null
+    }
     if (!body.name?.trim() || !body.category) {
       return NextResponse.json(
         { error: 'Name and category are required' },
@@ -44,10 +46,20 @@ export async function POST(request: Request) {
       )
     }
 
+    const rawCompareAt = body.compareAtPrice
+    const parsedCompareAt =
+      rawCompareAt == null || rawCompareAt === ''
+        ? null
+        : Number(rawCompareAt)
+
     const product = await createAdminProduct({
       name: body.name,
       category: body.category,
       price: Number(body.price) || 0,
+      compareAtPrice:
+        parsedCompareAt != null && Number.isFinite(parsedCompareAt)
+          ? parsedCompareAt
+          : null,
       stock: Number(body.stock) || 0,
       description: body.description ?? '',
       image: body.image ?? '/placeholder.svg',

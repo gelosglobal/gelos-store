@@ -14,6 +14,8 @@ model Product {
   name        String
   category    String
   price       Float
+  /** Optional “was” / compare-at price (GHS). Shown struck through when above price. */
+  compareAtPrice Float?
   rating      Float
   reviews     Int
   image       String

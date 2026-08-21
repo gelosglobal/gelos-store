@@ -21,7 +21,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     const { id } = await context.params
-    const body = (await request.json()) as AdminProductInput
+    const body = (await request.json()) as AdminProductInput & {
+      compareAtPrice?: number | string | null
+    }
 
     if (!body.name?.trim() || !body.category) {
       return NextResponse.json(
@@ -30,10 +32,20 @@ export async function PATCH(request: Request, context: RouteContext) {
       )
     }
 
+    const rawCompareAt = body.compareAtPrice
+    const parsedCompareAt =
+      rawCompareAt == null || rawCompareAt === ''
+        ? null
+        : Number(rawCompareAt)
+
     const product = await updateAdminProduct(id, {
       name: body.name,
       category: body.category,
       price: Number(body.price) || 0,
+      compareAtPrice:
+        parsedCompareAt != null && Number.isFinite(parsedCompareAt)
+          ? parsedCompareAt
+          : null,
       stock: Number(body.stock) || 0,
       description: body.description ?? '',
       image: body.image ?? '/placeholder.svg',

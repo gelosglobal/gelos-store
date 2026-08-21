@@ -6,6 +6,8 @@ export type AdminProductInput = {
   name: string
   category: string
   price: number
+  /** Optional compare-at (“was”) price in GHS. Cleared when omitted/null. */
+  compareAtPrice?: number | null
   stock: number
   description: string
   image: string

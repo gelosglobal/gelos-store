@@ -16,17 +16,28 @@ import type { Product } from '@/lib/types/product'
 import { products as mockProducts } from '@/lib/mock-data'
 import { clearWhatsappCatalogCache } from '@/lib/whatsapp-agent/catalog'
 
+function normalizeCompareAtPrice(
+  price: number,
+  compareAtPrice: number | null | undefined,
+): number | undefined {
+  if (compareAtPrice == null || !Number.isFinite(compareAtPrice)) return undefined
+  if (compareAtPrice <= price) return undefined
+  return compareAtPrice
+}
+
 function prismaToProduct(doc: PrismaProduct): Product {
   const variantImageOptions = normalizeVariantImageOptions(
     doc.variantImageOptions,
     doc.variantImages,
   )
+  const compareAtPrice = normalizeCompareAtPrice(doc.price, doc.compareAtPrice)
 
   return {
     id: doc.productId,
     name: doc.name,
     category: doc.category,
     price: doc.price,
+    ...(compareAtPrice !== undefined ? { compareAtPrice } : {}),
     rating: doc.rating,
     reviews: doc.reviews,
     image: normalizeImageUrl(doc.image),
@@ -118,6 +129,9 @@ export async function createAdminProduct(
     variantImageOptions,
   )
 
+  const compareAtPrice =
+    normalizeCompareAtPrice(input.price, input.compareAtPrice) ?? null
+
   const doc = await prisma.product.create({
     data: {
       productId,
@@ -125,6 +139,7 @@ export async function createAdminProduct(
       name: input.name.trim(),
       category: input.category,
       price: input.price,
+      compareAtPrice,
       stock: input.stock,
       description: input.description.trim(),
       image,
@@ -162,11 +177,15 @@ export async function updateAdminProduct(
     normalizeImageUrl(input.image.trim()),
     variantImageOptions,
   )
+  const compareAtPrice =
+    normalizeCompareAtPrice(input.price, input.compareAtPrice) ?? null
+
   const data = {
     slug,
     name: input.name.trim(),
     category: input.category,
     price: input.price,
+    compareAtPrice,
     stock: input.stock,
     description: input.description.trim(),
     image,

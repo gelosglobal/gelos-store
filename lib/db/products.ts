@@ -26,12 +26,20 @@ function prismaToProduct(doc: PrismaProduct): Product {
     doc.variantImageOptions,
     doc.variantImages,
   )
+  const rawCompareAt = doc.compareAtPrice
+  const compareAtPrice =
+    rawCompareAt != null &&
+    Number.isFinite(rawCompareAt) &&
+    rawCompareAt > doc.price
+      ? rawCompareAt
+      : undefined
 
   return {
     id: doc.productId,
     name: doc.name,
     category: doc.category,
     price: doc.price,
+    ...(compareAtPrice !== undefined ? { compareAtPrice } : {}),
     rating: doc.rating,
     reviews: doc.reviews,
     image: normalizeImageUrl(doc.image),

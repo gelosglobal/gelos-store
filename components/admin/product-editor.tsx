@@ -124,6 +124,7 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
           name: product.name,
           category: product.category,
           price: product.price,
+          compareAtPrice: product.compareAtPrice,
           stock: product.stock,
           description: product.description,
           image: product.image,
@@ -137,6 +138,18 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
         })
         setGhStock(product.stock)
         setUsaStock(0)
+        if (
+          product.compareAtPrice != null &&
+          product.compareAtPrice > product.price
+        ) {
+          setCompareAtPrice(String(product.compareAtPrice))
+          setActivePricingPills((prev) =>
+            prev.includes('compare-at') ? prev : [...prev, 'compare-at'],
+          )
+          setPricingExpanded(true)
+        } else {
+          setCompareAtPrice('')
+        }
       })
       .catch(() => toast.error('Failed to load product'))
       .finally(() => {
@@ -191,6 +204,10 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
     const usesVariantInventory =
       variantImageOptions.length > 0 && hasVariantLevelInventory(variantImageOptions)
 
+    const parsedCompareAt = compareAtPrice.trim()
+      ? Number(compareAtPrice)
+      : null
+
     const payload: AdminProductInput = {
       ...form,
       name: form.name.trim(),
@@ -205,6 +222,10 @@ export function ProductEditor({ mode, productId }: ProductEditorProps) {
           : ghStock + usaStock
         : 999,
       price: Number(form.price) || 0,
+      compareAtPrice:
+        parsedCompareAt != null && Number.isFinite(parsedCompareAt)
+          ? parsedCompareAt
+          : null,
       tags: normalizeProductTags(form.tags),
       variantImageOptions,
       galleryImages: normalizeGalleryImages(form.galleryImages),
