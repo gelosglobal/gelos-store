@@ -110,33 +110,42 @@ function isFlavourNamedSku(product: Product): boolean {
   return !isGenericMultiFlavourProduct(product) && productNeedsVariantChoice(product)
 }
 
-function shouldExpandProductVariants(product: Product): boolean {
+function shouldExpandProductVariants(
+  product: Product,
+  expandGenericMultiFlavour = false,
+): boolean {
   if (!EXPAND_VARIANT_CATEGORIES.has(product.category)) return false
   if (!productNeedsVariantChoice(product)) return false
-  // Generic parents like "Flavored Toothpaste" stay one storefront card.
-  // Only expand when the product title is a specific flavour name.
+  // Mega menu can expand generic parents (Flavored Toothpaste → each flavour).
+  // Shop/browse keeps those as one card unless the title is a flavour SKU.
+  if (expandGenericMultiFlavour) return true
   return isFlavourNamedSku(product)
 }
 
 /**
  * Expand multi-flavour admin variants into one catalog card per flavour.
  * Single-SKU products without a flavour picker stay as one card.
- * Generic multi-flavour parents (e.g. Flavored Toothpaste) also stay one card.
+ * Generic multi-flavour parents (e.g. Flavored Toothpaste) also stay one card
+ * unless `expandGenericMultiFlavour` is true (mega-menu flavour grid).
  * Shopify toothpaste/mouthwash flavour SKUs collapse into one parent card
  * unless `collapseLineParents` is false (e.g. mega-menu flavour grid).
  */
 export function expandProductsForShopCatalog(
   products: Product[],
-  options?: { collapseLineParents?: boolean },
+  options?: {
+    collapseLineParents?: boolean
+    expandGenericMultiFlavour?: boolean
+  },
 ): ShopCatalogItem[] {
   const catalogProducts =
     options?.collapseLineParents === false
       ? products
       : collapseProductsIntoLineParents(products)
+  const expandGeneric = options?.expandGenericMultiFlavour === true
   const items: ShopCatalogItem[] = []
 
   for (const product of catalogProducts) {
-    if (!shouldExpandProductVariants(product)) {
+    if (!shouldExpandProductVariants(product, expandGeneric)) {
       items.push({
         key: product.id,
         product,
@@ -161,7 +170,11 @@ export function expandProductsForShopCatalog(
 
     for (const option of variantOptions) {
       const label = option.label.trim() || 'Variant'
-      const displayName = buildVariantDisplayName(product, option)
+      // Mega-menu flavour grid: show the flavour name only (Watermelon).
+      // Elsewhere keep "Watermelon Toothpaste" style titles.
+      const displayName = expandGeneric
+        ? label
+        : buildVariantDisplayName(product, option)
       const image = normalizeImageUrl(option.url)
 
       items.push({

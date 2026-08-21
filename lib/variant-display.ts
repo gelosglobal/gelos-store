@@ -58,8 +58,19 @@ export function getCartDisplayName(
   productName: string,
   variantLabel?: string,
 ): string {
-  if (variantLabel?.trim()) return variantLabel.trim()
+  const label = variantLabel?.trim()
+  if (label && !isJunkVariantLabel(label)) return label
   return productName
+}
+
+/** Labels derived from camera/CDN filenames (e.g. "IMG 5865 Png?V=…"). */
+export function isJunkVariantLabel(label: string): boolean {
+  const value = label.trim()
+  if (!value) return true
+  if (/^img[_\s-]?\d+/i.test(value)) return true
+  if (/\.(png|jpe?g|webp|gif|avif)\b/i.test(value)) return true
+  if (/[?&]v=\d+/i.test(value)) return true
+  return false
 }
 
 const CATEGORY_TITLE_SUFFIX: Record<string, string> = {

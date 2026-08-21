@@ -7,6 +7,12 @@ function titleCase(value: string): string {
   return value.replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
+/** Filename only — strip path, query string, and hash. */
+function imageUrlFileBase(imageUrl: string): string {
+  const pathOnly = imageUrl.split('?')[0]?.split('#')[0] ?? imageUrl
+  return decodeURIComponent(pathOnly.split('/').pop() ?? '').trim()
+}
+
 /** Human-readable label from a variant image path when admin did not set a name. */
 export function getVariantLabelFromImageUrl(
   imageUrl: string,
@@ -15,8 +21,8 @@ export function getVariantLabelFromImageUrl(
   const knownLabel = getKnownVariantLabelFromImageUrl(imageUrl)
   if (knownLabel) return knownLabel
 
-  const file = decodeURIComponent(imageUrl.split('/').pop() ?? '')
-    .replace(/\.(png|jpe?g|webp|gif)$/i, '')
+  const file = imageUrlFileBase(imageUrl)
+    .replace(/\.(png|jpe?g|webp|gif|avif)$/i, '')
     .trim()
 
   if (!file || isOpaqueUploadFileKey(file)) return undefined
@@ -30,6 +36,9 @@ export function getVariantLabelFromImageUrl(
     .replace(/-with-fruity-design$/i, '')
     .replace(/[._-]+/g, ' ')
     .trim()
+
+  // Camera dumps / Shopify CDN stubs are not useful cart titles.
+  if (!label || /^img\s*\d+$/i.test(label)) return undefined
 
   if (category === 'Whitening' && label) {
     return titleCase(label)

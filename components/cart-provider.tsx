@@ -24,6 +24,7 @@ import { normalizeImageUrl } from '@/lib/image-url'
 import {
   getCartDisplayName,
   getProductLineVariantLabel,
+  isJunkVariantLabel,
 } from '@/lib/variant-display'
 import { useProducts } from '@/components/products-provider'
 import { useLocation } from '@/components/location-provider'
@@ -110,8 +111,13 @@ function entriesToLineItems(
       const product = products.find((p) => p.id === entry.productId)
       if (!product) return null
 
-      const variantLabel =
+      const rawVariantLabel =
         entry.variantLabel?.trim() || getProductLineVariantLabel(product)
+      const variantLabel =
+        rawVariantLabel &&
+        !isJunkVariantLabel(rawVariantLabel)
+          ? rawVariantLabel
+          : undefined
       const image = entry.variantImage
         ? normalizeImageUrl(entry.variantImage)
         : normalizeImageUrl(product.image)

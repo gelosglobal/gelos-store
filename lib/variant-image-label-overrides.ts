@@ -27,7 +27,7 @@ function titleCase(value: string): string {
 
 /** True when a URL path segment is an UploadThing-style opaque key, not a readable filename. */
 export function isOpaqueUploadFileKey(segment: string): boolean {
-  const base = decodeURIComponent(segment)
+  const base = decodeURIComponent(segment.split('?')[0]?.split('#')[0] ?? segment)
     .replace(/\.(png|jpe?g|webp|gif|avif)$/i, '')
     .trim()
 
@@ -69,7 +69,9 @@ export function getKnownVariantLabelFromImageUrl(imageUrl: string): string | und
   const direct = VARIANT_LABEL_BY_IMAGE_URL[normalized]
   if (direct) return direct
 
-  const fileKey = normalized.split('/').pop() ?? ''
+  const fileKey = (normalized.split('?')[0]?.split('#')[0] ?? normalized)
+    .split('/')
+    .pop() ?? ''
   const byKey = VARIANT_LABEL_BY_FILE_KEY[fileKey]
   if (byKey) return byKey
 

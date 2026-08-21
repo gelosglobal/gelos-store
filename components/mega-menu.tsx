@@ -95,10 +95,11 @@ export function MegaMenu({ onNavigate }: MegaMenuProps) {
   }, [activeCategory, activeConfig, products])
 
   const catalogItems = useMemo(
-    // Mega menu lists each flavour SKU (not the collapsed line parent).
+    // Mega menu lists each flavour (not the collapsed "Flavored Toothpaste" parent).
     () =>
       expandProductsForShopCatalog(filteredProducts, {
         collapseLineParents: false,
+        expandGenericMultiFlavour: true,
       }),
     [filteredProducts],
   )
