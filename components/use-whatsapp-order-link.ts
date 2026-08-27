@@ -21,7 +21,7 @@ import {
 
 export function useWhatsAppOrderLink(customer?: WhatsAppOrderCustomer) {
   const { items, isHydrated } = useCart()
-  const { formatPrice, location } = useLocation()
+  const { formatPrice, location, locationId } = useLocation()
   const { appliedPromoCode, promotions } = useStorePromotions()
   const { applyShipping, whatsappChatUrl } = useMarketSettings()
   const checkoutPromotions = applyShipping(promotions)
@@ -39,7 +39,7 @@ export function useWhatsAppOrderLink(customer?: WhatsAppOrderCustomer) {
     const generalHref = whatsappChatUrl()
     const hasItems = isHydrated && items.length > 0
 
-    if (!hasItems || !totals) {
+    if (!hasItems || !totals || locationId !== 'ghana') {
       return {
         href: generalHref,
         hasOrder: false,
@@ -72,6 +72,7 @@ export function useWhatsAppOrderLink(customer?: WhatsAppOrderCustomer) {
     isHydrated,
     items,
     location.label,
+    locationId,
     totals,
     whatsappChatUrl,
   ])

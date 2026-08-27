@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { isDhlConfigured, isDhlShippingConfigured } from '@/lib/dhl/config'
+import { getDhlRuntimeStatus, isDhlConfigured } from '@/lib/dhl/config'
 import { fetchDhlRates } from '@/lib/dhl/rates'
 import { normalizeDhlCity } from '@/lib/dhl/locations'
 import { validateDhlAddress } from '@/lib/dhl/address'
@@ -15,10 +15,7 @@ const bodySchema = z.object({
 })
 
 export async function GET() {
-  return NextResponse.json({
-    configured: isDhlConfigured(),
-    shippingConfigured: isDhlShippingConfigured(),
-  })
+  return NextResponse.json(getDhlRuntimeStatus())
 }
 
 export async function POST(request: Request) {

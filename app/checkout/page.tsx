@@ -1124,6 +1124,13 @@ export default function CheckoutPage() {
               items={items}
               totals={totals}
               onQuantityChange={setQuantity}
+              shippingPending={
+                liveDhl &&
+                !smileRewardFreeShipping &&
+                dhlShippingBase == null &&
+                !dhlLoading
+              }
+              shippingLoading={liveDhl && dhlLoading}
             />
           </div>
         </div>

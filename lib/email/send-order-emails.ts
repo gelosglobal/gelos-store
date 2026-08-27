@@ -8,6 +8,7 @@ import { getResendClient } from '@/lib/email/resend'
 import { buildAdminNewOrderEmail } from '@/lib/email/templates/admin-new-order'
 import { buildOrderConfirmationEmail } from '@/lib/email/templates/order-confirmation'
 import { buildOrderInvoiceEmail } from '@/lib/email/templates/order-invoice'
+import { buildOrderShippedEmail } from '@/lib/email/templates/order-shipped'
 import { sendAdminNewOrderPush } from '@/lib/pushalert'
 
 async function sendEmail(input: {
@@ -73,6 +74,27 @@ export async function sendOrderInvoiceEmail(order: OrderEmailData) {
   }
 
   const { subject, html } = buildOrderInvoiceEmail(order)
+  return sendEmail({
+    to: email,
+    subject,
+    html,
+    replyTo: 'hello@gelosglobal.com',
+  })
+}
+
+export async function sendOrderShippedEmail(
+  order: OrderEmailData,
+  shipment: { trackingNumber: string; trackingUrl: string },
+) {
+  const email = order.customerEmail.trim()
+  if (!email) {
+    return { sent: false as const, reason: 'missing_customer_email' as const }
+  }
+  if (!shipment.trackingNumber || !shipment.trackingUrl) {
+    return { sent: false as const, reason: 'missing_tracking' as const }
+  }
+
+  const { subject, html } = buildOrderShippedEmail(order, shipment)
   return sendEmail({
     to: email,
     subject,

@@ -61,6 +61,8 @@ type OrderDetailViewProps = {
   refreshingDhlTracking?: boolean
   onCreateDhlShipment?: () => void
   onRefreshDhlTracking?: () => void
+  /** Live MyDHL (DHL_ENV=production). Test mode will not dispatch a courier. */
+  dhlLive?: boolean
 }
 
 const PAYMENT_STATUSES: PaymentStatus[] = [
@@ -374,9 +376,11 @@ export function OrderDetailView({
   refreshingDhlTracking = false,
   onCreateDhlShipment,
   onRefreshDhlTracking,
+  dhlLive = false,
 }: OrderDetailViewProps) {
   const [conversionOpen, setConversionOpen] = useState(false)
   const [invoiceConfirmOpen, setInvoiceConfirmOpen] = useState(false)
+  const [dhlShipConfirmOpen, setDhlShipConfirmOpen] = useState(false)
   const { paid, balance } = getPaymentAmounts(order)
   const itemLabel = order.items === 1 ? '1 item' : `${order.items} items`
   const showSendInvoice =
@@ -540,6 +544,16 @@ export function OrderDetailView({
                 <div className="flex items-center gap-2 text-sm font-medium text-neutral-950">
                   <Truck className="h-4 w-4" />
                   DHL Express
+                  <span
+                    className={cn(
+                      'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                      dhlLive
+                        ? 'bg-emerald-50 text-emerald-800'
+                        : 'bg-amber-50 text-amber-800',
+                    )}
+                  >
+                    {dhlLive ? 'Live' : 'Test'}
+                  </span>
                 </div>
                 {order.dhl?.trackingNumber ? (
                   <div className="space-y-2 text-sm text-neutral-700">
@@ -608,15 +622,31 @@ export function OrderDetailView({
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-sm text-neutral-600">
-                      Create a MyDHL shipment (label + pickup) for this order.
-                    </p>
+                    {dhlLive ? (
+                      <p className="text-sm text-neutral-600">
+                        Creates a live DHL shipment, label, and pickup from your
+                        Accra address. The customer is emailed the tracking
+                        number.
+                      </p>
+                    ) : (
+                      <p className="text-sm text-amber-800">
+                        DHL is in test mode. This will not dispatch a courier.
+                        Set <span className="font-mono">DHL_ENV=production</span>{' '}
+                        with live MyDHL credentials to go live.
+                      </p>
+                    )}
                     {onCreateDhlShipment ? (
                       <Button
                         type="button"
                         size="sm"
                         disabled={creatingDhlShipment || updating}
-                        onClick={onCreateDhlShipment}
+                        onClick={() => {
+                          if (dhlLive) {
+                            setDhlShipConfirmOpen(true)
+                            return
+                          }
+                          onCreateDhlShipment()
+                        }}
                       >
                         {creatingDhlShipment ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -889,6 +919,33 @@ export function OrderDetailView({
               }}
             >
               {sendingInvoice ? 'Sending…' : 'Send invoice'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={dhlShipConfirmOpen} onOpenChange={setDhlShipConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Create live DHL shipment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This books a real DHL Express shipment on your account, requests
+              pickup from your Accra address, and emails tracking to{' '}
+              {order.customerEmail || 'the customer'}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={creatingDhlShipment}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={creatingDhlShipment}
+              onClick={() => {
+                setDhlShipConfirmOpen(false)
+                onCreateDhlShipment?.()
+              }}
+            >
+              {creatingDhlShipment ? 'Creating…' : 'Create shipment'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

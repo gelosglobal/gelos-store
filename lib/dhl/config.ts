@@ -1,5 +1,13 @@
 import { convertFromBase, BASE_CURRENCY } from '@/lib/exchange-rates'
 
+export type DhlEnv = 'test' | 'production'
+
+export function getDhlEnv(): DhlEnv {
+  return process.env.DHL_ENV?.trim().toLowerCase() === 'production'
+    ? 'production'
+    : 'test'
+}
+
 export function isDhlConfigured(): boolean {
   return Boolean(
     process.env.DHL_API_KEY?.trim() &&
@@ -20,6 +28,14 @@ export function isDhlShippingConfigured(): boolean {
   )
 }
 
+export function getDhlRuntimeStatus() {
+  return {
+    env: getDhlEnv(),
+    configured: isDhlConfigured(),
+    shippingConfigured: isDhlShippingConfigured(),
+  }
+}
+
 export function getDhlConfig() {
   const apiKey = process.env.DHL_API_KEY?.trim()
   const apiSecret = process.env.DHL_API_SECRET?.trim()
@@ -31,10 +47,7 @@ export function getDhlConfig() {
   const shipperCountryCode = process.env.DHL_SHIPPER_COUNTRY_CODE?.trim()
   const shipperCity = process.env.DHL_SHIPPER_CITY?.trim()
   const shipperPostalCode = process.env.DHL_SHIPPER_POSTAL_CODE?.trim() || ''
-  const env =
-    process.env.DHL_ENV?.trim().toLowerCase() === 'production'
-      ? 'production'
-      : 'test'
+  const env = getDhlEnv()
 
   if (
     !apiKey ||

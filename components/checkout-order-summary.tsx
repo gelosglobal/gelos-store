@@ -3,7 +3,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import {
-  Heart,
   Lock,
   Minus,
   Plus,
@@ -16,6 +15,7 @@ import type { CartLineItem } from '@/components/cart-provider'
 import { useLocation } from '@/components/location-provider'
 import { useStorePromotions } from '@/components/store-promotions-provider'
 import type { CheckoutTotals } from '@/lib/checkout'
+import { usesLiveDhlRates } from '@/lib/market-settings'
 import { getProductImageDisplayClass } from '@/lib/product-image-display'
 import {
   findActivePromo,
@@ -28,6 +28,9 @@ type CheckoutOrderSummaryProps = {
   items: CartLineItem[]
   totals: CheckoutTotals
   onQuantityChange: (lineKey: string, quantity: number) => void
+  /** Live DHL quote has not been applied yet — do not show shipping as Free. */
+  shippingPending?: boolean
+  shippingLoading?: boolean
 }
 
 function getItemSubtitle(item: CartLineItem): string | null {
@@ -111,7 +114,7 @@ function TrustBadge({
   subtitle: string
 }) {
   return (
-    <div className="flex flex-col items-center gap-1.5 text-center">
+    <div className="flex min-w-0 flex-col items-center gap-1.5 text-center">
       <div className="flex size-9 items-center justify-center rounded-full bg-violet-100 text-violet-700">
         {icon}
       </div>
@@ -129,8 +132,12 @@ export function CheckoutOrderSummary({
   items,
   totals,
   onQuantityChange,
+  shippingPending = false,
+  shippingLoading = false,
 }: CheckoutOrderSummaryProps) {
-  const { formatPrice } = useLocation()
+  const { formatPrice, locationId } = useLocation()
+  const liveDhl = usesLiveDhlRates(locationId)
+  const shippingQuoted = !shippingPending && !shippingLoading
   const {
     promotions,
     appliedPromoCode,
@@ -263,20 +270,33 @@ export function CheckoutOrderSummary({
               <dt className="text-neutral-600">Shipping</dt>
               <dd
                 className={cn(
-                  'font-semibold tabular-nums uppercase tracking-wide',
-                  totals.shipping === 0
-                    ? 'text-violet-600'
+                  'font-semibold tabular-nums',
+                  shippingQuoted && totals.shipping === 0
+                    ? 'uppercase tracking-wide text-violet-600'
                     : 'text-neutral-950',
+                  (shippingPending || shippingLoading) &&
+                    'normal-case tracking-normal text-neutral-500',
                 )}
               >
-                {totals.shipping === 0 ? 'Free' : formatPrice(totals.shipping)}
+                {shippingLoading
+                  ? 'Calculating…'
+                  : shippingPending
+                    ? 'Enter address'
+                    : totals.shipping === 0
+                      ? 'Free'
+                      : formatPrice(totals.shipping)}
               </dd>
             </div>
           </dl>
 
           <div className="flex items-end justify-between gap-4 border-t border-violet-100 pt-4">
             <p className="text-sm font-semibold text-neutral-950">
-              Total <span className="font-normal text-neutral-500">(VAT Included)</span>
+              Total{' '}
+              <span className="font-normal text-neutral-500">
+                {shippingPending || shippingLoading
+                  ? '(excl. shipping)'
+                  : '(VAT Included)'}
+              </span>
             </p>
             <p className="text-2xl font-bold tabular-nums text-neutral-950">
               {formatPrice(totals.total)}
@@ -284,14 +304,16 @@ export function CheckoutOrderSummary({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 border-t border-violet-100/80 bg-white/60 px-4 py-5 sm:gap-4 sm:px-5">
+        <div className="grid grid-cols-3 gap-2 border-t border-violet-100/80 bg-white/60 px-3 py-5 sm:gap-4 sm:px-5">
           <TrustBadge
             icon={<Truck className="size-4" />}
-            title="Free Delivery"
+            title={liveDhl ? 'DHL Express' : 'Free Delivery'}
             subtitle={
-              promotions.freeShippingEnabled
-                ? `Over ${formatPrice(promotions.freeShippingThreshold)}`
-                : 'On eligible orders'
+              liveDhl
+                ? 'Quoted from your address'
+                : promotions.freeShippingEnabled
+                  ? `Over ${formatPrice(promotions.freeShippingThreshold)}`
+                  : 'On eligible orders'
             }
           />
           <TrustBadge
@@ -303,11 +325,6 @@ export function CheckoutOrderSummary({
             icon={<ShieldCheck className="size-4" />}
             title="30-Day Guarantee"
             subtitle="Love it or refund"
-          />
-          <TrustBadge
-            icon={<Heart className="size-4" />}
-            title="Made with Love"
-            subtitle="In Ghana 🇬🇭"
           />
         </div>
       </div>

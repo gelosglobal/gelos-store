@@ -17,6 +17,7 @@ export default function AdminOrderDetailPage() {
   const [repairingItems, setRepairingItems] = useState(false)
   const [creatingDhlShipment, setCreatingDhlShipment] = useState(false)
   const [refreshingDhlTracking, setRefreshingDhlTracking] = useState(false)
+  const [dhlLive, setDhlLive] = useState(false)
 
   const loadOrder = useCallback(async () => {
     if (!orderId) return
@@ -40,6 +41,21 @@ export default function AdminOrderDetailPage() {
     setLoading(true)
     void loadOrder()
   }, [loadOrder])
+
+  useEffect(() => {
+    let cancelled = false
+    void fetch('/api/dhl/rates', { cache: 'no-store' })
+      .then(async (res) => {
+        const data = (await res.json()) as { env?: string }
+        if (!cancelled) setDhlLive(data.env === 'production')
+      })
+      .catch(() => {
+        if (!cancelled) setDhlLive(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const patchOrder = async (body: {
     paymentStatus?: AdminOrderDetail['paymentStatus']
@@ -216,6 +232,7 @@ export default function AdminOrderDetailPage() {
       }
       onCreateDhlShipment={() => void createDhlShipment()}
       onRefreshDhlTracking={() => void refreshDhlTracking()}
+      dhlLive={dhlLive}
     />
   )
 }

@@ -3,7 +3,10 @@ import { isAdminDatabaseReady } from '@/lib/db/admin-products'
 import { prisma } from '@/lib/prisma'
 import { fulfillOrderWithDhl } from '@/lib/dhl/fulfill-order'
 import { getAdminOrderById } from '@/lib/db/admin-orders'
-import { isDhlShippingConfigured } from '@/lib/dhl/config'
+import { getDhlEnv, isDhlShippingConfigured } from '@/lib/dhl/config'
+import { adminOrderToEmailData } from '@/lib/email/order-email-data'
+import { sendOrderShippedEmail } from '@/lib/email/send-order-emails'
+import { isResendConfigured } from '@/lib/env'
 
 type RouteContext = {
   params: Promise<{ id: string }>
@@ -37,6 +40,22 @@ export async function POST(_request: Request, context: RouteContext) {
 
     const result = await fulfillOrderWithDhl(order)
     const detail = await getAdminOrderById(id)
+
+    if (
+      getDhlEnv() === 'production' &&
+      isResendConfigured() &&
+      detail &&
+      result.dhl.trackingNumber &&
+      result.dhl.trackingUrl
+    ) {
+      const shipped = await sendOrderShippedEmail(adminOrderToEmailData(detail), {
+        trackingNumber: result.dhl.trackingNumber,
+        trackingUrl: result.dhl.trackingUrl,
+      })
+      if (!shipped.sent) {
+        console.warn('[dhl/ship] Tracking email not sent:', shipped.reason)
+      }
+    }
 
     return NextResponse.json({
       ok: true,

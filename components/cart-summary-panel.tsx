@@ -18,6 +18,7 @@ import {
   shopifyCountryCodeFromLocation,
   useShopifyCommerce,
 } from '@/lib/shopify/use-shopify-commerce'
+import { usesLiveDhlRates } from '@/lib/market-settings'
 import type { PromoCode } from '@/lib/store-promotions'
 import { cn } from '@/lib/utils'
 
@@ -99,6 +100,9 @@ export function CartSummaryPanel({
   const { enabled: shopifyCheckoutEnabled, isLoading: shopifyStatusLoading } =
     useShopifyCommerce()
   const { locationId, location, countryCode } = useLocation()
+  const liveDhl = usesLiveDhlRates(locationId)
+  const shippingPending =
+    liveDhl && shipping === 0 && !smileRewardFreeShipping
 
   useEffect(() => {
     const saved = readSavedContact()
@@ -174,7 +178,7 @@ export function CartSummaryPanel({
         </p>
       </div>
 
-      {(discount > 0 || shipping > 0) && (
+      {(discount > 0 || shipping > 0 || shippingPending) && (
         <div className="mt-2 space-y-1 text-xs text-neutral-500">
           {discount > 0 ? (
             <div className="flex justify-between">
@@ -188,7 +192,12 @@ export function CartSummaryPanel({
               <span className="tabular-nums">−{formatPrice(discount)}</span>
             </div>
           ) : null}
-          {shipping > 0 ? (
+          {shippingPending ? (
+            <div className="flex justify-between">
+              <span>Shipping</span>
+              <span>Calculated at checkout</span>
+            </div>
+          ) : shipping > 0 ? (
             <div className="flex justify-between">
               <span>Shipping</span>
               <span className="tabular-nums">{formatPrice(shipping)}</span>
