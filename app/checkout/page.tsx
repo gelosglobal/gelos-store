@@ -22,15 +22,19 @@ import {
 } from '@/components/stripe-card-fields'
 import { PaystackPaymentBadges } from '@/components/paystack-payment-badges'
 import { calculateCheckoutTotals } from '@/lib/checkout'
-import { convertForLocation } from '@/lib/exchange-rates'
+import {
+  convertForLocation,
+  toPaystackChargeCurrency,
+} from '@/lib/exchange-rates'
 import { hasSmileRewardFreeShipping } from '@/lib/gelos-ai/smile-reward-storage'
 import { trackInitiateCheckout, trackPurchase, trackAddPaymentInfo } from '@/lib/meta-pixel'
 import { getInitiateCheckoutEventId } from '@/lib/meta-event-ids'
 import { saveCheckoutDraft } from '@/lib/checkout-draft'
 import {
   countryCodeFromLocation,
-  INTERNATIONAL_COUNTRY_OPTIONS,
+  internationalCountryOptions,
 } from '@/lib/shipping-destination'
+import { countryRequiresPostalCode } from '@/lib/dhl/locations'
 import { trackVisitorFunnelEvent } from '@/lib/visitor-funnel'
 import { getOrCreateVisitorId } from '@/lib/visitor-id'
 import {
@@ -38,6 +42,7 @@ import {
   useShopifyCommerce,
 } from '@/lib/shopify/use-shopify-commerce'
 import { startShopifyCheckout } from '@/lib/shopify/start-checkout-client'
+import { usesLiveDhlRates } from '@/lib/market-settings'
 import { cn } from '@/lib/utils'
 
 type PaymentMethod = 'paystack' | 'stripe' | 'cod' | 'shopify'
@@ -45,7 +50,7 @@ type PaymentMethod = 'paystack' | 'stripe' | 'cod' | 'shopify'
 export default function CheckoutPage() {
   const router = useRouter()
   const { items, isHydrated, clearCart, setQuantity } = useCart()
-  const { location, locationId } = useLocation()
+  const { location, locationId, geo, countryCode: geoCountryCode } = useLocation()
   const { promotions, appliedPromoCode } = useStorePromotions()
   const { market, applyShipping, isProductAvailable } = useMarketSettings()
   const { affiliateCode, affiliate } = useAffiliate()
@@ -69,9 +74,11 @@ export default function CheckoutPage() {
   const [dhlShippingBase, setDhlShippingBase] = useState<number | null>(null)
   const [dhlProductCode, setDhlProductCode] = useState<string | undefined>()
   const [dhlProductName, setDhlProductName] = useState<string | undefined>()
+  const [dhlAddressWarning, setDhlAddressWarning] = useState('')
   const checkoutTracked = useRef(false)
   const stripeCardRef = useRef<StripeCardFieldsHandle>(null)
   const checkoutPromotions = applyShipping(promotions)
+  const liveDhl = usesLiveDhlRates(locationId)
   const cartHasUnavailableItems = items.some(
     (item) => !isProductAvailable(item.id),
   )
@@ -97,11 +104,20 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     const marketCountry = countryCodeFromLocation(locationId)
-    if (marketCountry) setCountryCode(marketCountry)
-    else if (locationId === 'international' && !countryCode) {
-      setCountryCode('GB')
+    if (marketCountry) {
+      setCountryCode(marketCountry)
+      return
     }
-  }, [locationId]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (locationId !== 'international') return
+    const detected =
+      geo?.locationId === 'international' ? geo.countryCode : undefined
+    setCountryCode((current) => {
+      if (!current || current === 'GH' || current === 'US') {
+        return detected || 'GB'
+      }
+      return current
+    })
+  }, [locationId, geo?.countryCode, geo?.locationId])
 
   useEffect(() => {
     let cancelled = false
@@ -119,11 +135,12 @@ export default function CheckoutPage() {
   }, [])
 
   useEffect(() => {
-    if (!dhlConfigured) {
+    if (!dhlConfigured || !liveDhl) {
       setDhlShippingBase(null)
       setDhlProductCode(undefined)
       setDhlProductName(undefined)
       setDhlError('')
+      setDhlAddressWarning('')
       return
     }
 
@@ -138,12 +155,17 @@ export default function CheckoutPage() {
       setDhlProductCode(undefined)
       setDhlProductName(undefined)
       setDhlError('')
+      setDhlAddressWarning('')
       return
     }
 
-    if (destination === 'US' && postalCode.trim().length < 3) {
+    if (countryRequiresPostalCode(destination) && postalCode.trim().length < 3) {
       setDhlShippingBase(null)
-      setDhlError('Enter a ZIP code for US delivery rates')
+      setDhlError(
+        destination === 'US'
+          ? 'Enter a ZIP code for US delivery rates'
+          : 'Enter a postal code for DHL rates to this country',
+      )
       return
     }
 
@@ -159,8 +181,8 @@ export default function CheckoutPage() {
           destinationCountryCode: destination,
           destinationCityName: cityName,
           destinationPostalCode: postalCode.trim() || undefined,
+          destinationAddressLine1: addressLine.trim() || undefined,
           itemCount,
-          productCode: dhlProductCode,
         }),
       })
         .then(async (res) => {
@@ -172,6 +194,7 @@ export default function CheckoutPage() {
               productName: string
               totalPriceBase: number
             }
+            address?: { valid?: boolean; message?: string }
           }
           if (!res.ok || !data.ok || !data.selected) {
             throw new Error(data.error ?? 'Could not get DHL rates')
@@ -179,6 +202,12 @@ export default function CheckoutPage() {
           setDhlShippingBase(data.selected.totalPriceBase)
           setDhlProductCode(data.selected.productCode)
           setDhlProductName(data.selected.productName)
+          setDhlAddressWarning(
+            data.address && data.address.valid === false
+              ? data.address.message ||
+                  'DHL could not fully validate this city. You can still check out.'
+              : '',
+          )
         })
         .catch((error: unknown) => {
           if (controller.signal.aborted) return
@@ -186,6 +215,7 @@ export default function CheckoutPage() {
           setDhlError(
             error instanceof Error ? error.message : 'Could not get DHL rates',
           )
+          setDhlAddressWarning('')
         })
         .finally(() => {
           if (!controller.signal.aborted) setDhlLoading(false)
@@ -201,8 +231,10 @@ export default function CheckoutPage() {
     countryCode,
     city,
     postalCode,
+    addressLine,
     itemCount,
     locationId,
+    liveDhl,
     // intentionally omit dhlProductCode to avoid requote loops; server picks cheapest
   ])
 
@@ -255,7 +287,10 @@ export default function CheckoutPage() {
       try {
         const checkoutUrl = await startShopifyCheckout({
           items,
-          countryCode: shopifyCountryCodeFromLocation(locationId),
+          countryCode:
+            countryCode.trim().toUpperCase() ||
+            geoCountryCode ||
+            shopifyCountryCodeFromLocation(locationId),
           locationId,
           promoCode: appliedPromoCode || undefined,
           smileRewardFreeShipping,
@@ -279,6 +314,8 @@ export default function CheckoutPage() {
     locationId,
     appliedPromoCode,
     smileRewardFreeShipping,
+    countryCode,
+    geoCountryCode,
   ])
 
   const totals = useMemo(
@@ -305,7 +342,7 @@ export default function CheckoutPage() {
     const visitorId = getOrCreateVisitorId()
     trackInitiateCheckout(
       items.map((item) => ({ id: item.id, quantity: item.quantity })),
-      convertForLocation(totals.total, locationId),
+      convertForLocation(totals.total, locationId, location.currencyCode),
       location.currencyCode,
       visitorId ? getInitiateCheckoutEventId(visitorId) : undefined,
     )
@@ -370,6 +407,7 @@ export default function CheckoutPage() {
           }
         : undefined,
     locationId,
+    currencyCode: location.currencyCode,
     items: items.map((item) => ({
       id: item.id,
       quantity: item.quantity,
@@ -414,6 +452,19 @@ export default function CheckoutPage() {
       return
     }
 
+    if (liveDhl && !shopifyCheckoutEnabled) {
+      if (!dhlConfigured) {
+        toast.error('DHL shipping is not available. Please try again later.')
+        return
+      }
+      if (dhlShippingBase == null) {
+        toast.error(
+          dhlError || 'Enter your city so we can calculate DHL shipping.',
+        )
+        return
+      }
+    }
+
     if (
       !shopifyCheckoutEnabled &&
       paymentMethod !== 'shopify' &&
@@ -452,7 +503,10 @@ export default function CheckoutPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: email.trim() || undefined,
-            countryCode: shopifyCountryCodeFromLocation(locationId),
+            countryCode:
+              countryCode.trim().toUpperCase() ||
+              geoCountryCode ||
+              shopifyCountryCodeFromLocation(locationId),
             items: items.map((item) => ({
               id: item.id,
               quantity: item.quantity,
@@ -739,7 +793,13 @@ export default function CheckoutPage() {
                     required
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    placeholder="City"
+                    placeholder={
+                      locationId === 'ghana'
+                        ? 'Accra, Kumasi, Tema…'
+                        : countryCode === 'NG'
+                          ? 'Lagos, Abuja…'
+                          : 'City'
+                    }
                     className="mt-1.5 w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950"
                   />
                 </div>
@@ -780,7 +840,9 @@ export default function CheckoutPage() {
                     onChange={(e) => setCountryCode(e.target.value)}
                     className="mt-1.5 w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950"
                   >
-                    {INTERNATIONAL_COUNTRY_OPTIONS.map((option) => (
+                    {internationalCountryOptions(
+                      countryCode || geoCountryCode,
+                    ).map((option) => (
                       <option key={option.code} value={option.code}>
                         {option.label}
                       </option>
@@ -789,7 +851,7 @@ export default function CheckoutPage() {
                 </div>
               ) : null}
 
-              {dhlConfigured ? (
+              {dhlConfigured && liveDhl ? (
                 <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
                   {dhlLoading ? (
                     <p className="flex items-center gap-2">
@@ -805,14 +867,17 @@ export default function CheckoutPage() {
                       — rate applied in your order summary.
                     </p>
                   ) : dhlError ? (
-                    <p className="text-amber-800">
-                      {dhlError}. Using standard shipping for now.
-                    </p>
+                    <p className="text-amber-800">{dhlError}</p>
                   ) : (
                     <p className="text-neutral-500">
                       Enter city (and ZIP for USA) to get a live DHL rate.
                     </p>
                   )}
+                  {dhlAddressWarning ? (
+                    <p className="mt-2 text-xs text-amber-800">
+                      {dhlAddressWarning}
+                    </p>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -983,7 +1048,13 @@ export default function CheckoutPage() {
 
             <button
               type="submit"
-              disabled={isSubmitting || cartHasUnavailableItems}
+              disabled={
+                isSubmitting ||
+                cartHasUnavailableItems ||
+                (liveDhl &&
+                  !shopifyCheckoutEnabled &&
+                  (dhlLoading || dhlShippingBase == null))
+              }
               className="sticky bottom-3 z-20 mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-neutral-950 py-3.5 text-sm font-semibold text-white shadow-[0_8px_30px_rgba(0,0,0,0.18)] transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-70 lg:static lg:shadow-none"
             >
               {isSubmitting ? (
@@ -1032,7 +1103,7 @@ export default function CheckoutPage() {
                 <>
                   Enter your card details above. You&apos;ll be charged in{' '}
                   <span className="font-medium text-neutral-700">
-                    {market.currencyCode}
+                    {location.currencyCode}
                   </span>{' '}
                   ({location.label}).
                 </>
@@ -1040,7 +1111,7 @@ export default function CheckoutPage() {
                 <>
                   You&apos;ll be charged in{' '}
                   <span className="font-medium text-neutral-700">
-                    {market.currencyCode}
+                    {toPaystackChargeCurrency(location.currencyCode)}
                   </span>{' '}
                   via Paystack ({location.label}).
                 </>

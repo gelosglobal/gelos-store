@@ -9,7 +9,8 @@ import {
 } from '@/components/ui/select'
 import { useLocation } from '@/components/location-provider'
 import { useMarketSettings } from '@/components/market-settings-provider'
-import { locations } from '@/lib/locations'
+import { displayCurrencyForMarket } from '@/lib/geo-market'
+import { locations, primaryLocationIds } from '@/lib/locations'
 import { cn } from '@/lib/utils'
 
 type LocationSelectorProps = {
@@ -22,12 +23,22 @@ export function LocationSelector({
   className,
   showFullLabel = false,
 }: LocationSelectorProps) {
-  const { locationId, setLocationId, isHydrated, location } = useLocation()
+  const { locationId, setLocationId, isHydrated, location, geo } = useLocation()
   const { markets } = useMarketSettings()
 
-  const availableLocations = locations.filter(
-    (loc) => markets[loc.id]?.enabled !== false,
-  )
+  const availableLocations = locations
+    .filter(
+      (loc) =>
+        primaryLocationIds.includes(loc.id) ||
+        markets[loc.id]?.enabled !== false,
+    )
+    .sort((a, b) => {
+      const aPrimary = primaryLocationIds.indexOf(a.id)
+      const bPrimary = primaryLocationIds.indexOf(b.id)
+      const aRank = aPrimary === -1 ? primaryLocationIds.length : aPrimary
+      const bRank = bPrimary === -1 ? primaryLocationIds.length : bPrimary
+      return aRank - bRank
+    })
 
   if (!isHydrated) {
     return (
@@ -56,7 +67,7 @@ export function LocationSelector({
           'font-nav h-9 gap-1.5 rounded-full border-neutral-200 bg-white px-2.5 shadow-none sm:px-3',
           'text-xs font-medium text-neutral-800 hover:bg-neutral-100 hover:text-neutral-950',
           'focus:ring-neutral-950/20 focus-visible:border-neutral-950 [&>svg]:opacity-60',
-          showFullLabel ? 'w-full max-w-none' : 'max-w-[10.5rem] sm:max-w-[11.5rem]',
+          showFullLabel ? 'w-full max-w-none' : 'max-w-[12.5rem] sm:max-w-[14.5rem]',
           className,
         )}
         aria-label="Select shopping region"
@@ -67,26 +78,43 @@ export function LocationSelector({
             <span className="truncate">
               {showFullLabel ? location.label : location.shortLabel}
             </span>
+            <span className="text-neutral-400">·</span>
+            <span className="shrink-0 text-neutral-500">
+              {location.currencyCode}
+            </span>
           </span>
         </SelectValue>
       </SelectTrigger>
-      <SelectContent align="end" className="font-nav min-w-[12rem]">
-        {availableLocations.map((loc) => (
-          <SelectItem key={loc.id} value={loc.id} className="py-2.5">
-            <span className="flex items-center gap-2.5">
-              <span className="text-base leading-none" aria-hidden>
-                {loc.flag}
-              </span>
-              <span className="flex flex-col items-start gap-0.5">
-                <span className="font-medium text-neutral-950">{loc.label}</span>
-                <span className="text-xs text-neutral-500">
-                  {markets[loc.id]?.currencyCode ?? loc.currencyCode} ·{' '}
-                  {loc.currency}
+      <SelectContent align="end" className="font-nav min-w-[13.5rem]">
+        {availableLocations.map((loc) => {
+          const optionCurrency = displayCurrencyForMarket(loc.id, geo)
+          const internationalHint =
+            loc.id === 'international' && geo?.detected
+              ? geo.countryName
+              : loc.id === 'international'
+                ? 'Local currency'
+                : null
+          return (
+            <SelectItem key={loc.id} value={loc.id} className="py-2.5">
+              <span className="flex items-center gap-2.5">
+                <span className="text-base leading-none" aria-hidden>
+                  {loc.id === 'international' && geo?.detected
+                    ? geo.flag
+                    : loc.flag}
+                </span>
+                <span className="flex flex-col items-start gap-0.5">
+                  <span className="font-medium text-neutral-950">
+                    {loc.label}
+                  </span>
+                  <span className="text-xs text-neutral-500">
+                    {optionCurrency}
+                    {internationalHint ? ` · ${internationalHint}` : null}
+                  </span>
                 </span>
               </span>
-            </span>
-          </SelectItem>
-        ))}
+            </SelectItem>
+          )
+        })}
       </SelectContent>
     </Select>
   )

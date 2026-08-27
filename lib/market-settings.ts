@@ -70,7 +70,7 @@ export function createDefaultMarketSettings(
     enabled: true,
     currencyCode: location?.currencyCode ?? 'GHS',
     exchangeRate: DEFAULT_RATES[locationId],
-    freeShippingEnabled: true,
+    freeShippingEnabled: locationId === 'ghana',
     freeShippingThreshold: 200,
     shippingFee: 15,
     whatsappNumber: '',
@@ -201,13 +201,29 @@ export function sanitizeAllMarketSettings(
   }
 }
 
+export function usesLiveDhlRates(locationId: LocationId): boolean {
+  return locationId === 'usa' || locationId === 'international'
+}
+
 export function applyMarketShipping(
   promotions: StorePromotions,
   market: Pick<
     MarketSettings,
-    'freeShippingEnabled' | 'freeShippingThreshold' | 'shippingFee'
+    | 'locationId'
+    | 'freeShippingEnabled'
+    | 'freeShippingThreshold'
+    | 'shippingFee'
   >,
 ): StorePromotions {
+  if (usesLiveDhlRates(market.locationId)) {
+    return {
+      ...promotions,
+      freeShippingEnabled: false,
+      freeShippingThreshold: market.freeShippingThreshold,
+      shippingFee: 0,
+    }
+  }
+
   return {
     ...promotions,
     freeShippingEnabled: market.freeShippingEnabled,

@@ -98,7 +98,7 @@ export function CartSummaryPanel({
   const [checkoutPhone, setCheckoutPhone] = useState('')
   const { enabled: shopifyCheckoutEnabled, isLoading: shopifyStatusLoading } =
     useShopifyCommerce()
-  const { locationId, location } = useLocation()
+  const { locationId, location, countryCode } = useLocation()
 
   useEffect(() => {
     const saved = readSavedContact()
@@ -127,7 +127,7 @@ export function CartSummaryPanel({
     try {
       const visitorId = getOrCreateVisitorId()
       const eventId = getInitiateCheckoutEventId(visitorId)
-      const value = convertForLocation(total, locationId)
+      const value = convertForLocation(total, locationId, location.currencyCode)
 
       trackInitiateCheckout(
         items.map((item) => ({ id: item.id, quantity: item.quantity })),
@@ -138,7 +138,8 @@ export function CartSummaryPanel({
 
       const checkoutUrl = await startShopifyCheckout({
         items,
-        countryCode: shopifyCountryCodeFromLocation(locationId),
+        countryCode:
+          countryCode || shopifyCountryCodeFromLocation(locationId),
         locationId,
         email,
         phone: phone || undefined,

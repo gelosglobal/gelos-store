@@ -87,7 +87,7 @@ export default function CartPage() {
     cartTracked.current = true
     trackViewCart(
       items.map((item) => ({ id: item.id, quantity: item.quantity })),
-      convertForLocation(total, locationId),
+      convertForLocation(total, locationId, location.currencyCode),
       location.currencyCode,
     )
   }, [isHydrated, items, total, locationId, location.currencyCode])

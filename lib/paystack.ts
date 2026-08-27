@@ -60,6 +60,7 @@ export type InitializeTransactionInput = {
   phone?: string
   shippingAddress?: string
   locationId: LocationId
+  currency?: string
   items: CheckoutLineItem[]
   totals: {
     subtotal: number
@@ -84,7 +85,9 @@ export type InitializeTransactionResult = {
 export async function initializeTransaction(
   input: InitializeTransactionInput,
 ): Promise<InitializeTransactionResult> {
-  const currency = getPaystackCurrencyForLocation(input.locationId)
+  const currency = (
+    input.currency || getPaystackCurrencyForLocation(input.locationId)
+  ).toUpperCase()
   const reference = createPaystackReference()
 
   const payload = await paystackFetch<{

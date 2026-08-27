@@ -37,7 +37,6 @@ function locationIdFromCountryCode(
 ): 'international' | 'nigeria' | 'ghana' | 'usa' | undefined {
   const code = countryCode?.trim().toUpperCase()
   if (code === 'GH') return 'ghana'
-  if (code === 'NG') return 'nigeria'
   if (code === 'US') return 'usa'
   return undefined
 }

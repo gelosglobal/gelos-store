@@ -13,6 +13,7 @@ import {
   createStripePaymentIntent,
   isStripeConfigured,
 } from '@/lib/stripe'
+import { shippingDetailsFromCheckout } from '@/lib/dhl/shipping-details'
 
 export async function POST(request: Request) {
   if (!isStripeConfigured()) {
@@ -80,6 +81,7 @@ export async function POST(request: Request) {
         customerEmail: email,
         customerPhone: phone,
         shippingAddress,
+        shippingDetails: shippingDetailsFromCheckout(parsed.data.shipping),
         items: localizedItems,
         subtotal: totals.subtotal,
         shipping: totals.shipping,

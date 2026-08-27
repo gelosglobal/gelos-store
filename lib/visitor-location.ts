@@ -16,7 +16,7 @@ const REGION_COUNTRY: Record<LocationId, string> = {
 
 const ISO_COUNTRY: Record<string, { name: string; flag: string; locationId?: LocationId }> = {
   gh: { name: 'Ghana', flag: '🇬🇭', locationId: 'ghana' },
-  ng: { name: 'Nigeria', flag: '🇳🇬', locationId: 'nigeria' },
+  ng: { name: 'Nigeria', flag: '🇳🇬', locationId: 'international' },
   us: { name: 'USA', flag: '🇺🇸', locationId: 'usa' },
   gb: { name: 'UK', flag: '🇬🇧' },
   ca: { name: 'Canada', flag: '🇨🇦' },

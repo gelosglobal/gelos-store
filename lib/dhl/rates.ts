@@ -1,35 +1,34 @@
 import {
   convertDhlAmountToBase,
-  dhlAuthHeader,
   estimateShipmentWeightKg,
   getDhlConfig,
   isDhlConfigured,
-  nextShippingDateIso,
 } from '@/lib/dhl/config'
+import { dhlFetch } from '@/lib/dhl/client'
+import { dhlLocationError, normalizeDhlCity } from '@/lib/dhl/locations'
+import { resolveDhlShipmentProfile } from '@/lib/dhl/product-codes'
+import { addressLine } from '@/lib/dhl/shipping-details'
+import { plannedShippingDateAndTime } from '@/lib/dhl/text'
+import type { DhlRateOption } from '@/lib/dhl/types'
 
 export type DhlRateQuoteInput = {
   destinationCountryCode: string
   destinationCityName: string
   destinationPostalCode?: string
+  destinationAddressLine1?: string
+  destinationCountyName?: string
   itemCount: number
   /** Prefer this DHL product code when re-validating (e.g. "P", "N") */
   productCode?: string
 }
 
-export type DhlRateOption = {
-  productCode: string
-  productName: string
-  totalPrice: number
-  currency: string
-  /** Amount in catalog base currency (GHS) for checkout totals */
-  totalPriceBase: number
-  deliveryDate?: string
-}
+export type { DhlRateOption }
 
 export type DhlRatesResult = {
   options: DhlRateOption[]
   selected: DhlRateOption
   weightKg: number
+  productCode: string
 }
 
 type DhlProductsResponse = {
@@ -41,9 +40,28 @@ type DhlProductsResponse = {
       estimatedDeliveryDateAndTime?: string
     }
   }>
-  detail?: string
-  message?: string
-  title?: string
+}
+
+function mapRateOptions(json: DhlProductsResponse): DhlRateOption[] {
+  const options: DhlRateOption[] = []
+  for (const product of json.products ?? []) {
+    const priceEntry = product.totalPrice?.[0]
+    const totalPrice = Number(priceEntry?.price ?? NaN)
+    const currency = String(priceEntry?.priceCurrency ?? '').toUpperCase()
+    const productCode = String(product.productCode ?? '').trim()
+    if (!productCode || !Number.isFinite(totalPrice) || totalPrice < 0 || !currency) {
+      continue
+    }
+    options.push({
+      productCode,
+      productName: String(product.productName ?? productCode),
+      totalPrice,
+      currency,
+      totalPriceBase: convertDhlAmountToBase(totalPrice, currency),
+      deliveryDate: product.deliveryCapabilities?.estimatedDeliveryDateAndTime,
+    })
+  }
+  return options.sort((a, b) => a.totalPriceBase - b.totalPriceBase)
 }
 
 export async function fetchDhlRates(
@@ -57,7 +75,10 @@ export async function fetchDhlRates(
   const destinationCountryCode = input.destinationCountryCode
     .trim()
     .toUpperCase()
-  const destinationCityName = input.destinationCityName.trim()
+  const destinationCityName = normalizeDhlCity(
+    destinationCountryCode,
+    input.destinationCityName,
+  )
   const destinationPostalCode = input.destinationPostalCode?.trim() || ''
 
   if (!destinationCountryCode || destinationCountryCode.length !== 2) {
@@ -73,96 +94,104 @@ export async function fetchDhlRates(
     config.defaultWeightKg,
   )
 
-  const isCustomsDeclarable =
-    destinationCountryCode !== config.shipperCountryCode
-
-  const params = new URLSearchParams({
-    accountNumber: config.accountNumber,
-    originCountryCode: config.shipperCountryCode,
-    originCityName: config.shipperCity,
+  const profile = resolveDhlShipmentProfile(
+    config.shipperCountryCode,
     destinationCountryCode,
-    destinationCityName,
-    weight: String(weightKg),
-    length: String(config.lengthCm),
-    width: String(config.widthCm),
-    height: String(config.heightCm),
-    plannedShippingDate: nextShippingDateIso(),
-    isCustomsDeclarable: String(isCustomsDeclarable),
-    unitOfMeasurement: 'metric',
-    nextBusinessDay: 'true',
-  })
-
-  if (config.shipperPostalCode) {
-    params.set('originPostalCode', config.shipperPostalCode)
-  }
-  if (destinationPostalCode) {
-    params.set('destinationPostalCode', destinationPostalCode)
-  }
-
-  const response = await fetch(`${config.baseUrl}/rates?${params.toString()}`, {
-    method: 'GET',
-    headers: {
-      Authorization: dhlAuthHeader(config.apiKey, config.apiSecret),
-      Accept: 'application/json',
+    {
+      exportAccount: config.exportAccount,
+      importAccount: config.importAccount,
+      accountCountryCode: config.shipperCountryCode,
     },
-    cache: 'no-store',
-  })
+    input.productCode,
+  )
 
-  const json = (await response.json().catch(() => ({}))) as DhlProductsResponse & {
-    reasons?: Array<{ msg?: string }>
-    details?: { msgId?: string } | string
+  const shipperDetails: Record<string, string> = {
+    addressLine1: addressLine(
+      config.shipperAddressLine1,
+      'Gelos warehouse, Accra',
+    ),
+    postalCode: config.shipperPostalCode || '',
+    cityName: config.shipperCity,
+    countryCode: config.shipperCountryCode,
+  }
+  if (config.shipperCounty) {
+    shipperDetails.countyName = config.shipperCounty
   }
 
-  if (!response.ok) {
-    const reason = json.reasons?.[0]?.msg
-    const detail =
-      reason ||
-      json.detail ||
-      json.message ||
-      json.title ||
-      `DHL rates request failed (${response.status})`
+  const receiverDetails: Record<string, string> = {
+    addressLine1: addressLine(
+      input.destinationAddressLine1,
+      'Delivery address',
+    ),
+    postalCode: destinationPostalCode,
+    cityName: destinationCityName,
+    countryCode: destinationCountryCode,
+  }
+  if (input.destinationCountyName?.trim()) {
+    receiverDetails.countyName = input.destinationCountyName.trim()
+  }
 
-    if (response.status === 401) {
+  const body: Record<string, unknown> = {
+    plannedShippingDateAndTime: plannedShippingDateAndTime(),
+    productCode: profile.productCode,
+    unitOfMeasurement: 'metric',
+    isCustomsDeclarable: profile.isCustomsDeclarable,
+    nextBusinessDay: true,
+    accounts: [
+      {
+        number: profile.accountNumber,
+        typeCode: 'shipper',
+      },
+    ],
+    customerDetails: {
+      shipperDetails,
+      receiverDetails,
+    },
+    packages: [
+      {
+        weight: weightKg,
+        dimensions: {
+          length: config.lengthCm,
+          width: config.widthCm,
+          height: config.heightCm,
+        },
+      },
+    ],
+  }
+
+  if (profile.payerCountryCode) {
+    body.payerCountryCode = profile.payerCountryCode
+  }
+
+  const json = await dhlFetch<DhlProductsResponse>('/rates', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }).catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : ''
+    if (/420505|3007|destination location is invalid/i.test(message)) {
       throw new Error(
-        `${detail}. Check DHL_API_KEY / DHL_API_SECRET from the MyDHL API portal, and set DHL_ENV=test or production to match those credentials.`,
+        dhlLocationError(
+          input.destinationCityName.trim() || destinationCityName,
+          destinationCountryCode,
+        ),
       )
     }
+    throw error
+  })
 
-    throw new Error(detail)
-  }
-
-  const options: DhlRateOption[] = (json.products ?? [])
-    .map((product) => {
-      const priceEntry = product.totalPrice?.[0]
-      const totalPrice = Number(priceEntry?.price ?? NaN)
-      const currency = String(priceEntry?.priceCurrency ?? '').toUpperCase()
-      const productCode = String(product.productCode ?? '').trim()
-      if (!productCode || !Number.isFinite(totalPrice) || totalPrice < 0 || !currency) {
-        return null
-      }
-      return {
-        productCode,
-        productName: String(product.productName ?? productCode),
-        totalPrice,
-        currency,
-        totalPriceBase: convertDhlAmountToBase(totalPrice, currency),
-        deliveryDate: product.deliveryCapabilities?.estimatedDeliveryDateAndTime,
-      } satisfies DhlRateOption
-    })
-    .filter((option): option is DhlRateOption => option !== null)
-    .sort((a, b) => a.totalPriceBase - b.totalPriceBase)
-
+  const options = mapRateOptions(json)
   if (options.length === 0) {
     throw new Error('No DHL Express rates available for this destination')
   }
 
-  const preferred = input.productCode
-    ? options.find((option) => option.productCode === input.productCode)
-    : undefined
+  const preferred = options.find(
+    (option) => option.productCode === profile.productCode,
+  )
 
   return {
     options,
     selected: preferred ?? options[0]!,
     weightKg,
+    productCode: profile.productCode,
   }
 }

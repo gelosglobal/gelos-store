@@ -7,6 +7,8 @@ import { normalizeImageUrl } from '@/lib/image-url'
 import { parseCheckoutLineItems } from '@/lib/parse-checkout-line-items'
 import { prisma } from '@/lib/prisma'
 import { creditAffiliateCommissionForPaidOrder } from '@/lib/db/orders'
+import { toPublicDhlShipment } from '@/lib/dhl/record'
+import { asShippingDetails } from '@/lib/dhl/shipping-details'
 import type {
   AdminOrderDetail,
   FulfillmentStatus,
@@ -105,6 +107,8 @@ export function prismaOrderToAdminDetail(
     customerEmail: order.customerEmail,
     customerPhone: order.customerPhone ?? undefined,
     shippingAddress: order.shippingAddress ?? undefined,
+    shippingDetails: asShippingDetails(order.shippingDetails),
+    dhl: toPublicDhlShipment(order.dhl),
     lineItems,
     subtotal: order.subtotal,
     shipping: order.shipping,

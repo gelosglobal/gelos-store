@@ -58,22 +58,25 @@ export function calculateCheckoutTotals(
   const afterDiscount = subtotal - discount
 
   const flatShipping = promotions.shippingFee
-  const baseShipping =
+  const hasCarrierQuote =
     typeof options.shippingOverride === 'number' &&
     Number.isFinite(options.shippingOverride)
-      ? Math.max(0, options.shippingOverride)
-      : flatShipping
+  const baseShipping = hasCarrierQuote
+    ? Math.max(0, options.shippingOverride as number)
+    : flatShipping
 
   const shipping =
     items.length === 0
       ? 0
       : options.smileRewardFreeShipping
         ? 0
-        : !promotions.freeShippingEnabled
+        : hasCarrierQuote
           ? baseShipping
-          : afterDiscount >= promotions.freeShippingThreshold
-            ? 0
-            : baseShipping
+          : !promotions.freeShippingEnabled
+            ? baseShipping
+            : afterDiscount >= promotions.freeShippingThreshold
+              ? 0
+              : baseShipping
 
   return {
     subtotal,

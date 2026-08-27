@@ -192,7 +192,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       for (const event of result.trackEvents) {
         trackAddToCart({
           ...event,
-          price: convertForLocation(event.price, locationId),
+          price: convertForLocation(event.price, locationId, location.currencyCode),
           currency: location.currencyCode,
         })
       }

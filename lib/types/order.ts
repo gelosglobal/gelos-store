@@ -86,6 +86,8 @@ export type AdminOrderDetail = StoreOrder & {
   customerEmail: string
   customerPhone?: string
   shippingAddress?: string
+  shippingDetails?: import('@/lib/dhl/types').ShippingDetails
+  dhl?: import('@/lib/dhl/types').PublicDhlShipment
   lineItems: StoreOrderLineItem[]
   subtotal: number
   shipping: number

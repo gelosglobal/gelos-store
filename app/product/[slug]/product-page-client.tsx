@@ -49,7 +49,7 @@ function ProductPageClientInner({
     trackViewContent({
       id: product.id,
       name: product.name,
-      price: convertForLocation(product.price, locationId),
+          price: convertForLocation(product.price, locationId, location.currencyCode),
       category: product.category,
       currency: location.currencyCode,
     })

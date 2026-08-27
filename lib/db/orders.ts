@@ -4,6 +4,7 @@ import { isDatabaseConfigured } from '@/lib/env'
 import { markCheckoutRecovered } from '@/lib/db/abandoned-checkouts'
 import { recordAffiliateConversion } from '@/lib/db/affiliates'
 import type { CheckoutLineItem } from '@/lib/checkout'
+import type { ShippingDetails } from '@/lib/dhl/types'
 
 export type CreateOrderInput = {
   orderNumber?: string
@@ -13,6 +14,7 @@ export type CreateOrderInput = {
   customerEmail: string
   customerPhone?: string
   shippingAddress?: string
+  shippingDetails?: ShippingDetails
   items: CheckoutLineItem[]
   subtotal: number
   shipping: number
@@ -69,6 +71,9 @@ export async function createOrder(input: CreateOrderInput) {
       customerEmail: input.customerEmail,
       customerPhone: input.customerPhone,
       shippingAddress: input.shippingAddress,
+      shippingDetails: input.shippingDetails
+        ? (input.shippingDetails as Prisma.InputJsonValue)
+        : undefined,
       items: input.items as Prisma.InputJsonValue,
       subtotal: input.subtotal,
       shipping: input.shipping,

@@ -10,6 +10,7 @@ import {
 import { createStripeCheckoutSession, isStripeConfigured } from '@/lib/stripe'
 import { getMarketSettings } from '@/lib/db/market-settings'
 import type { LocationId } from '@/lib/locations'
+import { shippingDetailsFromCheckout } from '@/lib/dhl/shipping-details'
 
 function getAppOrigin(request: Request): string {
   // Prefer the live request host in local/dev so Stripe redirects don't
@@ -99,6 +100,7 @@ export async function POST(request: Request) {
         customerEmail: email,
         customerPhone: phone,
         shippingAddress,
+        shippingDetails: shippingDetailsFromCheckout(parsed.data.shipping),
         items: localizedItems,
         subtotal: totals.subtotal,
         shipping: totals.shipping,

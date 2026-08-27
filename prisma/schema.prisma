@@ -90,6 +90,10 @@ model Order {
   customerEmail     String
   customerPhone     String?
   shippingAddress   String?
+  /** Structured destination for MyDHL (country, city, postal, line1). */
+  shippingDetails   Json?
+  /** MyDHL shipment, pickup, labels, and last tracking snapshot. */
+  dhl               Json?
   items             Json
   subtotal          Float
   shipping          Float

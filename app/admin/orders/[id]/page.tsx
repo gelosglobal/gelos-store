@@ -15,6 +15,8 @@ export default function AdminOrderDetailPage() {
   const [updating, setUpdating] = useState(false)
   const [sendingInvoice, setSendingInvoice] = useState(false)
   const [repairingItems, setRepairingItems] = useState(false)
+  const [creatingDhlShipment, setCreatingDhlShipment] = useState(false)
+  const [refreshingDhlTracking, setRefreshingDhlTracking] = useState(false)
 
   const loadOrder = useCallback(async () => {
     if (!orderId) return
@@ -125,6 +127,63 @@ export default function AdminOrderDetailPage() {
     }
   }
 
+  const createDhlShipment = async () => {
+    if (!orderId) return
+
+    setCreatingDhlShipment(true)
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/dhl/ship`, {
+        method: 'POST',
+      })
+      const data = (await res.json()) as {
+        error?: string
+        order?: AdminOrderDetail
+        trackingNumber?: string
+        pickupError?: string
+      }
+      if (!res.ok) throw new Error(data.error ?? 'Failed to create DHL shipment')
+      if (data.order) setOrder(data.order)
+      toast.success(
+        data.trackingNumber
+          ? `DHL shipment created: ${data.trackingNumber}`
+          : 'DHL shipment created',
+      )
+      if (data.pickupError) {
+        toast.error(`Pickup request failed: ${data.pickupError}`)
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to create DHL shipment',
+      )
+    } finally {
+      setCreatingDhlShipment(false)
+    }
+  }
+
+  const refreshDhlTracking = async () => {
+    if (!orderId) return
+
+    setRefreshingDhlTracking(true)
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/dhl/tracking`, {
+        cache: 'no-store',
+      })
+      const data = (await res.json()) as {
+        error?: string
+        order?: AdminOrderDetail
+      }
+      if (!res.ok) throw new Error(data.error ?? 'Failed to refresh tracking')
+      if (data.order) setOrder(data.order)
+      toast.success('Tracking updated')
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to refresh tracking',
+      )
+    } finally {
+      setRefreshingDhlTracking(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -147,12 +206,16 @@ export default function AdminOrderDetailPage() {
       updating={updating}
       sendingInvoice={sendingInvoice}
       repairingItems={repairingItems}
+      creatingDhlShipment={creatingDhlShipment}
+      refreshingDhlTracking={refreshingDhlTracking}
       onSendInvoice={sendInvoice}
       onRepairItems={() => void repairItems()}
       onPaymentStatusChange={(paymentStatus) => patchOrder({ paymentStatus })}
       onFulfillmentStatusChange={(fulfillmentStatus) =>
         patchOrder({ fulfillmentStatus })
       }
+      onCreateDhlShipment={() => void createDhlShipment()}
+      onRefreshDhlTracking={() => void refreshDhlTracking()}
     />
   )
 }

@@ -15,6 +15,7 @@ import {
   Phone,
   Printer,
   ShoppingBag,
+  Truck,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -56,6 +57,10 @@ type OrderDetailViewProps = {
   onSendInvoice?: () => void
   onFulfillmentStatusChange?: (status: FulfillmentStatus) => void
   onRepairItems?: () => void
+  creatingDhlShipment?: boolean
+  refreshingDhlTracking?: boolean
+  onCreateDhlShipment?: () => void
+  onRefreshDhlTracking?: () => void
 }
 
 const PAYMENT_STATUSES: PaymentStatus[] = [
@@ -365,6 +370,10 @@ export function OrderDetailView({
   onSendInvoice,
   onFulfillmentStatusChange,
   onRepairItems,
+  creatingDhlShipment = false,
+  refreshingDhlTracking = false,
+  onCreateDhlShipment,
+  onRefreshDhlTracking,
 }: OrderDetailViewProps) {
   const [conversionOpen, setConversionOpen] = useState(false)
   const [invoiceConfirmOpen, setInvoiceConfirmOpen] = useState(false)
@@ -526,6 +535,100 @@ export function OrderDetailView({
                 })}
               </ul>
             </div>
+            {onCreateDhlShipment || order.dhl?.trackingNumber ? (
+              <div className="space-y-3 border-t border-neutral-200 px-4 py-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-neutral-950">
+                  <Truck className="h-4 w-4" />
+                  DHL Express
+                </div>
+                {order.dhl?.trackingNumber ? (
+                  <div className="space-y-2 text-sm text-neutral-700">
+                    <p>
+                      Tracking{' '}
+                      <a
+                        href={order.dhl.trackingUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium text-sky-700 hover:text-sky-900"
+                      >
+                        {order.dhl.trackingNumber}
+                      </a>
+                    </p>
+                    {order.dhl.productName ? (
+                      <p className="text-neutral-500">
+                        {order.dhl.productName} ({order.dhl.productCode})
+                      </p>
+                    ) : null}
+                    {order.dhl.pickupConfirmationNumber ? (
+                      <p className="text-neutral-500">
+                        Pickup {order.dhl.pickupConfirmationNumber}
+                      </p>
+                    ) : null}
+                    {order.dhl.lastStatus || order.dhl.lastDescription ? (
+                      <p>
+                        {order.dhl.lastStatus
+                          ? `${order.dhl.lastStatus}`
+                          : null}
+                        {order.dhl.lastDescription
+                          ? ` — ${order.dhl.lastDescription}`
+                          : null}
+                      </p>
+                    ) : null}
+                    {order.dhl.error ? (
+                      <p className="text-amber-800">{order.dhl.error}</p>
+                    ) : null}
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {order.dhl.hasDocuments ? (
+                        <Button asChild variant="outline" size="sm">
+                          <a
+                            href={`/api/admin/orders/${order.id}/dhl/label`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Download label
+                          </a>
+                        </Button>
+                      ) : null}
+                      {onRefreshDhlTracking ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={refreshingDhlTracking}
+                          onClick={onRefreshDhlTracking}
+                        >
+                          {refreshingDhlTracking ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            'Refresh tracking'
+                          )}
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-neutral-600">
+                      Create a MyDHL shipment (label + pickup) for this order.
+                    </p>
+                    {onCreateDhlShipment ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={creatingDhlShipment || updating}
+                        onClick={onCreateDhlShipment}
+                      >
+                        {creatingDhlShipment ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          'Create DHL shipment'
+                        )}
+                      </Button>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            ) : null}
             {onFulfillmentStatusChange ? (
               <div className="border-t border-neutral-200 px-4 py-3">
                 <FulfillmentActions

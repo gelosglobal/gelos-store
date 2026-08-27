@@ -16,6 +16,7 @@ import { locations, type LocationId } from '@/lib/locations'
 import {
   DEFAULT_ALL_MARKET_SETTINGS,
   sanitizeMarketSettings,
+  usesLiveDhlRates,
   type AllMarketSettings,
   type MarketPaymentMethod,
   type MarketSettings,
@@ -185,7 +186,11 @@ export function MarketsSettingsForm() {
 
           <SettingsSectionCard
             title="Currency & exchange rate"
-            description="Catalog prices are stored in GHS. Set how many local units equal 1 GHS."
+            description={
+              activeMarket === 'international'
+                ? 'International prices follow the shopper’s country currency. The USD rate below is used as the conversion pivot.'
+                : 'Catalog prices are stored in GHS. Set how many local units equal 1 GHS.'
+            }
           >
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -215,14 +220,24 @@ export function MarketsSettingsForm() {
               </div>
             </div>
             <p className="mt-3 text-xs text-neutral-500">
-              Example: NGN 108 means GH₵1 displays as ₦108.
+              Catalog prices are stored in GHS. Set how many local units equal 1
+              GHS. International shoppers see their local currency from geo
+              location; this USD rate is the conversion pivot.
             </p>
           </SettingsSectionCard>
 
           <SettingsSectionCard
             title="Shipping"
-            description="Amounts are in GHS (catalog base), then converted for the shopper."
+            description={
+              usesLiveDhlRates(activeMarket)
+                ? 'Live DHL Express rates at checkout. No flat or fallback fee.'
+                : 'Amounts are in GHS (catalog base), then converted for the shopper.'
+            }
           >
+            {usesLiveDhlRates(activeMarket) ? (
+              <p className="text-sm text-neutral-700">DHL connected</p>
+            ) : (
+              <>
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-medium text-neutral-950">
@@ -273,6 +288,8 @@ export function MarketsSettingsForm() {
                 />
               </div>
             </div>
+              </>
+            )}
           </SettingsSectionCard>
 
           <SettingsSectionCard

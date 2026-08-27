@@ -136,7 +136,7 @@ export const paymentsSections: HelpContentSection[] = [
   {
     title: 'Secure checkout',
     body: [
-      'Online payments in Ghana, Nigeria, and other supported regions are processed securely through Paystack. US inhaler orders are processed through Stripe. Your card and mobile money details are encrypted and never stored on Gelos servers.',
+      'Online payments in Ghana and other supported regions are processed securely through Paystack. US orders are processed through Stripe. Your card and mobile money details are encrypted and never stored on Gelos servers.',
     ],
   },
   {

@@ -9,7 +9,12 @@ import {
 } from '@/lib/db/orders'
 import { initializeTransaction, isPaystackConfigured } from '@/lib/paystack'
 import { getMarketSettings } from '@/lib/db/market-settings'
+import { shippingDetailsFromCheckout } from '@/lib/dhl/shipping-details'
 import type { LocationId } from '@/lib/locations'
+import {
+  convertFromBase,
+  toPaystackChargeCurrency,
+} from '@/lib/exchange-rates'
 
 function getAppOrigin(request: Request): string {
   const configured = process.env.NEXT_PUBLIC_APP_URL?.trim()
@@ -53,9 +58,33 @@ export async function POST(request: Request) {
       )
     }
 
-    const { localizedItems, totals, promoCode, affiliate, currency } =
-      await buildLocalizedCheckoutOrder(parsed.data)
+    const {
+      localizedItems,
+      checkoutItems,
+      totals,
+      baseTotals,
+      promoCode,
+      affiliate,
+      currency,
+    } = await buildLocalizedCheckoutOrder(parsed.data)
     const { email, name, phone, shippingAddress } = parsed.data
+    const chargeCurrency = toPaystackChargeCurrency(currency)
+    const chargeItems =
+      chargeCurrency === currency
+        ? localizedItems
+        : checkoutItems.map((item) => ({
+            ...item,
+            price: convertFromBase(item.price, chargeCurrency),
+          }))
+    const chargeTotals =
+      chargeCurrency === currency
+        ? totals
+        : {
+            subtotal: convertFromBase(baseTotals.subtotal, chargeCurrency),
+            discount: convertFromBase(baseTotals.discount, chargeCurrency),
+            shipping: convertFromBase(baseTotals.shipping, chargeCurrency),
+            total: convertFromBase(baseTotals.total, chargeCurrency),
+          }
 
     const callbackUrl = `${getAppOrigin(request)}/checkout/callback`
     const payment = await initializeTransaction({
@@ -64,8 +93,9 @@ export async function POST(request: Request) {
       phone,
       shippingAddress,
       locationId: checkoutLocationId,
-      items: localizedItems,
-      totals,
+      currency: chargeCurrency,
+      items: chargeItems,
+      totals: chargeTotals,
       promoApplied: Boolean(promoCode),
       promoCode,
       affiliateCode: affiliate?.code,
@@ -85,12 +115,13 @@ export async function POST(request: Request) {
         customerEmail: email,
         customerPhone: phone,
         shippingAddress,
-        items: localizedItems,
-        subtotal: totals.subtotal,
-        shipping: totals.shipping,
-        discount: totals.discount,
-        total: totals.total,
-        currency,
+        shippingDetails: shippingDetailsFromCheckout(parsed.data.shipping),
+        items: chargeItems,
+        subtotal: chargeTotals.subtotal,
+        shipping: chargeTotals.shipping,
+        discount: chargeTotals.discount,
+        total: chargeTotals.total,
+        currency: chargeCurrency,
         affiliateCode: affiliate?.code,
         affiliateId: affiliate?.affiliateId,
         commissionAmount: affiliate?.commissionAmount ?? 0,
@@ -110,12 +141,13 @@ export async function POST(request: Request) {
     console.error('[POST /api/paystack/initialize]', error)
     const rawMessage =
       error instanceof Error ? error.message : 'Failed to start payment'
-    const currencyHint =
+    const currencyHint = toPaystackChargeCurrency(
       checkoutLocationId === 'nigeria'
         ? 'NGN'
         : checkoutLocationId === 'ghana'
           ? 'GHS'
-          : 'USD'
+          : 'USD',
+    )
     const message = rawMessage.toLowerCase().includes('currency not supported')
       ? `${rawMessage}. Enable ${currencyHint} in your Paystack dashboard under Settings → Preferences → Currency.`
       : rawMessage

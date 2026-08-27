@@ -8,6 +8,7 @@ import { createCodOrder } from '@/lib/db/orders'
 import { getMarketSettings } from '@/lib/db/market-settings'
 import { notifyOrderPlaced } from '@/lib/email/send-order-emails'
 import { sendCapiPurchase } from '@/lib/meta-conversions-api'
+import { shippingDetailsFromCheckout } from '@/lib/dhl/shipping-details'
 import type { LocationId } from '@/lib/locations'
 
 const codRequestSchema = checkoutRequestSchema.extend({
@@ -49,6 +50,7 @@ export async function POST(request: Request) {
       customerEmail: email,
       customerPhone: phone,
       shippingAddress,
+      shippingDetails: shippingDetailsFromCheckout(parsed.data.shipping),
       items: localizedItems,
       subtotal: totals.subtotal,
       shipping: totals.shipping,

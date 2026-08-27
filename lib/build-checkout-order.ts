@@ -3,8 +3,12 @@ import { calculateCheckoutTotals } from '@/lib/checkout'
 import {
   convertFromBase,
   getPaystackCurrencyForLocation,
+  hasExchangeRate,
+  setLiveUsdToLocalRates,
   setRuntimeExchangeRates,
 } from '@/lib/exchange-rates'
+import { currencyForCountry } from '@/lib/country-currency'
+import { fetchUsdToLocalRates } from '@/lib/fx-live'
 import { getAllProducts } from '@/lib/db/products'
 import { getStorePromotions } from '@/lib/db/store-settings'
 import {
@@ -15,6 +19,7 @@ import {
   applyMarketShipping,
   assertMarketCartItems,
   marketRatesToCurrencyMap,
+  usesLiveDhlRates,
 } from '@/lib/market-settings'
 import { findAffiliateByCode } from '@/lib/db/affiliates'
 import { calculateAffiliateCommission } from '@/lib/affiliates'
@@ -63,6 +68,12 @@ export const checkoutRequestSchema = z.object({
   shippingAddress: z.string().max(300).optional(),
   shipping: checkoutShippingSchema.optional(),
   locationId: z.enum(['international', 'nigeria', 'ghana', 'usa']),
+  currencyCode: z
+    .string()
+    .trim()
+    .length(3)
+    .optional()
+    .transform((value) => value?.toUpperCase()),
   items: z.array(checkoutLineItemSchema).min(1),
   promoCode: z.string().max(40).optional(),
   affiliateCode: z.string().max(40).optional(),
@@ -72,6 +83,27 @@ export const checkoutRequestSchema = z.object({
 })
 
 export type CheckoutRequestBody = z.infer<typeof checkoutRequestSchema>
+
+function resolveCheckoutCurrency(
+  locationId: LocationId,
+  marketCurrency: string,
+  requested?: string,
+  shippingCountry?: string,
+): string {
+  if (locationId === 'ghana') return 'GHS'
+  if (locationId === 'usa') return marketCurrency || 'USD'
+  if (locationId === 'nigeria') return marketCurrency || 'NGN'
+
+  const requestedCode = requested?.trim().toUpperCase()
+  if (requestedCode && hasExchangeRate(requestedCode)) return requestedCode
+
+  const fromShipping = shippingCountry
+    ? currencyForCountry(shippingCountry)
+    : undefined
+  if (fromShipping && hasExchangeRate(fromShipping)) return fromShipping
+
+  return marketCurrency || 'USD'
+}
 
 function resolveDestinationCountry(
   locationId: LocationId,
@@ -87,6 +119,8 @@ export async function buildLocalizedCheckoutOrder(body: CheckoutRequestBody) {
   const locationId = body.locationId as LocationId
   const markets = await getAllMarketSettings()
   const market = markets[locationId] ?? (await getMarketSettings(locationId))
+  const usdToLocal = await fetchUsdToLocalRates()
+  setLiveUsdToLocalRates(usdToLocal)
   setRuntimeExchangeRates(marketRatesToCurrencyMap(markets))
 
   assertMarketCartItems(body.items, market)
@@ -111,8 +145,12 @@ export async function buildLocalizedCheckoutOrder(body: CheckoutRequestBody) {
     }
   })
 
-  const currency =
-    market.currencyCode || getPaystackCurrencyForLocation(locationId)
+  const currency = resolveCheckoutCurrency(
+    locationId,
+    market.currencyCode || getPaystackCurrencyForLocation(locationId),
+    body.currencyCode,
+    body.shipping?.countryCode,
+  )
 
   const localizedItems = checkoutItems.map((item) => ({
     ...item,
@@ -154,30 +192,33 @@ export async function buildLocalizedCheckoutOrder(body: CheckoutRequestBody) {
     body.shipping?.countryCode,
   )
   const destinationCity = body.shipping?.city?.trim()
+  const requiresDhl = usesLiveDhlRates(locationId)
 
-  if (isDhlConfigured() && destinationCountry && destinationCity) {
-    try {
-      const itemCount = checkoutItems.reduce(
-        (sum, item) => sum + item.quantity,
-        0,
-      )
-      const rates = await fetchDhlRates({
-        destinationCountryCode: destinationCountry,
-        destinationCityName: destinationCity,
-        destinationPostalCode: body.shipping?.postalCode,
-        itemCount,
-        productCode: body.shipping?.productCode,
-      })
-      shippingOverride = rates.selected.totalPriceBase
-      dhl = {
-        productCode: rates.selected.productCode,
-        productName: rates.selected.productName,
-        totalPrice: rates.selected.totalPrice,
-        currency: rates.selected.currency,
-      }
-    } catch (error) {
-      console.error('[buildLocalizedCheckoutOrder] DHL rates failed', error)
-      // Fall back to flat market shipping fee.
+  if (requiresDhl) {
+    if (!isDhlConfigured()) {
+      throw new Error('DHL shipping is not available. Please try again later.')
+    }
+    if (!destinationCountry || !destinationCity) {
+      throw new Error('Enter your city so we can calculate DHL shipping.')
+    }
+    const itemCount = checkoutItems.reduce(
+      (sum, item) => sum + item.quantity,
+      0,
+    )
+    const rates = await fetchDhlRates({
+      destinationCountryCode: destinationCountry,
+      destinationCityName: destinationCity,
+      destinationPostalCode: body.shipping?.postalCode,
+      destinationAddressLine1: body.shipping?.addressLine1,
+      itemCount,
+      productCode: body.shipping?.productCode,
+    })
+    shippingOverride = rates.selected.totalPriceBase
+    dhl = {
+      productCode: rates.selected.productCode,
+      productName: rates.selected.productName,
+      totalPrice: rates.selected.totalPrice,
+      currency: rates.selected.currency,
     }
   }
 
@@ -202,7 +243,9 @@ export async function buildLocalizedCheckoutOrder(body: CheckoutRequestBody) {
   return {
     locationId,
     market,
+    checkoutItems,
     localizedItems,
+    baseTotals,
     totals,
     currency,
     promoCode: promoCode || undefined,

@@ -22,8 +22,32 @@ export function getStripe(): Stripe {
   return stripeClient
 }
 
-/** Stripe expects amounts in the smallest currency unit (cents). */
-export function toStripeAmount(amount: number): number {
+const ZERO_DECIMAL_CURRENCIES = new Set([
+  'BIF',
+  'CLP',
+  'DJF',
+  'GNF',
+  'JPY',
+  'KMF',
+  'KRW',
+  'MGA',
+  'PYG',
+  'RWF',
+  'UGX',
+  'VND',
+  'VUV',
+  'XAF',
+  'XOF',
+  'XPF',
+])
+
+const THREE_DECIMAL_CURRENCIES = new Set(['BHD', 'JOD', 'KWD', 'OMR', 'TND'])
+
+/** Stripe expects amounts in the smallest currency unit. */
+export function toStripeAmount(amount: number, currency = 'usd'): number {
+  const code = currency.trim().toUpperCase()
+  if (ZERO_DECIMAL_CURRENCIES.has(code)) return Math.round(amount)
+  if (THREE_DECIMAL_CURRENCIES.has(code)) return Math.round(amount * 1000)
   return Math.round(amount * 100)
 }
 
@@ -67,7 +91,7 @@ export async function createStripeCheckoutSession(
         quantity: item.quantity,
         price_data: {
           currency,
-          unit_amount: toStripeAmount(item.price),
+          unit_amount: toStripeAmount(item.price, currency),
           product_data: {
             name: item.name,
             ...(image ? { images: [image] } : {}),
@@ -81,7 +105,7 @@ export async function createStripeCheckoutSession(
       quantity: 1,
       price_data: {
         currency,
-        unit_amount: toStripeAmount(input.totals.shipping),
+        unit_amount: toStripeAmount(input.totals.shipping, currency),
         product_data: {
           name: 'Shipping',
         },
@@ -92,7 +116,7 @@ export async function createStripeCheckoutSession(
   let discounts: Stripe.Checkout.SessionCreateParams.Discount[] | undefined
   if (input.totals.discount > 0) {
     const coupon = await stripe.coupons.create({
-      amount_off: toStripeAmount(input.totals.discount),
+      amount_off: toStripeAmount(input.totals.discount, currency),
       currency,
       duration: 'once',
       name: input.promoCode?.trim() || 'Promo discount',
@@ -165,7 +189,7 @@ export async function createStripePaymentIntent(
   const currency = input.currency.toLowerCase()
 
   const intent = await stripe.paymentIntents.create({
-    amount: toStripeAmount(input.totals.total),
+    amount: toStripeAmount(input.totals.total, currency),
     currency,
     payment_method_types: ['card'],
     receipt_email: input.email,
