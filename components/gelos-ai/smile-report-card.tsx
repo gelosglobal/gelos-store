@@ -13,6 +13,7 @@ import {
 import { useMemo, useState } from 'react'
 import { ShareSmileReportButton } from '@/components/gelos-ai/share-smile-report-button'
 import { useProducts } from '@/components/products-provider'
+import { useLocation } from '@/components/location-provider'
 import { SmileScoreGauge } from '@/components/smile-results/smile-score-gauge'
 import { SmileTestBundleBuilder } from '@/components/smile-test/smile-test-bundle-builder'
 import { SmileTestProductMatchSection } from '@/components/smile-test/smile-test-product-match'
@@ -32,6 +33,7 @@ export function SmileReportCard({
   showShare?: boolean
 }) {
   const { products } = useProducts()
+  const { locationId } = useLocation()
   const [routineTab, setRoutineTab] = useState<'morning' | 'night'>('morning')
 
   const firstName = customerName?.trim().split(/\s+/)[0]
@@ -247,6 +249,7 @@ export function SmileReportCard({
           <div className="min-w-0">
             <h4 className="font-semibold text-neutral-950">When to see a dentist</h4>
             <p className="mt-1 text-sm leading-relaxed text-neutral-600">{report.dentistNote}</p>
+            {locationId === 'ghana' ? (
             <Link
               href="/book-dentist"
               className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#7C3AED] hover:underline"
@@ -254,6 +257,7 @@ export function SmileReportCard({
               Book a partner dentist
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
+            ) : null}
           </div>
         </div>
       </div>

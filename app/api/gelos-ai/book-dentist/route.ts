@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic'
 
 const bookingRequestSchema = z.object({
   dentistId: z.string().min(1),
+  locationId: z.enum(['ghana', 'usa', 'international', 'nigeria']),
   name: z.string().trim().min(2).max(80),
   email: z.string().trim().email(),
   phone: z.string().trim().min(6).max(30),
@@ -38,6 +39,13 @@ export async function POST(request: Request) {
     const dentist = getDentistById(parsed.data.dentistId)
     if (!dentist) {
       return NextResponse.json({ error: 'Dentist not found.' }, { status: 404 })
+    }
+
+    if (parsed.data.locationId !== 'ghana') {
+      return NextResponse.json(
+        { error: 'Partner dentist booking is only available in Ghana.' },
+        { status: 403 },
+      )
     }
 
     const slotCheck = validateAppointmentSlot(

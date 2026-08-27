@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { ScanSmilePanel } from '@/components/gelos-ai/scan-smile-panel'
+import { useLocation } from '@/components/location-provider'
 import { cn } from '@/lib/utils'
 
 const howItWorks = [
@@ -65,6 +66,7 @@ const aiTools: AiTool[] = [
 
 function GelosAiPageContent() {
   const router = useRouter()
+  const { locationId } = useLocation()
   const searchParams = useSearchParams()
   const urlTab = searchParams.get('tab')
   const [showScan, setShowScan] = useState(urlTab === 'scan')
@@ -72,7 +74,7 @@ function GelosAiPageContent() {
 
   useEffect(() => {
     if (urlTab === 'dentist') {
-      router.replace('/book-dentist')
+      router.replace(locationId === 'ghana' ? '/book-dentist' : '/ai')
       return
     }
     if (urlTab === 'chat') {
@@ -80,7 +82,7 @@ function GelosAiPageContent() {
       return
     }
     setShowScan(urlTab === 'scan')
-  }, [router, urlTab])
+  }, [router, urlTab, locationId])
 
   useEffect(() => {
     if (!showScan || urlTab !== 'scan') return

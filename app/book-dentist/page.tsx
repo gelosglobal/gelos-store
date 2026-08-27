@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft, CalendarCheck, Mail, ShieldCheck } from 'lucide-react'
 import { BookDentistPanel } from '@/components/gelos-ai/book-dentist-panel'
+import { GhanaMarketGate } from '@/components/ghana-market-gate'
 
 export const metadata: Metadata = {
   title: 'Book a Dentist | Gelos',
@@ -23,6 +24,7 @@ const trustPoints = [
 
 export default function BookDentistPage() {
   return (
+    <GhanaMarketGate>
     <div className="min-h-screen bg-white text-foreground">
       <section className="border-b border-neutral-100 bg-[radial-gradient(ellipse_at_top,#f0fdf4_0%,#ffffff_60%)]">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 md:py-12">
@@ -83,5 +85,6 @@ export default function BookDentistPage() {
       </section>
 
     </div>
+    </GhanaMarketGate>
   )
 }

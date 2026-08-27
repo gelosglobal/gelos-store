@@ -28,6 +28,7 @@ import {
   validateAppointmentSlot,
 } from '@/lib/gelos-ai/dentist-schedule'
 import { dentistPartners } from '@/lib/gelos-ai/dentists'
+import { useLocation } from '@/components/location-provider'
 import { trackSchedule } from '@/lib/meta-pixel'
 import { cn } from '@/lib/utils'
 
@@ -71,6 +72,7 @@ function getMapsUrl(address: string): string {
 }
 
 export function BookDentistPanel() {
+  const { locationId } = useLocation()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -139,6 +141,7 @@ export function BookDentistPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dentistId: partnerDentist.id,
+          locationId,
           name,
           email,
           phone,

@@ -17,6 +17,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { useCart } from '@/components/cart-provider'
+import { useLocation } from '@/components/location-provider'
 import { mainNavLinks, navItemClassName } from '@/lib/nav-config'
 import { isStorefrontChromeHidden } from '@/lib/dentist/portal'
 import { cn } from '@/lib/utils'
@@ -24,6 +25,10 @@ import { cn } from '@/lib/utils'
 export function SiteNavbar() {
   const pathname = usePathname()
   const { itemCount, isHydrated } = useCart()
+  const { locationId } = useLocation()
+  const navLinks = mainNavLinks.filter(
+    (item) => !item.ghanaOnly || locationId === 'ghana',
+  )
 
   if (isStorefrontChromeHidden(pathname)) {
     return null
@@ -83,7 +88,7 @@ export function SiteNavbar() {
           </Link>
 
           <nav className="font-nav hidden flex-1 items-center justify-center gap-0.5 lg:flex">
-            {mainNavLinks.map((item) => {
+            {navLinks.map((item) => {
               const Icon = item.icon
               if (item.opensMegaMenu) {
                 return (
@@ -170,7 +175,7 @@ export function SiteNavbar() {
                       className="w-full px-2 py-2.5 hover:bg-neutral-50"
                       onNavigate={() => setMobileOpen(false)}
                     />
-                    {mainNavLinks.map((item) => {
+                    {navLinks.map((item) => {
                         const Icon = item.icon
                         return (
                           <Link
@@ -197,7 +202,7 @@ export function SiteNavbar() {
               <LocationSelector />
             </div>
 
-            {mainNavLinks
+            {navLinks
               .filter((item) => item.id === 'bundles')
               .map((item) => {
                 const Icon = item.icon

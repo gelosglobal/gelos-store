@@ -21,6 +21,8 @@ export type MainNavLink = {
   icon: LucideIcon
   /** Hover opens the all-products mega menu; click still uses href */
   opensMegaMenu?: boolean
+  /** Hide in USA / International — Accra clinic only */
+  ghanaOnly?: boolean
 }
 
 export const mainNavLinks: MainNavLink[] = [
@@ -54,6 +56,7 @@ export const mainNavLinks: MainNavLink[] = [
     label: 'Book a dentist',
     href: '/book-dentist',
     icon: Stethoscope,
+    ghanaOnly: true,
   },
 ]
 

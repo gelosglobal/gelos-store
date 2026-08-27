@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft, ClipboardList, ScanFace, Sparkles, Stethoscope } from 'lucide-react'
 import { AiChatPanel } from '@/components/gelos-ai/ai-chat-panel'
+import { useLocation } from '@/components/location-provider'
 import { cn } from '@/lib/utils'
 
 const actionCards = [
@@ -28,6 +29,12 @@ const actionCards = [
 ] as const
 
 export function WellnessChatPage() {
+  const { locationId } = useLocation()
+  const cards =
+    locationId === 'ghana'
+      ? actionCards
+      : actionCards.filter((card) => card.href !== '/book-dentist')
+
   return (
     <div className="relative bg-white text-foreground">
       <div className="pointer-events-none absolute -top-16 right-0 h-48 w-48 rounded-full bg-[#F0FDF4]/80 blur-[80px]" />
@@ -76,8 +83,13 @@ export function WellnessChatPage() {
           <AiChatPanel variant="wellness" fullPage />
         </div>
 
-        <div className="mt-3 grid shrink-0 grid-cols-3 gap-2 sm:gap-3">
-          {actionCards.map(({ href, icon: Icon, title, description }) => (
+        <div
+          className={cn(
+            'mt-3 grid shrink-0 gap-2 sm:gap-3',
+            cards.length === 3 ? 'grid-cols-3' : 'grid-cols-2',
+          )}
+        >
+          {cards.map(({ href, icon: Icon, title, description }) => (
             <Link
               key={href}
               href={href}
