@@ -1,3 +1,5 @@
+import { currencySymbol } from '@/lib/country-currency'
+
 export function formatOrderDateLabel(date: Date): string {
   const now = new Date()
   const startOfToday = new Date(
@@ -56,16 +58,9 @@ export function formatPackingSlipDate(date: Date): string {
   return formatConversionDate(date)
 }
 
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  GHS: 'GH₵',
-  NGN: '₦',
-  USD: '$',
-}
-
 export function formatOrderTotal(currency: string, total: number): string {
   const code = currency.toUpperCase()
-  const symbol = CURRENCY_SYMBOLS[code] ?? `${code} `
-  return `${symbol}${total.toFixed(2)}`
+  return `${currencySymbol(code)}${total.toFixed(2)}`
 }
 
 export function isOrderToday(dateIso: string): boolean {

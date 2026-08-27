@@ -100,6 +100,8 @@ model Order {
   discount          Float
   total             Float
   currency          String
+  /** Storefront market: ghana | usa | international */
+  locationId        String?
   paymentStatus     String   @default("Payment pending")
   fulfillmentStatus String   @default("Unfulfilled")
   channel           String   @default("Online store")

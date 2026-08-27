@@ -148,6 +148,7 @@ export async function POST(request: Request) {
       discount,
       total,
       currency: payment.currency,
+      locationId,
       channel,
       affiliateCode,
       affiliateId,

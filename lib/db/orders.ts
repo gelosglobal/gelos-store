@@ -5,11 +5,13 @@ import { markCheckoutRecovered } from '@/lib/db/abandoned-checkouts'
 import { recordAffiliateConversion } from '@/lib/db/affiliates'
 import type { CheckoutLineItem } from '@/lib/checkout'
 import type { ShippingDetails } from '@/lib/dhl/types'
+import { canonicalizeLocationId } from '@/lib/locations'
 
 export type CreateOrderInput = {
   orderNumber?: string
   paystackReference: string
   visitorId?: string
+  locationId?: string
   customerName: string
   customerEmail: string
   customerPhone?: string
@@ -80,6 +82,7 @@ export async function createOrder(input: CreateOrderInput) {
       discount: input.discount,
       total: input.total,
       currency: input.currency,
+      locationId: canonicalizeLocationId(input.locationId),
       paymentStatus,
       fulfillmentStatus: 'Unfulfilled',
       channel,

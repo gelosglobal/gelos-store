@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { OrderDetailView } from '@/components/admin/order-detail-view'
+import { usesLiveDhlRates } from '@/lib/market-settings'
 import type { AdminOrderDetail } from '@/lib/types/order'
 
 export default function AdminOrderDetailPage() {
@@ -230,8 +231,16 @@ export default function AdminOrderDetailPage() {
       onFulfillmentStatusChange={(fulfillmentStatus) =>
         patchOrder({ fulfillmentStatus })
       }
-      onCreateDhlShipment={() => void createDhlShipment()}
-      onRefreshDhlTracking={() => void refreshDhlTracking()}
+      onCreateDhlShipment={
+        usesLiveDhlRates(order.locationId) || Boolean(order.dhl)
+          ? () => void createDhlShipment()
+          : undefined
+      }
+      onRefreshDhlTracking={
+        usesLiveDhlRates(order.locationId) || Boolean(order.dhl)
+          ? () => void refreshDhlTracking()
+          : undefined
+      }
       dhlLive={dhlLive}
     />
   )

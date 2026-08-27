@@ -140,6 +140,7 @@ export async function ensureWhatsappPaystackLink(
       discount: 0,
       total: order.total_ghs,
       currency: 'GHS',
+      locationId: 'ghana',
       channel: 'WhatsApp',
     })
   } catch (error) {

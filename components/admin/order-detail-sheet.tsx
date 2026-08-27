@@ -162,6 +162,9 @@ export function OrderDetailSheet({
                 <PaymentStatusBadge status={order.paymentStatus} />
                 <FulfillmentStatusBadge status={order.fulfillmentStatus} />
                 <Badge variant="outline" className="bg-white">
+                  {order.marketFlag} {order.marketLabel}
+                </Badge>
+                <Badge variant="outline" className="bg-white">
                   {order.channel}
                 </Badge>
               </div>

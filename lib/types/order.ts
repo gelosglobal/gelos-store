@@ -1,3 +1,5 @@
+import type { LocationId } from '@/lib/locations'
+
 export type PaymentStatus =
   | 'Paid'
   | 'Payment pending'
@@ -70,6 +72,14 @@ export type StoreOrder = {
   dateLabel: string
   total: number
   currency: string
+  /** Storefront market: ghana | usa | international */
+  locationId: LocationId
+  marketLabel: string
+  marketFlag: string
+  destinationCountry?: string
+  destinationCountryCode?: string
+  destinationFlag?: string
+  showDestination?: boolean
   items: number
   paymentStatus: PaymentStatus
   fulfillmentStatus: FulfillmentStatus

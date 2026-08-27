@@ -18,10 +18,21 @@ import {
   PaymentStatusBadge,
 } from '@/components/admin/order-status-badge'
 import { formatOrderTotal } from '@/lib/admin/order-format'
+import { downloadOrdersCsv } from '@/lib/admin/orders-csv'
+import { printOrderReceipt } from '@/lib/admin/print-order-receipt'
 import { getOrderStats } from '@/lib/admin/orders-data'
-import type { StoreOrder } from '@/lib/types/order'
+import type { FulfillmentStatus, PaymentStatus, StoreOrder } from '@/lib/types/order'
+import type { LocationId } from '@/lib/locations'
+import { orderMatchesCountryQuery } from '@/lib/admin/order-market'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -71,11 +82,14 @@ export default function AdminOrdersPage() {
   const [databaseConnected, setDatabaseConnected] = useState(false)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [countrySearch, setCountrySearch] = useState('')
   const [tab, setTab] = useState<TabFilter>('all')
+  const [marketFilter, setMarketFilter] = useState<'all' | LocationId>('all')
   const [period, setPeriod] = useState<'today' | 'all'>('today')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
   const [backfilling, setBackfilling] = useState(false)
+  const [bulkUpdating, setBulkUpdating] = useState(false)
   const pageSize = 50
 
   const loadOrders = useCallback(async () => {
@@ -118,9 +132,12 @@ export default function AdminOrdersPage() {
         tab === 'all' ||
         (tab === 'unfulfilled' && order.fulfillmentStatus === 'Unfulfilled') ||
         (tab === 'pending' && order.paymentStatus === 'Payment pending')
-      return matchesSearch && matchesTab
+      const matchesMarket =
+        marketFilter === 'all' || order.locationId === marketFilter
+      const matchesCountry = orderMatchesCountryQuery(order, countrySearch)
+      return matchesSearch && matchesTab && matchesMarket && matchesCountry
     })
-  }, [orders, search, tab])
+  }, [orders, search, tab, marketFilter, countrySearch])
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize))
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
@@ -146,6 +163,102 @@ export default function AdminOrdersPage() {
 
   const openOrderDetail = (orderId: string) => {
     router.push(`/admin/orders/${orderId}`)
+  }
+
+  const selectedOrders = useMemo(
+    () => orders.filter((order) => selected.has(order.id)),
+    [orders, selected],
+  )
+  const hasSelection = selectedOrders.length > 0
+  const actionsBusy = backfilling || bulkUpdating
+
+  const requireSelection = () => {
+    if (hasSelection) return true
+    toast.error('Select at least one order first')
+    return false
+  }
+
+  const patchSelected = async (body: {
+    paymentStatus?: PaymentStatus
+    fulfillmentStatus?: FulfillmentStatus
+  }) => {
+    if (!requireSelection() || bulkUpdating) return
+    setBulkUpdating(true)
+    try {
+      const results = await Promise.allSettled(
+        selectedOrders.map(async (order) => {
+          const res = await fetch(`/api/admin/orders/${order.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          })
+          const data = (await res.json()) as { error?: string }
+          if (!res.ok) throw new Error(data.error ?? 'Update failed')
+        }),
+      )
+      const failed = results.filter((result) => result.status === 'rejected').length
+      const updated = results.length - failed
+      if (updated > 0) {
+        toast.success(
+          `Updated ${updated} order${updated === 1 ? '' : 's'}`,
+        )
+      }
+      if (failed > 0) {
+        toast.error(`Could not update ${failed} order${failed === 1 ? '' : 's'}`)
+      }
+      await loadOrders()
+    } finally {
+      setBulkUpdating(false)
+    }
+  }
+
+  const exportOrders = (rows: StoreOrder[], label: string) => {
+    if (rows.length === 0) {
+      toast.error(`No orders to export`)
+      return
+    }
+    const stamp = new Date().toISOString().slice(0, 10)
+    downloadOrdersCsv(rows, `gelos-orders-${label}-${stamp}.csv`)
+    toast.success(
+      `Exported ${rows.length} order${rows.length === 1 ? '' : 's'}`,
+    )
+  }
+
+  const printSelectedSlips = async () => {
+    if (!requireSelection() || bulkUpdating) return
+    setBulkUpdating(true)
+    try {
+      let printed = 0
+      for (const order of selectedOrders) {
+        const res = await fetch(`/api/admin/orders/${order.id}`, {
+          cache: 'no-store',
+        })
+        const data = (await res.json()) as {
+          order?: Parameters<typeof printOrderReceipt>[0]
+          error?: string
+        }
+        if (!res.ok || !data.order) {
+          throw new Error(data.error ?? `Failed to load ${order.orderNumber}`)
+        }
+        const opened = await printOrderReceipt(data.order)
+        if (opened) printed += 1
+      }
+      if (printed === 0) {
+        toast.error('Allow pop-ups to print packing slips')
+        return
+      }
+      toast.success(
+        printed === selectedOrders.length
+          ? `Opened ${printed} packing slip${printed === 1 ? '' : 's'}`
+          : `Opened ${printed} of ${selectedOrders.length} packing slips — allow pop-ups for the rest`,
+      )
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to print packing slips',
+      )
+    } finally {
+      setBulkUpdating(false)
+    }
   }
 
   const backfillMissingItems = async () => {
@@ -184,43 +297,109 @@ export default function AdminOrdersPage() {
       <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 px-4 py-3 sm:px-5">
-          <div className="flex items-center gap-2">
-            <ShoppingBag className="h-5 w-5 text-neutral-700" />
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <ShoppingBag className="h-5 w-5 shrink-0 text-neutral-700" />
             <h1 className="text-lg font-semibold text-neutral-950">Orders</h1>
-            <Select defaultValue="all">
-              <SelectTrigger className="h-8 w-[130px] border-neutral-200 text-sm">
+            <Select
+              value={marketFilter}
+              onValueChange={(value) => {
+                setMarketFilter(value as 'all' | LocationId)
+                setPage(1)
+              }}
+            >
+              <SelectTrigger className="h-8 w-[150px] border-neutral-200 text-sm">
                 <SelectValue placeholder="Location" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All locations</SelectItem>
-                <SelectItem value="gh">Ghana</SelectItem>
-                <SelectItem value="ng">Nigeria</SelectItem>
+                <SelectItem value="all">All markets</SelectItem>
+                <SelectItem value="ghana">🇬🇭 Ghana</SelectItem>
+                <SelectItem value="usa">🇺🇸 USA</SelectItem>
+                <SelectItem value="international">🌍 International</SelectItem>
               </SelectContent>
             </Select>
+            <div className="relative min-w-[160px] max-w-xs flex-1">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
+              <Input
+                placeholder="Search country"
+                value={countrySearch}
+                onChange={(e) => {
+                  setCountrySearch(e.target.value)
+                  setPage(1)
+                }}
+                className="h-8 border-neutral-200 pl-8 text-sm"
+                aria-label="Search orders by country"
+              />
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button
-              type="button"
               variant="outline"
               size="sm"
-              className="h-8 gap-1"
-              disabled={backfilling}
-              onClick={() => void backfillMissingItems()}
+              className="h-8"
+              disabled={filtered.length === 0}
+              onClick={() => exportOrders(filtered, 'filtered')}
             >
-              {backfilling ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <ShoppingBag className="h-3.5 w-3.5" />
-              )}
-              Restore missing items
-            </Button>
-            <Button variant="outline" size="sm" className="h-8">
               Export
             </Button>
-            <Button variant="outline" size="sm" className="h-8 gap-1">
-              More actions
-              <ChevronDown className="h-3.5 w-3.5" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1"
+                  disabled={actionsBusy}
+                >
+                  {actionsBusy ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : null}
+                  More actions
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem
+                  disabled={!hasSelection || actionsBusy}
+                  onSelect={() => void patchSelected({ paymentStatus: 'Paid' })}
+                >
+                  Mark as paid
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!hasSelection || actionsBusy}
+                  onSelect={() =>
+                    void patchSelected({ fulfillmentStatus: 'Fulfilled' })
+                  }
+                >
+                  Mark as fulfilled
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!hasSelection || actionsBusy}
+                  onSelect={() =>
+                    void patchSelected({ fulfillmentStatus: 'Shipped' })
+                  }
+                >
+                  Mark as shipped
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!hasSelection || actionsBusy}
+                  onSelect={() => void printSelectedSlips()}
+                >
+                  Print packing slips
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!hasSelection}
+                  onSelect={() => exportOrders(selectedOrders, 'selected')}
+                >
+                  Export selected
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  disabled={backfilling}
+                  onSelect={() => void backfillMissingItems()}
+                >
+                  Restore missing items
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               size="sm"
               className="h-8 gap-1 bg-neutral-950 hover:bg-neutral-800"
@@ -350,6 +529,9 @@ export default function AdminOrdersPage() {
                   Order
                 </TableHead>
                 <TableHead className="font-semibold text-neutral-600">
+                  Market
+                </TableHead>
+                <TableHead className="font-semibold text-neutral-600">
                   <span className="inline-flex items-center gap-1">
                     Date
                     <ChevronDown className="h-3.5 w-3.5" />
@@ -388,7 +570,7 @@ export default function AdminOrdersPage() {
               {loading ? (
                 <TableRow>
                   <TableCell
-                    colSpan={12}
+                    colSpan={13}
                     className="py-12 text-center text-sm text-neutral-500"
                   >
                     Loading orders…
@@ -397,11 +579,13 @@ export default function AdminOrdersPage() {
               ) : paged.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={12}
+                    colSpan={13}
                     className="py-12 text-center text-sm text-neutral-500"
                   >
                     {databaseConnected
-                      ? 'No orders yet. New checkouts will appear here.'
+                      ? search || countrySearch || marketFilter !== 'all'
+                        ? 'No orders match these filters.'
+                        : 'No orders yet. New checkouts will appear here.'
                       : 'Connect your database to view live orders.'}
                   </TableCell>
                 </TableRow>
@@ -481,6 +665,22 @@ function OrderRow({
       </TableCell>
       <TableCell className="font-medium text-neutral-950">
         {order.orderNumber}
+      </TableCell>
+      <TableCell>
+        <div className="flex flex-col">
+          <span className="whitespace-nowrap text-neutral-950">
+            <span className="mr-1" aria-hidden>
+              {order.marketFlag}
+            </span>
+            {order.marketLabel}
+          </span>
+          {order.showDestination && order.destinationCountry ? (
+            <span className="whitespace-nowrap text-xs text-neutral-500">
+              {order.destinationFlag ? `${order.destinationFlag} ` : ''}
+              {order.destinationCountry}
+            </span>
+          ) : null}
+        </div>
       </TableCell>
       <TableCell className="whitespace-nowrap text-neutral-600">
         {order.dateLabel}

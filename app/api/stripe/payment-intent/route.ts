@@ -88,6 +88,7 @@ export async function POST(request: Request) {
         discount: totals.discount,
         total: totals.total,
         currency,
+        locationId,
         channel: 'Stripe',
         affiliateCode: affiliate?.code,
         affiliateId: affiliate?.affiliateId,

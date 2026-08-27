@@ -57,6 +57,7 @@ export async function POST(request: Request) {
       discount: totals.discount,
       total: totals.total,
       currency,
+      locationId: parsed.data.locationId,
       affiliateCode: affiliate?.code,
       affiliateId: affiliate?.affiliateId,
       commissionAmount: affiliate?.commissionAmount,

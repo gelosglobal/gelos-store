@@ -68,6 +68,7 @@ export type CreateStripeCheckoutInput = {
   affiliateCode?: string
   affiliateId?: string
   commissionAmount?: number
+  locationId?: string
   successUrl: string
   cancelUrl: string
 }
@@ -136,7 +137,7 @@ export async function createStripeCheckoutSession(
       customer_email: input.email,
       customer_phone: input.phone ?? '',
       shipping_address: input.shippingAddress ?? '',
-      location_id: 'usa',
+      location_id: input.locationId ?? 'usa',
       promo_code: input.promoCode ?? '',
       affiliate_code: input.affiliateCode ?? '',
       affiliate_id: input.affiliateId ?? '',

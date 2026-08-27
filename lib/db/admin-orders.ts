@@ -6,6 +6,11 @@ import { isDatabaseConfigured } from '@/lib/env'
 import { normalizeImageUrl } from '@/lib/image-url'
 import { parseCheckoutLineItems } from '@/lib/parse-checkout-line-items'
 import { prisma } from '@/lib/prisma'
+import {
+  deliveryMethodForOrder,
+  orderMarketDisplay,
+  shippingCountryFromOrder,
+} from '@/lib/admin/order-market'
 import { creditAffiliateCommissionForPaidOrder } from '@/lib/db/orders'
 import { toPublicDhlShipment } from '@/lib/dhl/record'
 import { asShippingDetails } from '@/lib/dhl/shipping-details'
@@ -60,15 +65,18 @@ function asFulfillmentStatus(value: string): FulfillmentStatus {
     : 'Unfulfilled'
 }
 
-function deliveryMethodForChannel(channel: string): string {
-  if (/cash on delivery/i.test(channel)) return 'Cash on delivery'
-  if (/paystack/i.test(channel)) return 'Online payment'
-  return 'Standard shipping'
-}
-
 export function prismaOrderToStoreOrder(order: PrismaOrder): StoreOrder {
   const fulfillmentStatus = asFulfillmentStatus(order.fulfillmentStatus)
   const createdAt = order.createdAt
+  const shippingCountry = shippingCountryFromOrder({
+    shippingDetails: order.shippingDetails,
+    shippingAddress: order.shippingAddress,
+  })
+  const market = orderMarketDisplay({
+    locationId: order.locationId,
+    currency: order.currency,
+    shippingCountry,
+  })
 
   return {
     id: order.id,
@@ -78,12 +86,19 @@ export function prismaOrderToStoreOrder(order: PrismaOrder): StoreOrder {
     dateLabel: formatOrderDateLabel(createdAt),
     total: order.total,
     currency: order.currency,
+    locationId: market.locationId,
+    marketLabel: market.marketLabel,
+    marketFlag: market.marketFlag,
+    destinationCountry: market.destinationCountry,
+    destinationCountryCode: market.destinationCountryCode,
+    destinationFlag: market.destinationFlag,
+    showDestination: market.showDestination,
     items: countLineItems(order.items),
     paymentStatus: asPaymentStatus(order.paymentStatus),
     fulfillmentStatus,
     status: fulfillmentStatus,
     channel: order.channel,
-    deliveryMethod: deliveryMethodForChannel(order.channel),
+    deliveryMethod: deliveryMethodForOrder(market.locationId, order.channel),
     deliveryStatus:
       fulfillmentStatus === 'Delivered'
         ? 'Delivered'

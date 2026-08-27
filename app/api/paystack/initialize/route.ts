@@ -122,6 +122,7 @@ export async function POST(request: Request) {
         discount: chargeTotals.discount,
         total: chargeTotals.total,
         currency: chargeCurrency,
+        locationId: checkoutLocationId,
         affiliateCode: affiliate?.code,
         affiliateId: affiliate?.affiliateId,
         commissionAmount: affiliate?.commissionAmount ?? 0,

@@ -238,6 +238,7 @@ export async function POST(request: Request) {
       discount: meta.discount,
       total: meta.total,
       currency: meta.currency,
+      locationId: meta.locationId,
       channel: 'Stripe',
       affiliateCode: meta.affiliateCode,
       affiliateId: meta.affiliateId,

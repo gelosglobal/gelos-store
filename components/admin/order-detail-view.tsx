@@ -409,11 +409,19 @@ export function OrderDetailView({
             <h1 className="text-2xl font-semibold text-neutral-950">
               {order.orderNumber}
             </h1>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-0.5 text-xs font-medium text-neutral-800">
+              <span aria-hidden>{order.marketFlag}</span>
+              {order.marketLabel}
+              {order.showDestination && order.destinationCountry
+                ? ` · ${order.destinationCountry}`
+                : ''}
+            </span>
             <PaymentStatusBadge status={order.paymentStatus} />
             <FulfillmentStatusBadge status={order.fulfillmentStatus} />
           </div>
           <p className="text-sm text-neutral-600">
             {order.dateLabel} from {order.channel}
+            {order.deliveryMethod === 'DHL Express' ? ' · DHL Express' : ''}
           </p>
         </div>
 
@@ -793,7 +801,18 @@ export function OrderDetailView({
                 {order.shippingAddress ? (
                   <div className="flex gap-2 text-neutral-700">
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-                    <p className="whitespace-pre-wrap">{order.shippingAddress}</p>
+                    <div>
+                      <p className="whitespace-pre-wrap">{order.shippingAddress}</p>
+                      {order.showDestination && order.destinationCountry ? (
+                        <p className="mt-1 text-xs text-neutral-500">
+                          {order.destinationFlag ? `${order.destinationFlag} ` : ''}
+                          {order.destinationCountry}
+                          {order.deliveryMethod === 'DHL Express'
+                            ? ' · DHL Express'
+                            : ''}
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
                 ) : (
                   <p className="text-neutral-500">No shipping address</p>
