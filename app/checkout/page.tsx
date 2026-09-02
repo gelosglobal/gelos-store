@@ -35,6 +35,7 @@ import {
   internationalCountryOptions,
 } from '@/lib/shipping-destination'
 import { countryRequiresPostalCode } from '@/lib/dhl/locations'
+import { formatDhlDeliveryDate } from '@/lib/dhl/text'
 import { trackVisitorFunnelEvent } from '@/lib/visitor-funnel'
 import { getOrCreateVisitorId } from '@/lib/visitor-id'
 import {
@@ -74,11 +75,19 @@ export default function CheckoutPage() {
   const [dhlShippingBase, setDhlShippingBase] = useState<number | null>(null)
   const [dhlProductCode, setDhlProductCode] = useState<string | undefined>()
   const [dhlProductName, setDhlProductName] = useState<string | undefined>()
+  const [dhlDeliveryDate, setDhlDeliveryDate] = useState<string | undefined>()
   const [dhlAddressWarning, setDhlAddressWarning] = useState('')
   const checkoutTracked = useRef(false)
   const stripeCardRef = useRef<StripeCardFieldsHandle>(null)
   const checkoutPromotions = applyShipping(promotions)
   const liveDhl = usesLiveDhlRates(locationId)
+  const destinationCountry = (
+    countryCode.trim() ||
+    countryCodeFromLocation(locationId) ||
+    ''
+  ).toUpperCase()
+  const postalRequired =
+    liveDhl && countryRequiresPostalCode(destinationCountry)
   const cartHasUnavailableItems = items.some(
     (item) => !isProductAvailable(item.id),
   )
@@ -139,6 +148,7 @@ export default function CheckoutPage() {
       setDhlShippingBase(null)
       setDhlProductCode(undefined)
       setDhlProductName(undefined)
+      setDhlDeliveryDate(undefined)
       setDhlError('')
       setDhlAddressWarning('')
       return
@@ -154,6 +164,7 @@ export default function CheckoutPage() {
       setDhlShippingBase(null)
       setDhlProductCode(undefined)
       setDhlProductName(undefined)
+      setDhlDeliveryDate(undefined)
       setDhlError('')
       setDhlAddressWarning('')
       return
@@ -161,6 +172,7 @@ export default function CheckoutPage() {
 
     if (countryRequiresPostalCode(destination) && postalCode.trim().length < 3) {
       setDhlShippingBase(null)
+      setDhlDeliveryDate(undefined)
       setDhlError(
         destination === 'US'
           ? 'Enter a ZIP code for US delivery rates'
@@ -193,6 +205,7 @@ export default function CheckoutPage() {
               productCode: string
               productName: string
               totalPriceBase: number
+              deliveryDate?: string
             }
             address?: { valid?: boolean; message?: string }
           }
@@ -202,6 +215,7 @@ export default function CheckoutPage() {
           setDhlShippingBase(data.selected.totalPriceBase)
           setDhlProductCode(data.selected.productCode)
           setDhlProductName(data.selected.productName)
+          setDhlDeliveryDate(data.selected.deliveryDate)
           setDhlAddressWarning(
             data.address && data.address.valid === false
               ? data.address.message ||
@@ -212,6 +226,7 @@ export default function CheckoutPage() {
         .catch((error: unknown) => {
           if (controller.signal.aborted) return
           setDhlShippingBase(null)
+          setDhlDeliveryDate(undefined)
           setDhlError(
             error instanceof Error ? error.message : 'Could not get DHL rates',
           )
@@ -335,6 +350,7 @@ export default function CheckoutPage() {
       dhlShippingBase,
     ],
   )
+  const dhlEtaLabel = formatDhlDeliveryDate(dhlDeliveryDate)
 
   useEffect(() => {
     if (!isHydrated || items.length === 0 || checkoutTracked.current) return
@@ -809,16 +825,22 @@ export default function CheckoutPage() {
                     className="text-sm font-medium"
                   >
                     {locationId === 'usa' ? 'ZIP code' : 'Postal code'}
-                    {locationId === 'usa' ? (
+                    {postalRequired ? (
                       <span className="text-[#E91E8C]"> *</span>
                     ) : null}
                   </label>
                   <input
                     id="checkout-postal"
-                    required={locationId === 'usa'}
+                    required={postalRequired}
                     value={postalCode}
                     onChange={(e) => setPostalCode(e.target.value)}
-                    placeholder={locationId === 'usa' ? '10001' : 'Optional'}
+                    placeholder={
+                      locationId === 'usa'
+                        ? '10001'
+                        : postalRequired
+                          ? 'Required for DHL rates'
+                          : 'Optional'
+                    }
                     className="mt-1.5 w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm outline-none focus:border-neutral-950 focus:ring-1 focus:ring-neutral-950"
                   />
                 </div>
@@ -863,14 +885,21 @@ export default function CheckoutPage() {
                       DHL Express:{' '}
                       <span className="font-medium text-neutral-950">
                         {dhlProductName}
-                      </span>{' '}
-                      — rate applied in your order summary.
+                      </span>
+                      {dhlEtaLabel ? ` · arrives ${dhlEtaLabel}` : ''}
+                      . Rate applied in your order summary.
                     </p>
                   ) : dhlError ? (
                     <p className="text-amber-800">{dhlError}</p>
                   ) : (
                     <p className="text-neutral-500">
-                      Enter city (and ZIP for USA) to get a live DHL rate.
+                      Enter city
+                      {postalRequired
+                        ? locationId === 'usa'
+                          ? ' and ZIP'
+                          : ' and postal code'
+                        : ''}{' '}
+                      to get a live DHL rate.
                     </p>
                   )}
                   {dhlAddressWarning ? (
@@ -1131,6 +1160,12 @@ export default function CheckoutPage() {
                 !dhlLoading
               }
               shippingLoading={liveDhl && dhlLoading}
+              shippingCarrier={
+                liveDhl && dhlShippingBase != null
+                  ? dhlProductName || 'DHL Express'
+                  : undefined
+              }
+              shippingEta={dhlEtaLabel}
             />
           </div>
         </div>

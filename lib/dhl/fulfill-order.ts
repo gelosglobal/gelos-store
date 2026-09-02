@@ -12,8 +12,10 @@ import { createDhlShipment } from '@/lib/dhl/shipments'
 import { fetchDhlTracking } from '@/lib/dhl/tracking'
 import type { DhlShipmentRecord, ShippingDetails } from '@/lib/dhl/types'
 import { asDhlShipmentRecord } from '@/lib/dhl/record'
+import { canonicalizeLocationId } from '@/lib/locations'
 import { parseCheckoutLineItems } from '@/lib/parse-checkout-line-items'
 import { prisma } from '@/lib/prisma'
+import { countryCodeFromLocation } from '@/lib/shipping-destination'
 
 export { asDhlShipmentRecord, toPublicDhlShipment } from '@/lib/dhl/record'
 
@@ -25,6 +27,7 @@ type OrderForDhl = {
   customerPhone: string | null
   shippingAddress: string | null
   shippingDetails: Prisma.JsonValue | null
+  locationId?: string | null
   dhl: Prisma.JsonValue | null
   items: Prisma.JsonValue
   currency: string
@@ -67,13 +70,15 @@ export async function fulfillOrderWithDhl(order: OrderForDhl) {
     )
   }
 
+  const marketId = canonicalizeLocationId(order.locationId ?? undefined)
   const destination = resolveShippingDetails({
     shippingDetails: order.shippingDetails,
     shippingAddress: order.shippingAddress,
+    fallbackCountry: marketId ? countryCodeFromLocation(marketId) : undefined,
   })
   if (!destination) {
     throw new Error(
-      'A city and country are required before creating a DHL shipment',
+      'This order needs a city and country on the shipping address before DHL can create a shipment.',
     )
   }
 

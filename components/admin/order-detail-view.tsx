@@ -628,43 +628,26 @@ export function OrderDetailView({
                       ) : null}
                     </div>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    {dhlLive ? (
-                      <p className="text-sm text-neutral-600">
-                        Creates a live DHL shipment, label, and pickup from your
-                        Accra address. The customer is emailed the tracking
-                        number.
-                      </p>
+                ) : onCreateDhlShipment ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={creatingDhlShipment || updating}
+                    onClick={() => {
+                      if (dhlLive) {
+                        setDhlShipConfirmOpen(true)
+                        return
+                      }
+                      onCreateDhlShipment()
+                    }}
+                  >
+                    {creatingDhlShipment ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <p className="text-sm text-amber-800">
-                        DHL is in test mode. This will not dispatch a courier.
-                        Set <span className="font-mono">DHL_ENV=production</span>{' '}
-                        with live MyDHL credentials to go live.
-                      </p>
+                      'Create DHL shipment'
                     )}
-                    {onCreateDhlShipment ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={creatingDhlShipment || updating}
-                        onClick={() => {
-                          if (dhlLive) {
-                            setDhlShipConfirmOpen(true)
-                            return
-                          }
-                          onCreateDhlShipment()
-                        }}
-                      >
-                        {creatingDhlShipment ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          'Create DHL shipment'
-                        )}
-                      </Button>
-                    ) : null}
-                  </div>
-                )}
+                  </Button>
+                ) : null}
               </div>
             ) : null}
             {onFulfillmentStatusChange ? (

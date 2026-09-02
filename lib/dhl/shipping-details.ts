@@ -1,3 +1,4 @@
+import { countryCodeFromLabel } from '@/lib/country-currency'
 import type { ShippingDetails } from '@/lib/dhl/types'
 import { clip } from '@/lib/dhl/text'
 
@@ -11,13 +12,21 @@ export function shippingDetailsFromCheckout(
   },
 ): ShippingDetails | undefined {
   if (!shipping?.countryCode || !shipping.city) return undefined
+  const countryCode = countryCodeFromLabel(shipping.countryCode)
+  if (!countryCode) return undefined
   return {
-    countryCode: shipping.countryCode.toUpperCase(),
-    city: shipping.city,
+    countryCode,
+    city: shipping.city.trim(),
     postalCode: shipping.postalCode,
     addressLine1: shipping.addressLine1,
     productCode: shipping.productCode,
   }
+}
+
+function looksLikePostal(value: string | undefined, remainingParts: number): boolean {
+  if (!value) return false
+  const compact = value.replace(/\s+/g, '')
+  return /[\d]/.test(value) && compact.length <= 12 && remainingParts >= 2
 }
 
 export function parseShippingAddress(
@@ -29,34 +38,30 @@ export function parseShippingAddress(
     .map((part) => part.trim())
     .filter(Boolean)
 
-  const last = parts[parts.length - 1]?.toUpperCase()
-  const countryFromAddress =
-    last && last.length === 2 && /^[A-Z]{2}$/.test(last) ? last : undefined
+  const last = parts[parts.length - 1]
+  const countryFromAddress = countryCodeFromLabel(last)
 
-  const countryCode = (
-    fallback?.countryCode ||
+  const countryCode =
     countryFromAddress ||
+    countryCodeFromLabel(fallback?.countryCode) ||
     ''
-  ).toUpperCase()
-  if (!countryCode || countryCode.length !== 2) return undefined
+  if (!countryCode) return undefined
 
   const withoutCountry = countryFromAddress ? parts.slice(0, -1) : parts
   const maybePostal = withoutCountry[withoutCountry.length - 1]
-  const looksPostal =
-    Boolean(maybePostal) &&
-    /[\d]/.test(maybePostal!) &&
-    maybePostal!.length <= 12 &&
-    withoutCountry.length >= 2
+  const postalLooksValid = looksLikePostal(maybePostal, withoutCountry.length)
 
-  const postalCode = fallback?.postalCode || (looksPostal ? maybePostal : undefined)
-  const cityParts = looksPostal
+  const postalCode =
+    fallback?.postalCode || (postalLooksValid ? maybePostal : undefined)
+  const cityParts = postalLooksValid
     ? withoutCountry.slice(0, -1)
     : withoutCountry
-  const city =
+  const rawCity =
     fallback?.city ||
     cityParts[cityParts.length - 1] ||
     cityParts[0] ||
     ''
+  const city = rawCity.replace(/\s+[A-Z]{2}$/i, '').trim()
   const addressLine1 =
     fallback?.addressLine1 ||
     (cityParts.length > 1 ? cityParts.slice(0, -1).join(', ') : cityParts[0])
@@ -86,9 +91,13 @@ export function resolveShippingDetails(input: {
     productCode: stored?.productCode,
   })
   if (!stored && !parsed) return undefined
-  const countryCode = stored?.countryCode || parsed?.countryCode || ''
+  const countryCode =
+    countryCodeFromLabel(stored?.countryCode) ||
+    countryCodeFromLabel(parsed?.countryCode) ||
+    countryCodeFromLabel(input.fallbackCountry) ||
+    ''
   const city = stored?.city || parsed?.city || ''
-  if (countryCode.length !== 2 || city.length < 2) return undefined
+  if (!countryCode || city.length < 2) return undefined
   return {
     countryCode,
     city,
@@ -103,11 +112,11 @@ export function asShippingDetails(value: unknown): ShippingDetails | undefined {
   if (!value || typeof value !== 'object') return undefined
   const record = value as Record<string, unknown>
   const countryCode =
-    typeof record.countryCode === 'string'
-      ? record.countryCode.trim().toUpperCase()
-      : ''
+    countryCodeFromLabel(
+      typeof record.countryCode === 'string' ? record.countryCode : undefined,
+    ) ?? ''
   const city = typeof record.city === 'string' ? record.city.trim() : ''
-  if (countryCode.length !== 2 || city.length < 2) return undefined
+  if (!countryCode || city.length < 2) return undefined
   return {
     countryCode,
     city,

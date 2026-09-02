@@ -31,6 +31,8 @@ type CheckoutOrderSummaryProps = {
   /** Live DHL quote has not been applied yet — do not show shipping as Free. */
   shippingPending?: boolean
   shippingLoading?: boolean
+  shippingCarrier?: string
+  shippingEta?: string
 }
 
 function getItemSubtitle(item: CartLineItem): string | null {
@@ -134,6 +136,8 @@ export function CheckoutOrderSummary({
   onQuantityChange,
   shippingPending = false,
   shippingLoading = false,
+  shippingCarrier,
+  shippingEta,
 }: CheckoutOrderSummaryProps) {
   const { formatPrice, locationId } = useLocation()
   const liveDhl = usesLiveDhlRates(locationId)
@@ -267,7 +271,15 @@ export function CheckoutOrderSummary({
               </div>
             ) : null}
             <div className="flex justify-between gap-4">
-              <dt className="text-neutral-600">Shipping</dt>
+              <dt className="text-neutral-600">
+                Shipping
+                {shippingQuoted && shippingCarrier ? (
+                  <span className="mt-0.5 block text-xs font-normal text-neutral-500">
+                    {shippingCarrier}
+                    {shippingEta ? ` · Arrives ${shippingEta}` : ''}
+                  </span>
+                ) : null}
+              </dt>
               <dd
                 className={cn(
                   'font-semibold tabular-nums',

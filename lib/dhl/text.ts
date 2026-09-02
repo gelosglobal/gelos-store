@@ -37,3 +37,14 @@ export function plannedShippingDateAndTime(
 export function messageReference(): string {
   return crypto.randomUUID().replace(/-/g, '').slice(0, 32)
 }
+
+export function formatDhlDeliveryDate(value?: string): string | undefined {
+  if (!value?.trim()) return undefined
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return undefined
+  return date.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  })
+}

@@ -9,6 +9,9 @@ import {
 import { notifyOrderPlaced } from '@/lib/email/send-order-emails'
 import { sendCapiPurchase } from '@/lib/meta-conversions-api'
 import { parseCheckoutLineItems } from '@/lib/parse-checkout-line-items'
+import { parseShippingAddress } from '@/lib/dhl/shipping-details'
+import { countryCodeFromLocation } from '@/lib/shipping-destination'
+import { canonicalizeLocationId } from '@/lib/locations'
 import { isPaystackConfigured, verifyTransaction } from '@/lib/paystack'
 import type { CheckoutLineItem } from '@/lib/checkout'
 
@@ -142,6 +145,11 @@ export async function POST(request: Request) {
       customerEmail,
       customerPhone,
       shippingAddress,
+      shippingDetails: parseShippingAddress(shippingAddress, {
+        countryCode: countryCodeFromLocation(
+          canonicalizeLocationId(locationId) ?? '',
+        ),
+      }),
       items,
       subtotal,
       shipping,

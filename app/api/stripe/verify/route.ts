@@ -9,6 +9,9 @@ import {
 import { notifyOrderPlaced } from '@/lib/email/send-order-emails'
 import { sendCapiPurchase } from '@/lib/meta-conversions-api'
 import { parseCheckoutLineItems } from '@/lib/parse-checkout-line-items'
+import { parseShippingAddress } from '@/lib/dhl/shipping-details'
+import { countryCodeFromLocation } from '@/lib/shipping-destination'
+import { canonicalizeLocationId } from '@/lib/locations'
 import {
   isStripeConfigured,
   retrieveStripeCheckoutSession,
@@ -232,6 +235,11 @@ export async function POST(request: Request) {
       customerEmail: meta.customerEmail,
       customerPhone: meta.customerPhone,
       shippingAddress: meta.shippingAddress,
+      shippingDetails: parseShippingAddress(meta.shippingAddress, {
+        countryCode: countryCodeFromLocation(
+          canonicalizeLocationId(meta.locationId) ?? '',
+        ),
+      }),
       items: [],
       subtotal: meta.subtotal,
       shipping: meta.shipping,

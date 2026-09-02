@@ -265,14 +265,41 @@ export function currencySymbol(currencyCode: string): string {
   return CURRENCY_SYMBOLS[code] ?? `${code} `
 }
 
+const COUNTRY_CODE_ALIASES: Record<string, string> = {
+  UK: 'GB',
+  USA: 'US',
+  'UNITED STATES': 'US',
+  'UNITED STATES OF AMERICA': 'US',
+  AMERICA: 'US',
+  'UNITED KINGDOM': 'GB',
+  'GREAT BRITAIN': 'GB',
+  ENGLAND: 'GB',
+  GHANA: 'GH',
+  NIGERIA: 'NG',
+}
+
 export function normalizeCountryCode(
   value: string | null | undefined,
 ): string | undefined {
   const code = value?.trim().toUpperCase()
   if (!code) return undefined
-  if (code === 'UK') return 'GB'
+  if (COUNTRY_CODE_ALIASES[code]) return COUNTRY_CODE_ALIASES[code]
   if (/^[A-Z]{2}$/.test(code)) return code
   return undefined
+}
+
+/** Match ISO code or country name ("United States", "USA", "Ghana"). */
+export function countryCodeFromLabel(
+  value: string | null | undefined,
+): string | undefined {
+  const fromCode = normalizeCountryCode(value)
+  if (fromCode) return fromCode
+  const needle = value?.trim().toLowerCase()
+  if (!needle) return undefined
+  const match = Object.entries(COUNTRY_NAMES).find(
+    ([, name]) => name.toLowerCase() === needle,
+  )
+  return match?.[0]
 }
 
 export function currencyForCountry(
