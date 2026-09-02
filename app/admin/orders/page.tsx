@@ -89,6 +89,7 @@ export default function AdminOrdersPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
   const [backfilling, setBackfilling] = useState(false)
+  const [creatingTestOrder, setCreatingTestOrder] = useState(false)
   const [bulkUpdating, setBulkUpdating] = useState(false)
   const pageSize = 50
 
@@ -170,7 +171,7 @@ export default function AdminOrdersPage() {
     [orders, selected],
   )
   const hasSelection = selectedOrders.length > 0
-  const actionsBusy = backfilling || bulkUpdating
+  const actionsBusy = backfilling || bulkUpdating || creatingTestOrder
 
   const requireSelection = () => {
     if (hasSelection) return true
@@ -258,6 +259,31 @@ export default function AdminOrdersPage() {
       )
     } finally {
       setBulkUpdating(false)
+    }
+  }
+
+  const createDhlTestOrder = async () => {
+    if (creatingTestOrder) return
+    setCreatingTestOrder(true)
+    try {
+      const res = await fetch('/api/admin/orders/dhl-test', { method: 'POST' })
+      const data = (await res.json()) as {
+        error?: string
+        order?: { id: string; orderNumber: string }
+      }
+      if (!res.ok || !data.order) {
+        throw new Error(data.error ?? 'Failed to create DHL test order')
+      }
+      toast.success(`Created ${data.order.orderNumber}`)
+      router.push(`/admin/orders/${data.order.id}`)
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to create DHL test order',
+      )
+    } finally {
+      setCreatingTestOrder(false)
     }
   }
 
@@ -392,6 +418,12 @@ export default function AdminOrdersPage() {
                   Export selected
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  disabled={creatingTestOrder}
+                  onSelect={() => void createDhlTestOrder()}
+                >
+                  Create DHL test order
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   disabled={backfilling}
                   onSelect={() => void backfillMissingItems()}
