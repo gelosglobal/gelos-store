@@ -143,6 +143,14 @@ export function dhlTrackingUrl(trackingNumber: string): string {
   return `https://www.dhl.com/global-en/home/tracking.html?tracking-id=${encodeURIComponent(trackingNumber)}`
 }
 
+export function gelosTrackingPath(trackingNumber: string): string {
+  return `/track/${encodeURIComponent(trackingNumber.trim())}`
+}
+
+export function gelosTrackingUrl(trackingNumber: string, origin: string): string {
+  return `${origin.replace(/\/$/, '')}${gelosTrackingPath(trackingNumber)}`
+}
+
 export function addressLine(value: string | undefined, fallback: string): string {
   return clip(value?.trim() || fallback, 45)
 }

@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronLeft,
   Clock3,
+  Copy,
   ExternalLink,
   Globe,
   Loader2,
@@ -18,6 +19,12 @@ import {
   Truck,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  customerCheckpointLabel,
+  formatCheckpointTime,
+  isCustomerCheckpoint,
+} from '@/lib/dhl/checkpoints'
+import { gelosTrackingPath } from '@/lib/dhl/shipping-details'
 import {
   FulfillmentStatusBadge,
   PaymentStatusBadge,
@@ -104,6 +111,15 @@ function getPaymentAmounts(order: AdminOrderDetail) {
       return { paid: 0, balance: 0 }
     default:
       return { paid: 0, balance: order.total }
+  }
+}
+
+async function copyValue(label: string, value: string) {
+  try {
+    await navigator.clipboard.writeText(value)
+    toast.success(`${label} copied`)
+  } catch {
+    toast.error(`Could not copy ${label.toLowerCase()}`)
   }
 }
 
@@ -381,6 +397,7 @@ export function OrderDetailView({
   const [conversionOpen, setConversionOpen] = useState(false)
   const [invoiceConfirmOpen, setInvoiceConfirmOpen] = useState(false)
   const [dhlShipConfirmOpen, setDhlShipConfirmOpen] = useState(false)
+  const [showAllDhlCheckpoints, setShowAllDhlCheckpoints] = useState(false)
   const { paid, balance } = getPaymentAmounts(order)
   const itemLabel = order.items === 1 ? '1 item' : `${order.items} items`
   const showSendInvoice =
@@ -564,17 +581,29 @@ export function OrderDetailView({
                   </span>
                 </div>
                 {order.dhl?.trackingNumber ? (
-                  <div className="space-y-2 text-sm text-neutral-700">
+                  <div className="space-y-3 text-sm text-neutral-700">
                     <p>
                       Tracking{' '}
-                      <a
-                        href={order.dhl.trackingUrl}
-                        target="_blank"
-                        rel="noreferrer"
+                      <Link
+                        href={gelosTrackingPath(order.dhl.trackingNumber)}
                         className="font-medium text-sky-700 hover:text-sky-900"
                       >
                         {order.dhl.trackingNumber}
-                      </a>
+                      </Link>
+                      {order.dhl.trackingUrl ? (
+                        <>
+                          {' '}
+                          ·{' '}
+                          <a
+                            href={order.dhl.trackingUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium text-sky-700 hover:text-sky-900"
+                          >
+                            DHL.com
+                          </a>
+                        </>
+                      ) : null}
                     </p>
                     {order.dhl.productName ? (
                       <p className="text-neutral-500">
@@ -582,9 +611,43 @@ export function OrderDetailView({
                       </p>
                     ) : null}
                     {order.dhl.pickupConfirmationNumber ? (
-                      <p className="text-neutral-500">
-                        Pickup {order.dhl.pickupConfirmationNumber}
-                      </p>
+                      <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-sky-800">
+                          Pickup confirmation (CBJ)
+                        </p>
+                        <div className="mt-1 flex items-center gap-2">
+                          <p className="font-mono text-sm font-semibold text-neutral-950">
+                            {order.dhl.pickupConfirmationNumber}
+                          </p>
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 text-xs font-medium text-sky-800 hover:text-sky-950"
+                            onClick={() =>
+                              void copyValue(
+                                'CBJ number',
+                                order.dhl!.pickupConfirmationNumber!,
+                              )
+                            }
+                          >
+                            <Copy className="h-3 w-3" />
+                            Copy
+                          </button>
+                        </div>
+                        {order.dhl.dispatchConfirmationNumber ? (
+                          <p className="mt-1 text-xs text-neutral-600">
+                            Dispatch {order.dhl.dispatchConfirmationNumber}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : order.dhl.error ? (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-800">
+                          Pickup not booked
+                        </p>
+                        <p className="mt-1 text-sm text-amber-900">
+                          {order.dhl.error}
+                        </p>
+                      </div>
                     ) : null}
                     {order.dhl.lastStatus || order.dhl.lastDescription ? (
                       <p>
@@ -596,8 +659,61 @@ export function OrderDetailView({
                           : null}
                       </p>
                     ) : null}
-                    {order.dhl.error ? (
-                      <p className="text-amber-800">{order.dhl.error}</p>
+                    {order.dhl.lastEvents && order.dhl.lastEvents.length > 0 ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+                            Tracking events
+                          </p>
+                          <button
+                            type="button"
+                            className="text-xs font-medium text-sky-700 hover:text-sky-900"
+                            onClick={() =>
+                              setShowAllDhlCheckpoints((open) => !open)
+                            }
+                          >
+                            {showAllDhlCheckpoints
+                              ? 'Customer view'
+                              : 'All scans'}
+                          </button>
+                        </div>
+                        <ul className="space-y-1.5">
+                          {(showAllDhlCheckpoints
+                            ? order.dhl.lastEvents
+                            : order.dhl.lastEvents.filter(isCustomerCheckpoint)
+                          ).map((event, index) => (
+                            <li
+                              key={`${event.typeCode ?? 'evt'}-${event.timestamp ?? index}`}
+                              className="text-xs text-neutral-600"
+                            >
+                              <span className="font-medium text-neutral-900">
+                                {showAllDhlCheckpoints
+                                  ? event.typeCode || '—'
+                                  : customerCheckpointLabel(event)}
+                              </span>
+                              {showAllDhlCheckpoints && event.description
+                                ? ` — ${event.description}`
+                                : null}
+                              {event.serviceArea
+                                ? ` · ${event.serviceArea}`
+                                : ''}
+                              {event.timestamp ? (
+                                <span className="text-neutral-400">
+                                  {' '}
+                                  · {formatCheckpointTime(event.timestamp)}
+                                </span>
+                              ) : null}
+                            </li>
+                          ))}
+                        </ul>
+                        {!showAllDhlCheckpoints &&
+                        !order.dhl.lastEvents.some(isCustomerCheckpoint) ? (
+                          <p className="text-xs text-neutral-500">
+                            No major checkpoints yet. Switch to all scans for
+                            DHL facility updates.
+                          </p>
+                        ) : null}
+                      </div>
                     ) : null}
                     <div className="flex flex-wrap gap-2 pt-1">
                       {order.dhl.hasDocuments ? (

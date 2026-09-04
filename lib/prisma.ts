@@ -38,6 +38,7 @@ const REQUIRED_DELEGATES = [
   'inboxMessage',
   'visitorSession',
   'dentistAppointment',
+  'deliveryRating',
   'user',
   'session',
   'account',

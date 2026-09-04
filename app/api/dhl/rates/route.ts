@@ -61,6 +61,10 @@ export async function POST(request: Request) {
 
     const result = await fetchDhlRates({
       ...parsed.data,
+      productCode:
+        parsed.data.productCode?.toUpperCase() === 'D'
+          ? 'P'
+          : parsed.data.productCode,
       destinationCityName:
         address?.valid && address.cityName ? address.cityName : cityName,
       destinationPostalCode:

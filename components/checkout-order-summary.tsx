@@ -27,6 +27,8 @@ import { cn } from '@/lib/utils'
 type CheckoutOrderSummaryProps = {
   items: CartLineItem[]
   totals: CheckoutTotals
+  /** Totals are already in the shopper currency — do not run catalog FX again. */
+  totalsLocalized?: boolean
   onQuantityChange: (lineKey: string, quantity: number) => void
   /** Live DHL quote has not been applied yet — do not show shipping as Free. */
   shippingPending?: boolean
@@ -133,13 +135,18 @@ function TrustBadge({
 export function CheckoutOrderSummary({
   items,
   totals,
+  totalsLocalized = false,
   onQuantityChange,
   shippingPending = false,
   shippingLoading = false,
   shippingCarrier,
   shippingEta,
 }: CheckoutOrderSummaryProps) {
-  const { formatPrice, locationId } = useLocation()
+  const { formatPrice, location, locationId } = useLocation()
+  const formatTotal = (amount: number) =>
+    totalsLocalized
+      ? `${location.currency}${amount.toFixed(2)}`
+      : formatPrice(amount)
   const liveDhl = usesLiveDhlRates(locationId)
   const shippingQuoted = !shippingPending && !shippingLoading
   const {
@@ -255,7 +262,7 @@ export function CheckoutOrderSummary({
             <div className="flex justify-between gap-4">
               <dt className="text-neutral-600">Subtotal</dt>
               <dd className="font-medium tabular-nums text-neutral-950">
-                {formatPrice(totals.subtotal)}
+                {formatTotal(totals.subtotal)}
               </dd>
             </div>
             {totals.discount > 0 ? (
@@ -266,7 +273,7 @@ export function CheckoutOrderSummary({
                     : 'Discount'}
                 </dt>
                 <dd className="font-medium tabular-nums">
-                  − {formatPrice(totals.discount)}
+                  − {formatTotal(totals.discount)}
                 </dd>
               </div>
             ) : null}
@@ -296,7 +303,7 @@ export function CheckoutOrderSummary({
                     ? 'Enter address'
                     : totals.shipping === 0
                       ? 'Free'
-                      : formatPrice(totals.shipping)}
+                      : formatTotal(totals.shipping)}
               </dd>
             </div>
           </dl>
@@ -311,7 +318,7 @@ export function CheckoutOrderSummary({
               </span>
             </p>
             <p className="text-2xl font-bold tabular-nums text-neutral-950">
-              {formatPrice(totals.total)}
+              {formatTotal(totals.total)}
             </p>
           </div>
         </div>

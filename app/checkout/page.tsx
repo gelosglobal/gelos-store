@@ -22,8 +22,9 @@ import {
 } from '@/components/stripe-card-fields'
 import { PaystackPaymentBadges } from '@/components/paystack-payment-badges'
 import { calculateCheckoutTotals } from '@/lib/checkout'
+import { localizeCheckoutTotals } from '@/lib/dhl/prices'
+import type { DhlRateOption } from '@/lib/dhl/types'
 import {
-  convertForLocation,
   toPaystackChargeCurrency,
 } from '@/lib/exchange-rates'
 import { hasSmileRewardFreeShipping } from '@/lib/gelos-ai/smile-reward-storage'
@@ -72,9 +73,7 @@ export default function CheckoutPage() {
   const [dhlConfigured, setDhlConfigured] = useState(false)
   const [dhlLoading, setDhlLoading] = useState(false)
   const [dhlError, setDhlError] = useState('')
-  const [dhlShippingBase, setDhlShippingBase] = useState<number | null>(null)
-  const [dhlProductCode, setDhlProductCode] = useState<string | undefined>()
-  const [dhlProductName, setDhlProductName] = useState<string | undefined>()
+  const [dhlQuote, setDhlQuote] = useState<DhlRateOption | null>(null)
   const [dhlDeliveryDate, setDhlDeliveryDate] = useState<string | undefined>()
   const [dhlAddressWarning, setDhlAddressWarning] = useState('')
   const checkoutTracked = useRef(false)
@@ -145,9 +144,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (!dhlConfigured || !liveDhl) {
-      setDhlShippingBase(null)
-      setDhlProductCode(undefined)
-      setDhlProductName(undefined)
+      setDhlQuote(null)
       setDhlDeliveryDate(undefined)
       setDhlError('')
       setDhlAddressWarning('')
@@ -161,9 +158,7 @@ export default function CheckoutPage() {
     const cityName = city.trim()
 
     if (!destination || cityName.length < 2) {
-      setDhlShippingBase(null)
-      setDhlProductCode(undefined)
-      setDhlProductName(undefined)
+      setDhlQuote(null)
       setDhlDeliveryDate(undefined)
       setDhlError('')
       setDhlAddressWarning('')
@@ -171,7 +166,7 @@ export default function CheckoutPage() {
     }
 
     if (countryRequiresPostalCode(destination) && postalCode.trim().length < 3) {
-      setDhlShippingBase(null)
+      setDhlQuote(null)
       setDhlDeliveryDate(undefined)
       setDhlError(
         destination === 'US'
@@ -201,20 +196,13 @@ export default function CheckoutPage() {
           const data = (await res.json()) as {
             ok?: boolean
             error?: string
-            selected?: {
-              productCode: string
-              productName: string
-              totalPriceBase: number
-              deliveryDate?: string
-            }
+            selected?: DhlRateOption
             address?: { valid?: boolean; message?: string }
           }
           if (!res.ok || !data.ok || !data.selected) {
             throw new Error(data.error ?? 'Could not get DHL rates')
           }
-          setDhlShippingBase(data.selected.totalPriceBase)
-          setDhlProductCode(data.selected.productCode)
-          setDhlProductName(data.selected.productName)
+          setDhlQuote(data.selected)
           setDhlDeliveryDate(data.selected.deliveryDate)
           setDhlAddressWarning(
             data.address && data.address.valid === false
@@ -225,7 +213,7 @@ export default function CheckoutPage() {
         })
         .catch((error: unknown) => {
           if (controller.signal.aborted) return
-          setDhlShippingBase(null)
+          setDhlQuote(null)
           setDhlDeliveryDate(undefined)
           setDhlError(
             error instanceof Error ? error.message : 'Could not get DHL rates',
@@ -250,7 +238,6 @@ export default function CheckoutPage() {
     itemCount,
     locationId,
     liveDhl,
-    // intentionally omit dhlProductCode to avoid requote loops; server picks cheapest
   ])
 
   useEffect(() => {
@@ -333,23 +320,30 @@ export default function CheckoutPage() {
     geoCountryCode,
   ])
 
-  const totals = useMemo(
+  const baseTotals = useMemo(
     () =>
       calculateCheckoutTotals(items, {
         promoCode: appliedPromoCode,
         promotions: checkoutPromotions,
         smileRewardFreeShipping,
         shippingOverride:
-          dhlShippingBase != null ? dhlShippingBase : undefined,
+          dhlQuote != null ? dhlQuote.totalPriceBase : undefined,
       }),
     [
       items,
       appliedPromoCode,
       checkoutPromotions,
       smileRewardFreeShipping,
-      dhlShippingBase,
+      dhlQuote,
     ],
   )
+  const totals = useMemo(
+    () =>
+      localizeCheckoutTotals(baseTotals, location.currencyCode, dhlQuote),
+    [baseTotals, location.currencyCode, dhlQuote],
+  )
+  const dhlProductCode = dhlQuote?.productCode
+  const dhlProductName = dhlQuote?.productName
   const dhlEtaLabel = formatDhlDeliveryDate(dhlDeliveryDate)
 
   useEffect(() => {
@@ -358,7 +352,7 @@ export default function CheckoutPage() {
     const visitorId = getOrCreateVisitorId()
     trackInitiateCheckout(
       items.map((item) => ({ id: item.id, quantity: item.quantity })),
-      convertForLocation(totals.total, locationId, location.currencyCode),
+      totals.total,
       location.currencyCode,
       visitorId ? getInitiateCheckoutEventId(visitorId) : undefined,
     )
@@ -419,7 +413,7 @@ export default function CheckoutPage() {
             city: city.trim(),
             postalCode: postalCode.trim() || undefined,
             addressLine1: addressLine.trim() || undefined,
-            productCode: dhlProductCode,
+            productCode: dhlProductCode === 'D' ? 'P' : dhlProductCode,
           }
         : undefined,
     locationId,
@@ -473,7 +467,7 @@ export default function CheckoutPage() {
         toast.error('DHL shipping is not available. Please try again later.')
         return
       }
-      if (dhlShippingBase == null) {
+      if (dhlQuote == null) {
         toast.error(
           dhlError || 'Enter your city so we can calculate DHL shipping.',
         )
@@ -880,7 +874,7 @@ export default function CheckoutPage() {
                       <Loader2 className="size-3.5 animate-spin" />
                       Calculating DHL Express shipping…
                     </p>
-                  ) : dhlShippingBase != null && dhlProductName ? (
+                  ) : dhlQuote != null && dhlProductName ? (
                     <p>
                       DHL Express:{' '}
                       <span className="font-medium text-neutral-950">
@@ -1082,7 +1076,7 @@ export default function CheckoutPage() {
                 cartHasUnavailableItems ||
                 (liveDhl &&
                   !shopifyCheckoutEnabled &&
-                  (dhlLoading || dhlShippingBase == null))
+                  (dhlLoading || dhlQuote == null))
               }
               className="sticky bottom-3 z-20 mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-neutral-950 py-3.5 text-sm font-semibold text-white shadow-[0_8px_30px_rgba(0,0,0,0.18)] transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-70 lg:static lg:shadow-none"
             >
@@ -1152,16 +1146,17 @@ export default function CheckoutPage() {
             <CheckoutOrderSummary
               items={items}
               totals={totals}
+              totalsLocalized
               onQuantityChange={setQuantity}
               shippingPending={
                 liveDhl &&
                 !smileRewardFreeShipping &&
-                dhlShippingBase == null &&
+                dhlQuote == null &&
                 !dhlLoading
               }
               shippingLoading={liveDhl && dhlLoading}
               shippingCarrier={
-                liveDhl && dhlShippingBase != null
+                liveDhl && dhlQuote != null
                   ? dhlProductName || 'DHL Express'
                   : undefined
               }

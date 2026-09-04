@@ -11,6 +11,7 @@ import { initializeTransaction, isPaystackConfigured } from '@/lib/paystack'
 import { getMarketSettings } from '@/lib/db/market-settings'
 import { shippingDetailsFromCheckout } from '@/lib/dhl/shipping-details'
 import type { LocationId } from '@/lib/locations'
+import { localizeCheckoutTotals } from '@/lib/dhl/prices'
 import {
   convertFromBase,
   toPaystackChargeCurrency,
@@ -66,6 +67,7 @@ export async function POST(request: Request) {
       promoCode,
       affiliate,
       currency,
+      dhl,
     } = await buildLocalizedCheckoutOrder(parsed.data)
     const { email, name, phone, shippingAddress } = parsed.data
     const chargeCurrency = toPaystackChargeCurrency(currency)
@@ -79,12 +81,7 @@ export async function POST(request: Request) {
     const chargeTotals =
       chargeCurrency === currency
         ? totals
-        : {
-            subtotal: convertFromBase(baseTotals.subtotal, chargeCurrency),
-            discount: convertFromBase(baseTotals.discount, chargeCurrency),
-            shipping: convertFromBase(baseTotals.shipping, chargeCurrency),
-            total: convertFromBase(baseTotals.total, chargeCurrency),
-          }
+        : localizeCheckoutTotals(baseTotals, chargeCurrency, dhl)
 
     const callbackUrl = `${getAppOrigin(request)}/checkout/callback`
     const payment = await initializeTransaction({

@@ -115,6 +115,23 @@ model Order {
   @@map("orders")
 }
 
+/** Customer rating for a DHL delivery (from /track). */
+model DeliveryRating {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  ratingId        String   @unique
+  trackingNumber  String   @unique
+  orderId         String?
+  orderNumber     String?
+  rating          Int
+  comment         String   @default("")
+  customerName    String   @default("")
+  customerEmail   String   @default("")
+  createdAt       DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("delivery_ratings")
+}
+
 model Affiliate {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
   affiliateId       String   @unique

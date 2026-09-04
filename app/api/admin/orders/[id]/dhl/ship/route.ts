@@ -6,7 +6,8 @@ import { getAdminOrderById } from '@/lib/db/admin-orders'
 import { getDhlEnv, isDhlShippingConfigured } from '@/lib/dhl/config'
 import { adminOrderToEmailData } from '@/lib/email/order-email-data'
 import { sendOrderShippedEmail } from '@/lib/email/send-order-emails'
-import { isResendConfigured } from '@/lib/env'
+import { gelosTrackingUrl } from '@/lib/dhl/shipping-details'
+import { getEmailAppUrl, isResendConfigured } from '@/lib/env'
 
 type RouteContext = {
   params: Promise<{ id: string }>
@@ -45,12 +46,15 @@ export async function POST(_request: Request, context: RouteContext) {
       getDhlEnv() === 'production' &&
       isResendConfigured() &&
       detail &&
-      result.dhl.trackingNumber &&
-      result.dhl.trackingUrl
+      result.dhl.trackingNumber
     ) {
       const shipped = await sendOrderShippedEmail(adminOrderToEmailData(detail), {
         trackingNumber: result.dhl.trackingNumber,
-        trackingUrl: result.dhl.trackingUrl,
+        trackingUrl: gelosTrackingUrl(
+          result.dhl.trackingNumber,
+          getEmailAppUrl(),
+        ),
+        dhlTrackingUrl: result.dhl.trackingUrl,
       })
       if (!shipped.sent) {
         console.warn('[dhl/ship] Tracking email not sent:', shipped.reason)

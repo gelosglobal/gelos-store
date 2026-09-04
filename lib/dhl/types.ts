@@ -84,8 +84,13 @@ export type PublicDhlShipment = Omit<DhlShipmentRecord, 'documents'> & {
 export type DhlRateOption = {
   productCode: string
   productName: string
+  /** Account billed amount (BILLC). */
   totalPrice: number
   currency: string
+  /** Pickup-country amount (PULCL), when DHL returns one. */
+  localPrice?: number
+  localCurrency?: string
+  /** GHS for catalog totals — DHL PULCL when GHS, otherwise FX from billed. */
   totalPriceBase: number
   deliveryDate?: string
 }

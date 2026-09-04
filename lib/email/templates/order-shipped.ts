@@ -5,11 +5,13 @@ import {
   renderHeroBlock,
   renderPrimaryButton,
   renderSupportFooter,
+  escapeHtml,
 } from '@/lib/email/templates/shared'
 
 export type OrderShippedEmailInput = {
   trackingNumber: string
   trackingUrl: string
+  dhlTrackingUrl?: string
 }
 
 export function buildOrderShippedEmail(
@@ -31,14 +33,19 @@ export function buildOrderShippedEmail(
     ${renderHeroBlock({
       title: `It's on the way, ${firstName}!`,
       description:
-        'Your order has been handed to DHL Express. Use the tracking number below to follow it to your door.',
+        'Your order has been handed to DHL Express. Track the major checkpoints — shipment pick up, left Ghana, arrived, out for delivery, and delivered — with the button below.',
       orderNumber: order.orderNumber,
       highlight: `Tracking ${shipment.trackingNumber}`,
     })}
 
     ${renderDetailCard('Shipment details', trackingRows)}
 
-    ${renderPrimaryButton(shipment.trackingUrl, 'Track with DHL')}
+    ${renderPrimaryButton(shipment.trackingUrl, 'Track your shipment')}
+    ${
+      shipment.dhlTrackingUrl
+        ? `<p style="margin:16px 0 0;font-size:13px;line-height:1.5;color:#525252;text-align:center;"><a href="${escapeHtml(shipment.dhlTrackingUrl)}" style="color:#0369a1;text-decoration:underline;">Or view on DHL.com</a></p>`
+        : ''
+    }
 
     ${renderSupportFooter()}
   `

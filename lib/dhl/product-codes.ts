@@ -9,14 +9,13 @@ type AccountLookup = {
 /**
  * DHL NG product / account table:
  * N = same-country, D = international documents, P = international packages.
- * Gelos ships retail products, so international moves use P unless a document
- * product code is explicitly requested.
+ * Gelos ships retail products, so USA / International always quote and ship P.
  */
 export function resolveDhlShipmentProfile(
   originCountryCode: string,
   destinationCountryCode: string,
   accounts: AccountLookup,
-  preferredProductCode?: string,
+  _preferredProductCode?: string,
 ): DhlShipmentProfile {
   const origin = originCountryCode.trim().toUpperCase()
   const destination = destinationCountryCode.trim().toUpperCase()
@@ -24,11 +23,7 @@ export function resolveDhlShipmentProfile(
   const isDomestic = origin === destination
   const billedAsExport = origin === accountCountry
 
-  let productCode: DhlShipmentProfile['productCode'] = isDomestic ? 'N' : 'P'
-  const preferred = preferredProductCode?.trim().toUpperCase()
-  if (!isDomestic && (preferred === 'P' || preferred === 'D')) {
-    productCode = preferred
-  }
+  const productCode: DhlShipmentProfile['productCode'] = isDomestic ? 'N' : 'P'
 
   return {
     productCode,

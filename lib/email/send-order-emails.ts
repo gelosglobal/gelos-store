@@ -84,7 +84,7 @@ export async function sendOrderInvoiceEmail(order: OrderEmailData) {
 
 export async function sendOrderShippedEmail(
   order: OrderEmailData,
-  shipment: { trackingNumber: string; trackingUrl: string },
+  shipment: { trackingNumber: string; trackingUrl: string; dhlTrackingUrl?: string },
 ) {
   const email = order.customerEmail.trim()
   if (!email) {

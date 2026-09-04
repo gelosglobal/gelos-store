@@ -1,5 +1,4 @@
 import {
-  convertDhlAmountToBase,
   estimateShipmentWeightKg,
   getDhlConfig,
   isDhlConfigured,
@@ -9,6 +8,7 @@ import { dhlLocationError, normalizeDhlCity } from '@/lib/dhl/locations'
 import { resolveDhlShipmentProfile } from '@/lib/dhl/product-codes'
 import { addressLine } from '@/lib/dhl/shipping-details'
 import { plannedShippingDateAndTime } from '@/lib/dhl/text'
+import { dhlQuoteToBaseGhs, pickDhlPriceLines } from '@/lib/dhl/prices'
 import type { DhlRateOption } from '@/lib/dhl/types'
 
 export type DhlRateQuoteInput = {
@@ -35,7 +35,11 @@ type DhlProductsResponse = {
   products?: Array<{
     productCode?: string
     productName?: string
-    totalPrice?: Array<{ price?: number; priceCurrency?: string }>
+    totalPrice?: Array<{
+      currencyType?: string
+      price?: number
+      priceCurrency?: string
+    }>
     deliveryCapabilities?: {
       estimatedDeliveryDateAndTime?: string
     }
@@ -45,19 +49,17 @@ type DhlProductsResponse = {
 function mapRateOptions(json: DhlProductsResponse): DhlRateOption[] {
   const options: DhlRateOption[] = []
   for (const product of json.products ?? []) {
-    const priceEntry = product.totalPrice?.[0]
-    const totalPrice = Number(priceEntry?.price ?? NaN)
-    const currency = String(priceEntry?.priceCurrency ?? '').toUpperCase()
     const productCode = String(product.productCode ?? '').trim()
-    if (!productCode || !Number.isFinite(totalPrice) || totalPrice < 0 || !currency) {
-      continue
-    }
+    const prices = pickDhlPriceLines(product.totalPrice)
+    if (!productCode || !prices) continue
     options.push({
       productCode,
       productName: String(product.productName ?? productCode),
-      totalPrice,
-      currency,
-      totalPriceBase: convertDhlAmountToBase(totalPrice, currency),
+      totalPrice: prices.billed.amount,
+      currency: prices.billed.currency,
+      localPrice: prices.local?.amount,
+      localCurrency: prices.local?.currency,
+      totalPriceBase: dhlQuoteToBaseGhs(prices.billed, prices.local),
       deliveryDate: product.deliveryCapabilities?.estimatedDeliveryDateAndTime,
     })
   }
@@ -184,13 +186,18 @@ export async function fetchDhlRates(
     throw new Error('No DHL Express rates available for this destination')
   }
 
-  const preferred = options.find(
-    (option) => option.productCode === profile.productCode,
+  const matching = options.filter(
+    (option) => option.productCode.toUpperCase() === profile.productCode,
   )
+  if (profile.productCode === 'P' && matching.length === 0) {
+    throw new Error(
+      'DHL did not return a Worldwide package (P) rate for this destination',
+    )
+  }
 
   return {
-    options,
-    selected: preferred ?? options[0]!,
+    options: matching.length > 0 ? matching : options,
+    selected: (matching[0] ?? options[0])!,
     weightKg,
     productCode: profile.productCode,
   }

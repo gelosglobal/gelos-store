@@ -1,8 +1,4 @@
-import {
-  convertDhlAmountToBase,
-  estimateShipmentWeightKg,
-  getDhlConfig,
-} from '@/lib/dhl/config'
+import { estimateShipmentWeightKg, getDhlConfig } from '@/lib/dhl/config'
 import { dhlFetch } from '@/lib/dhl/client'
 import {
   contentDescription,
@@ -166,6 +162,12 @@ export async function createDhlShipment(
     config.defaultWeightKg,
   )
 
+  const invoiceCurrency = (
+    input.orderCurrency.trim() ||
+    input.freightCurrency ||
+    config.accountCurrency
+  ).toUpperCase()
+
   const declaredValue = Math.max(
     1,
     Math.round(
@@ -176,12 +178,10 @@ export async function createDhlShipment(
     ) / 100,
   )
 
+  // Freight must already be in invoiceCurrency (see fulfill-order).
   const freight =
     input.freightCharge != null
-      ? convertDhlAmountToBase(
-          input.freightCharge,
-          input.freightCurrency || config.accountCurrency,
-        )
+      ? Math.round(input.freightCharge * 100) / 100
       : undefined
 
   const planned = plannedShippingDateAndTime()
@@ -203,14 +203,14 @@ export async function createDhlShipment(
   }
 
   if (profile.isCustomsDeclarable) {
-    content.declaredValueCurrency = config.accountCurrency
+    content.declaredValueCurrency = invoiceCurrency
     content.declaredValue = declaredValue
     content.exportDeclaration = {
       lineItems: lineItems(input.items, origin, weightKg),
       exportReason: 'Permanent',
       additionalCharges:
         freight && freight > 0
-          ? [{ value: Math.round(freight * 100) / 100, typeCode: 'freight' }]
+          ? [{ value: freight, typeCode: 'freight' }]
           : undefined,
       invoice: {
         number: clip(input.orderNumber, 35),

@@ -1,11 +1,8 @@
 import type { Prisma } from '@prisma/client'
 import { validateDhlAddress } from '@/lib/dhl/address'
-import {
-  convertDhlAmountToBase,
-  getDhlConfig,
-  isDhlShippingConfigured,
-} from '@/lib/dhl/config'
+import { getDhlConfig, isDhlShippingConfigured } from '@/lib/dhl/config'
 import { createDhlPickup } from '@/lib/dhl/pickups'
+import { convertDhlQuoteToCurrency } from '@/lib/dhl/prices'
 import { fetchDhlRates } from '@/lib/dhl/rates'
 import { resolveShippingDetails } from '@/lib/dhl/shipping-details'
 import { createDhlShipment } from '@/lib/dhl/shipments'
@@ -96,13 +93,18 @@ export async function fulfillOrderWithDhl(order: OrderForDhl) {
   const productMap = new Map(
     products.map((product) => [product.productId, product]),
   )
+  const invoiceCurrency = (
+    order.currency.trim() || getDhlConfig().accountCurrency
+  ).toUpperCase()
+
+  // Keep commercial-invoice amounts in the order currency (e.g. USD for USA).
   const customsItems = lineItems.map((item) => {
     const product = productMap.get(item.id)
     return {
       name: item.productName || product?.name || item.name,
       category: product?.category,
       quantity: item.quantity,
-      unitPrice: convertDhlAmountToBase(item.price, order.currency),
+      unitPrice: Math.round(item.price * 100) / 100,
     }
   })
 
@@ -140,6 +142,17 @@ export async function fulfillOrderWithDhl(order: OrderForDhl) {
     productCode: destination.productCode,
   })
 
+  const freightInOrderCurrency = convertDhlQuoteToCurrency(
+    rates.selected,
+    invoiceCurrency,
+  )
+  const declaredValue = Math.round(
+    customsItems.reduce(
+      (sum, item) => sum + item.unitPrice * item.quantity,
+      0,
+    ) * 100,
+  ) / 100
+
   const shipment = await createDhlShipment({
     orderNumber: order.orderNumber,
     shipper,
@@ -151,9 +164,9 @@ export async function fulfillOrderWithDhl(order: OrderForDhl) {
       address: destination,
     },
     items: customsItems,
-    orderCurrency: order.currency,
-    freightCharge: rates.selected.totalPrice,
-    freightCurrency: rates.selected.currency,
+    orderCurrency: invoiceCurrency,
+    freightCharge: freightInOrderCurrency,
+    freightCurrency: invoiceCurrency,
     productCode: rates.selected.productCode,
   })
 
@@ -171,10 +184,8 @@ export async function fulfillOrderWithDhl(order: OrderForDhl) {
       },
       profile: shipment.profile,
       itemCount,
-      declaredValue: customsItems.reduce(
-        (sum, item) => sum + item.unitPrice * item.quantity,
-        0,
-      ),
+      declaredValue,
+      declaredValueCurrency: invoiceCurrency,
     })
     pickupConfirmationNumber = pickup.confirmationNumber
     dispatchConfirmationNumber = pickup.dispatchConfirmationNumber
@@ -226,7 +237,7 @@ export async function refreshOrderDhlTracking(order: OrderForDhl) {
     ...existing,
     lastStatus: tracking.status,
     lastDescription: tracking.description,
-    lastEvents: tracking.events.slice(0, 20),
+    lastEvents: tracking.events.slice(0, 40),
     lastTrackedAt: new Date().toISOString(),
   }
 

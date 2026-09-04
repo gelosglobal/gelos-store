@@ -1,16 +1,23 @@
 import type { Metadata } from 'next'
 import { HelpContentSections } from '@/components/help/help-content-sections'
 import { HelpPageLayout } from '@/components/help/help-page-layout'
-import { getStorePromotions } from '@/lib/db/store-settings'
+import { getMarketSettings } from '@/lib/db/market-settings'
 
 export const metadata: Metadata = {
   title: 'Shipping & Delivery | Gelos',
   description:
-    'Delivery areas, shipping fees, free shipping thresholds, and order tracking for Gelos orders in Ghana.',
+    'Delivery areas, shipping fees, free shipping thresholds, and order tracking for Gelos orders in Ghana and internationally.',
 }
 
 export default async function ShippingPage() {
-  const promotions = await getStorePromotions()
+  const ghana = await getMarketSettings('ghana')
+  const fee = Math.max(0, Number(ghana.shippingFee) || 0)
+  const threshold = Math.max(0, Number(ghana.freeShippingThreshold) || 0)
+
+  const shippingFeeCopy =
+    fee > 0
+      ? `Standard shipping in Ghana is GH₵${fee.toFixed(0)} per order.`
+      : 'Standard shipping in Ghana is calculated at checkout.'
 
   const shippingSections = [
     {
@@ -22,14 +29,14 @@ export default async function ShippingPage() {
     },
     {
       title: 'Shipping fees',
-      body: promotions.freeShippingEnabled
+      body: ghana.freeShippingEnabled
         ? [
-            `Standard shipping is GH₵${promotions.shippingFee.toFixed(0)} per order.`,
-            `Orders over GH₵${promotions.freeShippingThreshold.toFixed(0)} qualify for free shipping. The cart and checkout pages show your progress toward free shipping.`,
+            shippingFeeCopy,
+            threshold > 0
+              ? `Orders over GH₵${threshold.toFixed(0)} qualify for free shipping. The cart and checkout pages show your progress toward free shipping.`
+              : 'Eligible orders may qualify for free shipping — check cart and checkout for details.',
           ]
-        : [
-            `Standard shipping is GH₵${promotions.shippingFee.toFixed(0)} per order.`,
-          ],
+        : [shippingFeeCopy],
     },
     {
       title: 'Processing & delivery times',
@@ -40,9 +47,17 @@ export default async function ShippingPage() {
       ],
     },
     {
+      title: 'USA & international (DHL Express)',
+      body: [
+        'Orders to the USA and other international addresses ship with DHL Express from Accra. Checkout shows a live package rate and an estimated delivery date.',
+        'When the shipment is created you receive a tracking number. Use Track order in the footer, or the link in your shipping email, to follow the major checkpoints — shipment pick up, left Ghana, arrived, out for delivery, and delivered.',
+      ],
+    },
+    {
       title: 'Order tracking',
       body: [
-        'Include your order number when contacting support for tracking help.',
+        'DHL Express: use Track order in the footer, or the link in your shipping email.',
+        'Ghana deliveries: include your order number when contacting support.',
         'Make sure someone is available at the delivery address or provide clear directions and a reachable phone number for the courier.',
       ],
     },

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { calculateCheckoutTotals } from '@/lib/checkout'
+import { localizeCheckoutTotals } from '@/lib/dhl/prices'
 import {
   convertFromBase,
   getPaystackCurrencyForLocation,
@@ -28,6 +29,7 @@ import type { LocationId } from '@/lib/locations'
 import { getCartDisplayName } from '@/lib/variant-display'
 import { isDhlConfigured } from '@/lib/dhl/config'
 import { fetchDhlRates } from '@/lib/dhl/rates'
+import type { DhlRateOption } from '@/lib/dhl/types'
 import { countryCodeFromLocation } from '@/lib/shipping-destination'
 
 export const checkoutLineItemSchema = z.object({
@@ -178,14 +180,7 @@ export async function buildLocalizedCheckoutOrder(body: CheckoutRequestBody) {
   }
 
   let shippingOverride: number | undefined
-  let dhl:
-    | {
-        productCode: string
-        productName: string
-        totalPrice: number
-        currency: string
-      }
-    | undefined
+  let dhl: DhlRateOption | undefined
 
   const destinationCountry = resolveDestinationCountry(
     locationId,
@@ -214,27 +209,17 @@ export async function buildLocalizedCheckoutOrder(body: CheckoutRequestBody) {
       productCode: body.shipping?.productCode,
     })
     shippingOverride = rates.selected.totalPriceBase
-    dhl = {
-      productCode: rates.selected.productCode,
-      productName: rates.selected.productName,
-      totalPrice: rates.selected.totalPrice,
-      currency: rates.selected.currency,
-    }
+    dhl = rates.selected
   }
 
-  // Totals are computed in base GHS, then converted for the shopper's currency.
+  // Product totals use catalog FX. DHL shipping uses DHL billed/local prices.
   const baseTotals = calculateCheckoutTotals(checkoutItems, {
     promoCode,
     promotions,
     smileRewardFreeShipping: body.smileRewardFreeShipping === true,
     shippingOverride,
   })
-  const totals = {
-    subtotal: convertFromBase(baseTotals.subtotal, currency),
-    discount: convertFromBase(baseTotals.discount, currency),
-    shipping: convertFromBase(baseTotals.shipping, currency),
-    total: convertFromBase(baseTotals.total, currency),
-  }
+  const totals = localizeCheckoutTotals(baseTotals, currency, dhl)
 
   if (totals.total <= 0) {
     throw new Error('Invalid order total')

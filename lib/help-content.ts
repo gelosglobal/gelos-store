@@ -16,6 +16,11 @@ export const helpTopics: HelpTopic[] = [
     description: 'Delivery areas, timelines, and free shipping.',
   },
   {
+    label: 'Track order',
+    href: '/track',
+    description: 'Follow major DHL Express checkpoints for USA and international orders.',
+  },
+  {
     label: 'Returns',
     href: '/returns',
     description: 'How to request a return or exchange.',
@@ -43,7 +48,7 @@ export const faqItems: FaqItem[] = [
     id: 'order-tracking',
     question: 'How do I track my order?',
     answer:
-      'After your order ships, you will receive an email confirmation with your order number. If you need an update, contact us with your order number and delivery city — our team will reply with the latest status.',
+      'USA and international orders ship with DHL Express. After we create the shipment you will get an email with a tracking number — open gelosglobal.com/track or the link in that email to see the major checkpoints (shipment pick up, left Ghana, arrived, out for delivery, delivered). Ghana orders use our local courier; contact us with your order number for an update.',
   },
   {
     id: 'delivery-areas',

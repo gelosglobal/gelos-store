@@ -22,6 +22,8 @@ export type CreateDhlPickupInput = {
   profile: DhlShipmentProfile
   itemCount: number
   declaredValue?: number
+  /** Match commercial invoice currency (order currency). */
+  declaredValueCurrency?: string
 }
 
 export type DhlPickupResult = {
@@ -85,7 +87,9 @@ export async function createDhlPickup(
 
   if (input.profile.isCustomsDeclarable && input.declaredValue != null) {
     shipmentDetails.declaredValue = input.declaredValue
-    shipmentDetails.declaredValueCurrency = config.accountCurrency
+    shipmentDetails.declaredValueCurrency = (
+      input.declaredValueCurrency?.trim() || config.accountCurrency
+    ).toUpperCase()
   }
 
   const body = {

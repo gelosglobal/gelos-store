@@ -36,6 +36,7 @@ export const footerLinkGroups: FooterLinkGroup[] = [
     links: [
       { label: 'FAQs', href: '/faqs' },
       { label: 'Shipping & Delivery', href: '/shipping' },
+      { label: 'Track order', href: '/track' },
       { label: 'Returns', href: '/returns' },
       { label: 'Payments', href: '/payments' },
       { label: 'Contact Us', href: '/contact' },
