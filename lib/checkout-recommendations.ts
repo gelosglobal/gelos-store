@@ -106,10 +106,11 @@ export function getCheckoutBundleUpsells(
     .filter((bundle) => bundle.active && bundle.productIds.length > 0)
     .map((bundle) => productBundleToOffer(bundle, products))
     .filter((offer) => offer.productIds.length > 0)
-    .filter(
-      (offer) =>
-        options?.showAll || !offer.productIds.every((id) => inCart.has(id)),
-    )
+    .filter((offer) => {
+      if (options?.showAll) return true
+      if (cartItems.some((item) => item.bundleId === offer.id)) return false
+      return !offer.productIds.every((id) => inCart.has(id))
+    })
 
   return options?.showAll ? offers : offers.slice(0, limit)
 }
@@ -123,6 +124,10 @@ export function getMissingBundleProductIds(
     offer.productIds,
     products,
   )
+  // Whole-bundle cart line already covers this offer.
+  if (cartItems.some((item) => item.bundleId === offer.id)) {
+    return []
+  }
   const inCart = new Set(cartItems.map((item) => item.id))
   return resolvableIds.filter((id) => !inCart.has(id))
 }

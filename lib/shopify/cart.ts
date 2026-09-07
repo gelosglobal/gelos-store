@@ -1,8 +1,11 @@
 import type { LocationId } from '@/lib/locations'
+import { getCurrencyForLocation } from '@/lib/checkout'
+import { isCartBundleProductId } from '@/lib/cart-bundle'
 import {
   buildShopifyCheckoutDiscountCodes,
   createShopifyDraftOrderCheckout,
   resolveShopifyCheckoutPricing,
+  type ShopifyCheckoutLineForPricing,
 } from '@/lib/shopify/checkout-discounts'
 import {
   mapShopifyProduct,
@@ -51,6 +54,14 @@ export type ShopifyCheckoutLineInput = {
   variantLabel?: string
   variantImage?: string
   unitPrice?: number
+  bundleId?: string
+  bundleName?: string
+  bundleImage?: string
+  bundleComponents?: Array<{
+    productId: string
+    variantImage?: string
+    variantLabel?: string
+  }>
 }
 
 export type ShopifyCheckoutResult = {
@@ -100,25 +111,83 @@ export async function createShopifyCheckout(input: {
     throw new Error('Cart is empty')
   }
 
+  const currency = getCurrencyForLocation(input.locationId ?? 'ghana')
+  const hasBundleLines = input.lines.some(
+    (line) =>
+      Boolean(line.bundleId) || isCartBundleProductId(line.productId),
+  )
+
   const products = await getShopifyProducts()
   const byId = indexProducts(products)
 
+  const pricingLines: ShopifyCheckoutLineForPricing[] = input.lines.map(
+    (line) => ({
+      productId: line.productId,
+      quantity: line.quantity,
+      variantLabel: line.variantLabel,
+      variantImage: line.variantImage,
+      unitPrice: line.unitPrice,
+      bundleId: line.bundleId,
+      bundleName: line.bundleName,
+      bundleImage: line.bundleImage,
+      bundleComponents: line.bundleComponents,
+    }),
+  )
+
+  const pricing = await resolveShopifyCheckoutPricing({
+    lines: pricingLines,
+    productsById: byId,
+    promoCode: input.promoCode,
+    smileRewardFreeShipping: input.smileRewardFreeShipping,
+    locationId: input.locationId,
+  })
+
+  const needsHiddenDiscounts = pricing.amountOff >= 0.01 || pricing.freeShipping
+  // Bundles must checkout as one custom draft line (not exploded variants).
+  if (needsHiddenDiscounts || hasBundleLines) {
+    try {
+      const draft = await createShopifyDraftOrderCheckout({
+        pricing,
+        email: input.email,
+        phone: input.phone,
+        countryCode: input.countryCode,
+        visitorId: input.visitorId,
+        currency,
+      })
+      if (draft) {
+        return {
+          cartId: draft.id,
+          checkoutUrl: draft.invoiceUrl,
+          totalQuantity: pricing.lines.reduce(
+            (sum, line) => sum + line.quantity,
+            0,
+          ),
+        }
+      }
+      if (hasBundleLines) {
+        throw new Error(
+          'Could not start checkout for this bundle. Please try again.',
+        )
+      }
+    } catch (error) {
+      if (hasBundleLines) throw error
+      console.warn(
+        '[shopify-checkout] Draft order checkout unavailable, falling back to discount codes',
+        error,
+      )
+    }
+  }
+
   const cartLines: Array<{ merchandiseId: string; quantity: number }> = []
 
-  for (const line of input.lines) {
-    const product = byId.get(line.productId)
-    if (!product) {
-      throw new Error(`Product not found in Shopify catalog: ${line.productId}`)
+  for (const line of pricing.lines) {
+    if (line.customTitle || !line.merchandiseId) {
+      throw new Error(
+        'Bundle checkout requires Shopify Admin draft orders. Check Admin API credentials.',
+      )
     }
-
-    const merchandiseId = resolveShopifyMerchandiseId(
-      product,
-      line.variantLabel,
-      line.variantImage,
-    )
-
     cartLines.push({
-      merchandiseId,
+      merchandiseId: line.merchandiseId,
       quantity: Math.max(1, line.quantity),
     })
   }
@@ -134,39 +203,6 @@ export async function createShopifyCheckout(input: {
   const visitorId = input.visitorId?.trim()
   if (visitorId) {
     attributes.push({ key: 'gelos_visitor_id', value: visitorId })
-  }
-
-  const pricing = await resolveShopifyCheckoutPricing({
-    lines: input.lines,
-    productsById: byId,
-    promoCode: input.promoCode,
-    smileRewardFreeShipping: input.smileRewardFreeShipping,
-    locationId: input.locationId,
-  })
-
-  const needsHiddenDiscounts = pricing.amountOff >= 0.01 || pricing.freeShipping
-  if (needsHiddenDiscounts) {
-    try {
-      const draft = await createShopifyDraftOrderCheckout({
-        pricing,
-        email: input.email,
-        phone: input.phone,
-        countryCode: input.countryCode,
-        visitorId: input.visitorId,
-      })
-      if (draft) {
-        return {
-          cartId: draft.id,
-          checkoutUrl: draft.invoiceUrl,
-          totalQuantity: cartLines.reduce((sum, line) => sum + line.quantity, 0),
-        }
-      }
-    } catch (error) {
-      console.warn(
-        '[shopify-checkout] Draft order checkout unavailable, falling back to discount codes',
-        error,
-      )
-    }
   }
 
   const discountCodes = needsHiddenDiscounts

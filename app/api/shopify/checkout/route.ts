@@ -27,6 +27,18 @@ const bodySchema = z.object({
         variantImage: z.string().optional(),
         variantLabel: z.string().optional(),
         unitPrice: z.number().nonnegative().optional(),
+        bundleId: z.string().min(1).optional(),
+        bundleName: z.string().min(1).optional(),
+        bundleImage: z.string().optional(),
+        bundleComponents: z
+          .array(
+            z.object({
+              productId: z.string().min(1),
+              variantImage: z.string().optional(),
+              variantLabel: z.string().optional(),
+            }),
+          )
+          .optional(),
       }),
     )
     .min(1),
@@ -87,6 +99,10 @@ export async function POST(request: Request) {
         variantImage: item.variantImage,
         variantLabel: item.variantLabel,
         unitPrice: item.unitPrice,
+        bundleId: item.bundleId,
+        bundleName: item.bundleName,
+        bundleImage: item.bundleImage,
+        bundleComponents: item.bundleComponents,
       })),
     })
 

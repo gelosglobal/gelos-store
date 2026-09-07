@@ -5,6 +5,14 @@ type StartShopifyCheckoutInput = {
     price?: number
     variantImage?: string
     variantLabel?: string
+    bundleId?: string
+    bundleName?: string
+    bundleImage?: string
+    bundleComponents?: Array<{
+      productId: string
+      variantImage?: string
+      variantLabel?: string
+    }>
   }>
   countryCode?: string
   locationId?: string
@@ -51,6 +59,10 @@ export async function startShopifyCheckout(
         variantImage: item.variantImage,
         variantLabel: item.variantLabel,
         unitPrice: item.price,
+        bundleId: item.bundleId,
+        bundleName: item.bundleName,
+        bundleImage: item.bundleImage,
+        bundleComponents: item.bundleComponents,
       })),
     }),
   })

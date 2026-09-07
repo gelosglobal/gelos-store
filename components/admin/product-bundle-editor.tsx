@@ -233,7 +233,7 @@ export function ProductBundleEditor({ bundleId }: ProductBundleEditorProps) {
     <div className="space-y-6">
       <AdminPageHeader
         title={isNew ? 'New bundle' : name || 'Edit bundle'}
-        description="Name your bundle and choose which products are included. Shoppers add each product to cart separately at checkout."
+        description="Name your bundle and choose which products are included. USA checkout shows one bundle line; Ghana still adds each product separately."
       >
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" asChild className="rounded-full">
@@ -260,9 +260,9 @@ export function ProductBundleEditor({ bundleId }: ProductBundleEditorProps) {
       </AdminPageHeader>
 
       <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-600">
-        When a shopper taps <strong>Add bundle</strong> on the storefront, each
-        product below is added as its own cart line for checkout — not a single
-        bundle SKU.
+        <strong>USA:</strong> Add bundle → one cart/checkout line.{' '}
+        <strong>Ghana (and other markets):</strong> each included product is
+        still added as its own cart line.
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_220px]">

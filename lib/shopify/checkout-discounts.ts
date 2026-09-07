@@ -1,10 +1,12 @@
 import { randomBytes } from 'node:crypto'
 import { calculateCheckoutTotals } from '@/lib/checkout'
+import { isCartBundleProductId } from '@/lib/cart-bundle'
 import { getMarketSettings } from '@/lib/db/market-settings'
 import {
   getCartUpsellSettings,
   getStorePromotions,
 } from '@/lib/db/store-settings'
+import { convertFromBase } from '@/lib/exchange-rates'
 import { applyMarketShipping } from '@/lib/market-settings'
 import type { LocationId } from '@/lib/locations'
 import {
@@ -75,12 +77,23 @@ export type ShopifyCheckoutLineForPricing = {
   variantLabel?: string
   variantImage?: string
   unitPrice?: number
+  bundleId?: string
+  bundleName?: string
+  bundleImage?: string
+  bundleComponents?: Array<{
+    productId: string
+    variantImage?: string
+    variantLabel?: string
+  }>
 }
 
 export type ShopifyCheckoutPricedLine = {
-  merchandiseId: string
+  merchandiseId?: string
   quantity: number
   unitPrice: number
+  /** Custom draft-order title — one line for a Gelos bundle. */
+  customTitle?: string
+  customAttributes?: Array<{ key: string; value: string }>
 }
 
 export type ShopifyCheckoutPricing = {
@@ -185,6 +198,44 @@ export async function resolveShopifyCheckoutPricing(input: {
 
   let shopifySubtotal = 0
   const gelosItems = input.lines.map((line) => {
+    const isBundle =
+      Boolean(line.bundleId) || isCartBundleProductId(line.productId)
+
+    if (isBundle) {
+      const unitPrice = roundMoney(
+        line.unitPrice != null && Number.isFinite(line.unitPrice)
+          ? Math.max(0, line.unitPrice)
+          : 0,
+      )
+      shopifySubtotal += unitPrice * Math.max(1, line.quantity)
+      const includes = (line.bundleComponents ?? [])
+        .map((component) => {
+          const product = input.productsById.get(component.productId)
+          const name = product?.name || component.productId
+          return component.variantLabel
+            ? `${name} (${component.variantLabel})`
+            : name
+        })
+        .join(', ')
+
+      return {
+        merchandiseId: undefined as string | undefined,
+        customTitle: line.bundleName?.trim() || 'Bundle',
+        customAttributes: [
+          ...(line.bundleId
+            ? [{ key: 'gelos_bundle_id', value: line.bundleId }]
+            : []),
+          ...(includes
+            ? [{ key: 'Includes', value: includes.slice(0, 250) }]
+            : []),
+        ],
+        id: line.productId,
+        name: line.bundleName?.trim() || 'Bundle',
+        price: unitPrice,
+        quantity: Math.max(1, line.quantity),
+      }
+    }
+
     const product = input.productsById.get(line.productId)
     if (!product) {
       throw new Error(`Product not found in Shopify catalog: ${line.productId}`)
@@ -208,6 +259,10 @@ export async function resolveShopifyCheckoutPricing(input: {
         line.variantLabel,
         line.variantImage,
       ),
+      customTitle: undefined as string | undefined,
+      customAttributes: undefined as
+        | Array<{ key: string; value: string }>
+        | undefined,
       id: product.id,
       name: product.name,
       price: unitPrice,
@@ -232,6 +287,8 @@ export async function resolveShopifyCheckoutPricing(input: {
       merchandiseId: item.merchandiseId,
       quantity: item.quantity,
       unitPrice: unitPrices[index] ?? item.price,
+      customTitle: item.customTitle,
+      customAttributes: item.customAttributes,
     })),
   }
 }
@@ -322,27 +379,45 @@ export async function createShopifyDraftOrderCheckout(input: {
   phone?: string
   countryCode?: string
   visitorId?: string
+  currency?: string
 }): Promise<{ id: string; invoiceUrl: string } | null> {
+  if (!isShopifyAdminConfigured()) return null
+
+  const currency = (input.currency || 'GHS').trim().toUpperCase() || 'GHS'
   const email = input.email?.trim().toLowerCase()
-  if (!email) return null
 
   const draftInput: Record<string, unknown> = {
-    email,
     tags: ['gelos-checkout'],
     note: 'Gelos storefront checkout',
     acceptAutomaticDiscounts: false,
     allowDiscountCodesInCheckout: false,
-    presentmentCurrencyCode: 'GHS',
-    lineItems: input.pricing.lines.map((line) => ({
-      variantId: line.merchandiseId,
-      quantity: line.quantity,
-      priceOverride: {
-        amount: moneyString(line.unitPrice),
-        currencyCode: 'GHS',
-      },
-    })),
+    presentmentCurrencyCode: currency,
+    lineItems: input.pricing.lines.map((line) => {
+      if (line.customTitle) {
+        // Bundle cart prices are catalog GHS; convert to presentment currency.
+        const amount =
+          currency === 'GHS'
+            ? line.unitPrice
+            : convertFromBase(line.unitPrice, currency)
+        return {
+          title: line.customTitle,
+          quantity: line.quantity,
+          originalUnitPrice: moneyString(amount),
+          customAttributes: line.customAttributes,
+        }
+      }
+      return {
+        variantId: line.merchandiseId,
+        quantity: line.quantity,
+        priceOverride: {
+          amount: moneyString(line.unitPrice),
+          currencyCode: currency,
+        },
+      }
+    }),
   }
 
+  if (email) draftInput.email = email
   if (input.phone?.trim()) draftInput.phone = input.phone.trim()
   if (input.visitorId?.trim()) {
     draftInput.customAttributes = [

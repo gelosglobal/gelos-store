@@ -43,12 +43,16 @@ export function BundleUpsellCard({
   cartItems,
   products,
 }: BundleUpsellCardProps) {
-  const { addItems } = useCart()
-  const { formatPrice } = useLocation()
+  const { addItems, addBundle: addBundleToCart } = useCart()
+  const { formatPrice, locationId } = useLocation()
   const router = useRouter()
   const [variantDialogOpen, setVariantDialogOpen] = useState(false)
 
+  // USA: one cart/checkout line. Ghana & others: explode into products (legacy).
+  const useSingleBundleLine = locationId === 'usa'
+
   const missingIds = getMissingBundleProductIds(offer, cartItems, products)
+  const alreadyInCart = missingIds.length === 0
   const unavailableCount = offer.unavailableProductIds?.length ?? 0
   const catalogTotal = getBundleOfferCatalogTotal(offer, products)
   const bundleTotal = getBundleOfferPrice(offer, products)
@@ -98,17 +102,71 @@ export function BundleUpsellCard({
   }, [offer.badge, activeProductBadge])
 
   const variantChoiceProducts = useMemo(() => {
+    if (useSingleBundleLine) {
+      return getBundleVariantChoiceProducts(includedProducts, products)
+    }
     const missingProducts = missingIds
       .map((id) => products.find((product) => product.id === id))
       .filter((product): product is Product => Boolean(product))
-
     return getBundleVariantChoiceProducts(missingProducts, products)
-  }, [missingIds, products])
+  }, [useSingleBundleLine, includedProducts, missingIds, products])
 
   const commitAddBundle = (variantSelections: Record<string, string> = {}) => {
-    if (missingIds.length === 0) return
+    if (alreadyInCart) return
 
     const bundlePrice = getBundleOfferPrice(offer, products)
+
+    if (useSingleBundleLine) {
+      const components = offer.productIds.map((slotProductId) => {
+        const choiceProduct = variantChoiceProducts.find(
+          (product) => product.id === slotProductId,
+        )
+        const resolved = resolveBundleVariantSelection(
+          slotProductId,
+          choiceProduct,
+          variantSelections[slotProductId],
+          products,
+        )
+        const options = resolved.product
+          ? getBundleAddToCartOptions(
+              resolved.product,
+              undefined,
+              resolved.variantImage,
+            )
+          : undefined
+
+        return {
+          productId: resolved.productId,
+          variantImage: options?.variantImage,
+          variantLabel: options?.variantLabel,
+        }
+      })
+
+      const result = addBundleToCart(
+        {
+          bundleId: offer.id,
+          bundleName: offer.title,
+          bundleImage: getBundleDisplayImage(offer),
+          unitPrice: bundlePrice,
+          components,
+        },
+        { silent: true },
+      )
+
+      if (result.added === 0) {
+        toast.error(
+          result.skipped > 0
+            ? 'Bundle items are out of stock or unavailable.'
+            : 'Could not add this bundle to your cart.',
+        )
+        return
+      }
+
+      toast.success(`${offer.title} added to your cart`)
+      router.push('/cart')
+      return
+    }
+
     const result = addItems(
       missingIds.map((slotProductId) => {
         const choiceProduct = variantChoiceProducts.find(
@@ -168,8 +226,8 @@ export function BundleUpsellCard({
     router.push('/cart')
   }
 
-  const addBundle = () => {
-    if (missingIds.length === 0) return
+  const handleAddBundle = () => {
+    if (alreadyInCart) return
 
     if (variantChoiceProducts.length > 0) {
       setVariantDialogOpen(true)
@@ -278,12 +336,12 @@ export function BundleUpsellCard({
 
           <button
             type="button"
-            onClick={addBundle}
-            disabled={missingIds.length === 0}
+            onClick={handleAddBundle}
+            disabled={alreadyInCart}
             className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-neutral-950 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
           >
             <Plus className="size-3.5 sm:size-4" />
-            Add bundle
+            {alreadyInCart ? 'In cart' : 'Add bundle'}
           </button>
         </div>
       </article>

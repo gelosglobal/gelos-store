@@ -11,6 +11,7 @@ import { useCart } from '@/components/cart-provider'
 import { CheckoutOrderSummary } from '@/components/checkout-order-summary'
 import { CheckoutUpsells } from '@/components/checkout-upsells'
 import { useLocation } from '@/components/location-provider'
+import { useProducts } from '@/components/products-provider'
 import { useStorePromotions } from '@/components/store-promotions-provider'
 import { useAffiliate } from '@/components/affiliate-provider'
 import { useMarketSettings } from '@/components/market-settings-provider'
@@ -22,6 +23,11 @@ import {
 } from '@/components/stripe-card-fields'
 import { PaystackPaymentBadges } from '@/components/paystack-payment-badges'
 import { calculateCheckoutTotals } from '@/lib/checkout'
+import {
+  expandCartItemsForNativeCheckout,
+  toShopifyCheckoutItem,
+} from '@/lib/cart-checkout-items'
+import { isCartBundleProductId } from '@/lib/cart-bundle'
 import { localizeCheckoutTotals } from '@/lib/dhl/prices'
 import type { DhlRateOption } from '@/lib/dhl/types'
 import {
@@ -52,6 +58,7 @@ type PaymentMethod = 'paystack' | 'stripe' | 'cod' | 'shopify'
 export default function CheckoutPage() {
   const router = useRouter()
   const { items, isHydrated, clearCart, setQuantity } = useCart()
+  const { products } = useProducts()
   const { location, locationId, geo, countryCode: geoCountryCode } = useLocation()
   const { promotions, appliedPromoCode } = useStorePromotions()
   const { market, applyShipping, isProductAvailable } = useMarketSettings()
@@ -87,8 +94,20 @@ export default function CheckoutPage() {
   ).toUpperCase()
   const postalRequired =
     liveDhl && countryRequiresPostalCode(destinationCountry)
-  const cartHasUnavailableItems = items.some(
-    (item) => !isProductAvailable(item.id),
+  const cartHasUnavailableItems = items.some((item) => {
+    if (item.bundleId || isCartBundleProductId(item.id)) {
+      const components = item.bundleComponents ?? []
+      if (components.length === 0) return true
+      return components.some(
+        (component) => !isProductAvailable(component.productId),
+      )
+    }
+    return !isProductAvailable(item.id)
+  })
+
+  const nativeCheckoutItems = useMemo(
+    () => expandCartItemsForNativeCheckout(items, products),
+    [items, products],
   )
 
   const shippingAddress = useMemo(() => {
@@ -288,7 +307,7 @@ export default function CheckoutPage() {
     void (async () => {
       try {
         const checkoutUrl = await startShopifyCheckout({
-          items,
+          items: items.map(toShopifyCheckoutItem),
           countryCode:
             countryCode.trim().toUpperCase() ||
             geoCountryCode ||
@@ -418,7 +437,7 @@ export default function CheckoutPage() {
         : undefined,
     locationId,
     currencyCode: location.currencyCode,
-    items: items.map((item) => ({
+    items: nativeCheckoutItems.map((item) => ({
       id: item.id,
       quantity: item.quantity,
       variantImage: item.variantImage,
@@ -517,12 +536,8 @@ export default function CheckoutPage() {
               countryCode.trim().toUpperCase() ||
               geoCountryCode ||
               shopifyCountryCodeFromLocation(locationId),
-            items: items.map((item) => ({
-              id: item.id,
-              quantity: item.quantity,
-              variantImage: item.variantImage,
-              variantLabel: item.variantLabel,
-            })),
+            items: items.map(toShopifyCheckoutItem),
+            locationId,
           }),
         })
 

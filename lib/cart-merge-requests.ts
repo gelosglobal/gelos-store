@@ -1,4 +1,10 @@
-import type { AddToCartOptions, CartAddRequest, CartEntry } from '@/lib/cart-types'
+import type {
+  AddToCartOptions,
+  CartAddRequest,
+  CartBundleAddRequest,
+  CartEntry,
+} from '@/lib/cart-types'
+import { cartBundleProductId } from '@/lib/cart-bundle'
 import { getCartLineKey } from '@/lib/cart-line-key'
 import {
   getAvailableStockForVariant,
@@ -128,4 +134,100 @@ export function mergeCartAddRequests(
   }
 
   return { entries: working, added, skipped, addedNames, trackEvents }
+}
+
+/** Add a named bundle as a single cart row (checkout lists one line). */
+export function mergeCartBundleAddRequest(
+  prev: CartEntry[],
+  request: CartBundleAddRequest,
+  getProductById: (id: string) => Product | undefined,
+): CartMergeResult {
+  const quantity = Math.max(1, request.quantity ?? 1)
+  const components = request.components
+    .map((component) => ({
+      productId: component.productId,
+      variantImage: component.variantImage?.trim() || undefined,
+      variantLabel: component.variantLabel?.trim() || undefined,
+    }))
+    .filter((component) => Boolean(component.productId))
+
+  if (components.length === 0) {
+    return {
+      entries: prev,
+      added: 0,
+      skipped: 1,
+      addedNames: [],
+      trackEvents: [],
+    }
+  }
+
+  for (const component of components) {
+    const product = getProductById(component.productId)
+    if (!product) {
+      return {
+        entries: prev,
+        added: 0,
+        skipped: 1,
+        addedNames: [],
+        trackEvents: [],
+      }
+    }
+    const available = getAvailableStockForVariant(
+      product,
+      component.variantImage,
+    )
+    if (available < quantity) {
+      return {
+        entries: prev,
+        added: 0,
+        skipped: 1,
+        addedNames: [],
+        trackEvents: [],
+      }
+    }
+  }
+
+  const entry: CartEntry = {
+    productId: cartBundleProductId(request.bundleId),
+    quantity,
+    unitPrice: Math.round(request.unitPrice * 100) / 100,
+    bundleId: request.bundleId,
+    bundleName: request.bundleName.trim() || 'Bundle',
+    bundleImage: request.bundleImage.trim() || undefined,
+    bundleComponents: components,
+  }
+
+  const lineKey = getCartLineKey(entry)
+  const working = [...prev]
+  const existingIndex = working.findIndex(
+    (item) => getCartLineKey(item) === lineKey,
+  )
+
+  if (existingIndex >= 0) {
+    working[existingIndex] = {
+      ...working[existingIndex]!,
+      quantity: working[existingIndex]!.quantity + quantity,
+      bundleComponents: components,
+      bundleName: entry.bundleName,
+      bundleImage: entry.bundleImage,
+      unitPrice: entry.unitPrice,
+    }
+  } else {
+    working.push(entry)
+  }
+
+  return {
+    entries: working,
+    added: 1,
+    skipped: 0,
+    addedNames: [entry.bundleName!],
+    trackEvents: [
+      {
+        id: entry.productId,
+        name: entry.bundleName!,
+        price: entry.unitPrice!,
+        quantity,
+      },
+    ],
+  }
 }

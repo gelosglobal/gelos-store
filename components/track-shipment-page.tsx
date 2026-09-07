@@ -19,6 +19,7 @@ import {
   Truck,
   type LucideIcon,
 } from 'lucide-react'
+import { motion, useReducedMotion } from 'motion/react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -367,6 +368,59 @@ function ShipmentTimelineCard({
   )
 }
 
+function TimelineStepIcon({
+  Icon,
+  stepId,
+  active,
+  reduceMotion,
+}: {
+  Icon: LucideIcon
+  stepId: string
+  active: boolean
+  reduceMotion: boolean
+}) {
+  if (!active || reduceMotion) {
+    return <Icon className="h-[18px] w-[18px]" strokeWidth={1.6} />
+  }
+
+  const motionByStep: Record<
+    string,
+    {
+      animate: Record<string, number | number[]>
+      transition: Record<string, unknown>
+    }
+  > = {
+    pickup: {
+      animate: { y: [0, -2, 0] },
+      transition: { duration: 1.6, repeat: Infinity, ease: 'easeInOut' },
+    },
+    depart: {
+      animate: { x: [0, 3, 0], y: [0, -1.5, 0] },
+      transition: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' },
+    },
+    arrived: {
+      animate: { scale: [1, 1.12, 1] },
+      transition: { duration: 1.8, repeat: Infinity, ease: 'easeInOut' },
+    },
+    delivery: {
+      animate: { x: [0, 2.5, 0] },
+      transition: { duration: 1.4, repeat: Infinity, ease: 'easeInOut' },
+    },
+  }
+
+  const preset = motionByStep[stepId] ?? motionByStep.pickup!
+
+  return (
+    <motion.span
+      className="inline-flex"
+      animate={preset.animate}
+      transition={preset.transition}
+    >
+      <Icon className="h-[18px] w-[18px]" strokeWidth={1.6} />
+    </motion.span>
+  )
+}
+
 function TimelineCard({
   status,
   steps,
@@ -382,6 +436,7 @@ function TimelineCard({
   delivered?: boolean
   initialRated?: boolean
 }) {
+  const reduceMotion = useReducedMotion() ?? false
   const statusPill =
     status === 'delivered'
       ? {
@@ -417,51 +472,94 @@ function TimelineCard({
           className="h-px min-w-6 flex-1 border-t border-dashed border-neutral-200"
           aria-hidden
         />
-        <span
+        <motion.span
           className={cn(
             'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium',
             statusPill.className,
           )}
+          initial={reduceMotion ? false : { opacity: 0, scale: 0.92 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
         >
           <Check className={cn('h-3.5 w-3.5', statusPill.iconClassName)} />
           {statusPill.label}
-        </span>
+        </motion.span>
       </header>
 
       <ol className="mt-8">
         {steps.map((step, index) => {
           const last = index === steps.length - 1
           const Icon = step.Icon
+          const active = step.current && status !== 'delivered'
           return (
-            <li
+            <motion.li
               key={step.id}
               className="grid grid-cols-[44px_minmax(0,1fr)_auto] gap-x-3"
+              initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.4,
+                delay: reduceMotion ? 0 : index * 0.08,
+                ease: 'easeOut',
+              }}
             >
               <div className="flex flex-col items-center">
-                <span
-                  className={cn(
-                    'flex h-11 w-11 items-center justify-center rounded-full border',
-                    step.done
-                      ? 'border-solid border-neutral-400 text-neutral-700'
-                      : 'border-dashed border-neutral-300 text-neutral-300',
-                    step.current
-                      ? 'border-sky-500 bg-sky-50 text-sky-700'
-                      : null,
-                    status === 'delivered' && step.done
-                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                      : null,
-                  )}
-                >
-                  <Icon className="h-[18px] w-[18px]" strokeWidth={1.6} />
+                <span className="relative flex h-11 w-11 items-center justify-center">
+                  {active && !reduceMotion ? (
+                    <motion.span
+                      className="absolute inset-0 rounded-full bg-sky-400/25"
+                      animate={{ scale: [1, 1.28, 1], opacity: [0.55, 0, 0.55] }}
+                      transition={{
+                        duration: 2.2,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }}
+                      aria-hidden
+                    />
+                  ) : null}
+                  <span
+                    className={cn(
+                      'relative flex h-11 w-11 items-center justify-center rounded-full border',
+                      step.done
+                        ? 'border-solid border-neutral-400 text-neutral-700'
+                        : 'border-dashed border-neutral-300 text-neutral-300',
+                      step.current
+                        ? 'border-sky-500 bg-sky-50 text-sky-700'
+                        : null,
+                      status === 'delivered' && step.done
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                        : null,
+                    )}
+                  >
+                    <TimelineStepIcon
+                      Icon={Icon}
+                      stepId={step.id}
+                      active={active}
+                      reduceMotion={reduceMotion}
+                    />
+                  </span>
                 </span>
                 {last ? null : (
                   <span
-                    className={cn(
-                      'my-1 w-px flex-1',
-                      step.done ? 'bg-neutral-300' : 'bg-neutral-200',
-                    )}
+                    className="relative my-1 w-px flex-1 overflow-hidden bg-neutral-200"
                     aria-hidden
-                  />
+                  >
+                    <motion.span
+                      className={cn(
+                        'absolute inset-x-0 top-0 w-px',
+                        status === 'delivered'
+                          ? 'bg-emerald-400'
+                          : 'bg-neutral-400',
+                      )}
+                      initial={{ height: 0 }}
+                      animate={{ height: step.done ? '100%' : '0%' }}
+                      transition={{
+                        duration: reduceMotion ? 0 : 0.45,
+                        delay: reduceMotion ? 0 : 0.15 + index * 0.08,
+                        ease: 'easeOut',
+                      }}
+                    />
+                  </span>
                 )}
               </div>
               <div className={cn('min-w-0', last ? 'pb-0' : 'pb-6')}>
@@ -494,7 +592,7 @@ function TimelineCard({
               >
                 {step.time ?? '—'}
               </p>
-            </li>
+            </motion.li>
           )
         })}
       </ol>

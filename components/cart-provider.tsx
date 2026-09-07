@@ -16,9 +16,17 @@ import type {
   AddItemsResult,
   AddToCartOptions,
   CartAddRequest,
+  CartBundleAddRequest,
   CartEntry,
 } from '@/lib/cart-types'
-import { mergeCartAddRequests } from '@/lib/cart-merge-requests'
+import {
+  mergeCartAddRequests,
+  mergeCartBundleAddRequest,
+} from '@/lib/cart-merge-requests'
+import {
+  isCartBundleEntry,
+  isCartBundleProductId,
+} from '@/lib/cart-bundle'
 import { getCartLineKey } from '@/lib/cart-line-key'
 import { normalizeImageUrl } from '@/lib/image-url'
 import {
@@ -45,6 +53,9 @@ export type CartLineItem = {
   price: number
   image: string
   quantity: number
+  bundleId?: string
+  bundleComponentCount?: number
+  bundleComponents?: CartEntry['bundleComponents']
 }
 
 type AddItemsOptions = {
@@ -66,6 +77,10 @@ type CartContextValue = {
     requests: CartAddRequest[],
     options?: AddItemsOptions,
   ) => AddItemsResult
+  addBundle: (
+    request: CartBundleAddRequest,
+    options?: AddItemsOptions,
+  ) => AddItemsResult
   removeItem: (lineKey: string) => void
   setQuantity: (
     lineKey: string,
@@ -77,6 +92,23 @@ type CartContextValue = {
 
 const CartContext = createContext<CartContextValue | null>(null)
 
+function isStoredCartEntry(entry: unknown): entry is CartEntry {
+  if (typeof entry !== 'object' || entry === null) return false
+  const value = entry as CartEntry
+  if (typeof value.productId !== 'string' || typeof value.quantity !== 'number') {
+    return false
+  }
+  if (value.quantity <= 0) return false
+  if (value.bundleId) {
+    return (
+      typeof value.bundleId === 'string' &&
+      Array.isArray(value.bundleComponents) &&
+      value.bundleComponents.length > 0
+    )
+  }
+  return !isCartBundleProductId(value.productId)
+}
+
 function loadStoredCart(): CartEntry[] {
   if (typeof window === 'undefined') return []
   try {
@@ -84,14 +116,7 @@ function loadStoredCart(): CartEntry[] {
     if (!raw) return []
     const parsed = JSON.parse(raw) as unknown
     if (!Array.isArray(parsed)) return []
-    return parsed.filter(
-      (entry): entry is CartEntry =>
-        typeof entry === 'object' &&
-        entry !== null &&
-        typeof (entry as CartEntry).productId === 'string' &&
-        typeof (entry as CartEntry).quantity === 'number' &&
-        (entry as CartEntry).quantity > 0,
-    )
+    return parsed.filter(isStoredCartEntry)
   } catch {
     return []
   }
@@ -106,35 +131,64 @@ function entriesToLineItems(
   entries: CartEntry[],
   products: Product[],
 ): CartLineItem[] {
-  return entries
-    .map((entry) => {
-      const product = products.find((p) => p.id === entry.productId)
-      if (!product) return null
+  const lines: CartLineItem[] = []
 
-      const rawVariantLabel =
-        entry.variantLabel?.trim() || getProductLineVariantLabel(product)
-      const variantLabel =
-        rawVariantLabel &&
-        !isJunkVariantLabel(rawVariantLabel)
-          ? rawVariantLabel
-          : undefined
-      const image = entry.variantImage
-        ? normalizeImageUrl(entry.variantImage)
-        : normalizeImageUrl(product.image)
-
-      return {
+  for (const entry of entries) {
+    if (isCartBundleEntry(entry)) {
+      const name = entry.bundleName?.trim() || 'Bundle'
+      const image = normalizeImageUrl(
+        entry.bundleImage ||
+          products.find((p) => p.id === entry.bundleComponents?.[0]?.productId)
+            ?.image ||
+          '/gelos/watermelon2.jpeg',
+      )
+      const componentCount = entry.bundleComponents?.length ?? 0
+      lines.push({
         lineKey: getCartLineKey(entry),
-        id: product.id,
-        productName: product.name,
-        name: getCartDisplayName(product.name, variantLabel),
-        variantLabel,
-        variantImage: entry.variantImage,
-        price: entry.unitPrice ?? product.price,
+        id: entry.productId,
+        productName: name,
+        name,
+        variantLabel:
+          componentCount > 0
+            ? `Bundle · ${componentCount} item${componentCount === 1 ? '' : 's'}`
+            : 'Bundle',
+        price: entry.unitPrice ?? 0,
         image,
         quantity: entry.quantity,
-      }
+        bundleId: entry.bundleId,
+        bundleComponentCount: componentCount,
+        bundleComponents: entry.bundleComponents,
+      })
+      continue
+    }
+
+    const product = products.find((p) => p.id === entry.productId)
+    if (!product) continue
+
+    const rawVariantLabel =
+      entry.variantLabel?.trim() || getProductLineVariantLabel(product)
+    const variantLabel =
+      rawVariantLabel && !isJunkVariantLabel(rawVariantLabel)
+        ? rawVariantLabel
+        : undefined
+    const image = entry.variantImage
+      ? normalizeImageUrl(entry.variantImage)
+      : normalizeImageUrl(product.image)
+
+    lines.push({
+      lineKey: getCartLineKey(entry),
+      id: product.id,
+      productName: product.name,
+      name: getCartDisplayName(product.name, variantLabel),
+      variantLabel,
+      variantImage: entry.variantImage,
+      price: entry.unitPrice ?? product.price,
+      image,
+      quantity: entry.quantity,
     })
-    .filter((item): item is CartLineItem => item !== null)
+  }
+
+  return lines
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
@@ -238,6 +292,53 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [addItems],
   )
 
+  const addBundle = useCallback(
+    (
+      request: CartBundleAddRequest,
+      options?: AddItemsOptions,
+    ): AddItemsResult => {
+      const result = mergeCartBundleAddRequest(
+        entriesRef.current,
+        request,
+        getProductById,
+      )
+
+      entriesRef.current = result.entries
+      setEntries(result.entries)
+
+      for (const event of result.trackEvents) {
+        trackAddToCart({
+          ...event,
+          price: convertForLocation(
+            event.price,
+            locationId,
+            location.currencyCode,
+          ),
+          currency: location.currencyCode,
+        })
+      }
+
+      if (result.added === 0) {
+        if (!options?.silent) {
+          toast.error('Could not add this bundle to your cart.')
+        }
+        return { added: result.added, skipped: result.skipped }
+      }
+
+      trackVisitorFunnelEvent('add_to_cart')
+
+      if (!options?.silent) {
+        toast.success('Added to cart', {
+          description: result.addedNames[0],
+        })
+        router.push('/cart')
+      }
+
+      return { added: result.added, skipped: result.skipped }
+    },
+    [getProductById, location.currencyCode, locationId, router],
+  )
+
   const removeItem = useCallback((lineKey: string) => {
     setEntries((prev) => {
       const next = prev.filter((e) => getCartLineKey(e) !== lineKey)
@@ -282,6 +383,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       isHydrated,
       addItem,
       addItems,
+      addBundle,
       removeItem,
       setQuantity,
       clearCart,
@@ -293,6 +395,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       isHydrated,
       addItem,
       addItems,
+      addBundle,
       removeItem,
       setQuantity,
       clearCart,

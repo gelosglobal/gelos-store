@@ -13,6 +13,7 @@ import { trackInitiateCheckout } from '@/lib/meta-pixel'
 import { getInitiateCheckoutEventId } from '@/lib/meta-event-ids'
 import { getOrCreateVisitorId } from '@/lib/visitor-id'
 import { convertForLocation } from '@/lib/exchange-rates'
+import { toShopifyCheckoutItem } from '@/lib/cart-checkout-items'
 import { startShopifyCheckout } from '@/lib/shopify/start-checkout-client'
 import {
   shopifyCountryCodeFromLocation,
@@ -141,7 +142,7 @@ export function CartSummaryPanel({
       )
 
       const checkoutUrl = await startShopifyCheckout({
-        items,
+        items: items.map(toShopifyCheckoutItem),
         countryCode:
           countryCode || shopifyCountryCodeFromLocation(locationId),
         locationId,
