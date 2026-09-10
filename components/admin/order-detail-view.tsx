@@ -66,8 +66,12 @@ type OrderDetailViewProps = {
   onRepairItems?: () => void
   creatingDhlShipment?: boolean
   refreshingDhlTracking?: boolean
+  requestingDhlPickup?: boolean
+  cancellingDhlPickup?: boolean
   onCreateDhlShipment?: () => void
   onRefreshDhlTracking?: () => void
+  onRequestDhlPickup?: () => void
+  onCancelDhlPickup?: () => void
   /** Live MyDHL (DHL_ENV=production). Test mode will not dispatch a courier. */
   dhlLive?: boolean
 }
@@ -390,8 +394,12 @@ export function OrderDetailView({
   onRepairItems,
   creatingDhlShipment = false,
   refreshingDhlTracking = false,
+  requestingDhlPickup = false,
+  cancellingDhlPickup = false,
   onCreateDhlShipment,
   onRefreshDhlTracking,
+  onRequestDhlPickup,
+  onCancelDhlPickup,
   dhlLive = false,
 }: OrderDetailViewProps) {
   const [conversionOpen, setConversionOpen] = useState(false)
@@ -638,17 +646,50 @@ export function OrderDetailView({
                             Dispatch {order.dhl.dispatchConfirmationNumber}
                           </p>
                         ) : null}
+                        {onCancelDhlPickup ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                            disabled={cancellingDhlPickup}
+                            onClick={onCancelDhlPickup}
+                          >
+                            {cancellingDhlPickup ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              'Cancel pickup'
+                            )}
+                          </Button>
+                        ) : null}
                       </div>
-                    ) : order.dhl.error ? (
+                    ) : (
                       <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
                         <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-800">
                           Pickup not booked
                         </p>
                         <p className="mt-1 text-sm text-amber-900">
-                          {order.dhl.error}
+                          {order.dhl.error ??
+                            'No courier collection is scheduled for this label yet.'}
                         </p>
+                        {onRequestDhlPickup ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                            disabled={requestingDhlPickup}
+                            onClick={onRequestDhlPickup}
+                          >
+                            {requestingDhlPickup ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              'Request pickup'
+                            )}
+                          </Button>
+                        ) : null}
                       </div>
-                    ) : null}
+                    )}
                     {order.dhl.lastStatus || order.dhl.lastDescription ? (
                       <p>
                         {order.dhl.lastStatus

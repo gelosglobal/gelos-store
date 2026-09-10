@@ -1,8 +1,9 @@
 import type { Prisma } from '@prisma/client'
 import { validateDhlAddress } from '@/lib/dhl/address'
 import { getDhlConfig, isDhlShippingConfigured } from '@/lib/dhl/config'
-import { createDhlPickup } from '@/lib/dhl/pickups'
+import { cancelDhlPickup, createDhlPickup } from '@/lib/dhl/pickups'
 import { convertDhlQuoteToCurrency } from '@/lib/dhl/prices'
+import { resolveDhlShipmentProfile } from '@/lib/dhl/product-codes'
 import { fetchDhlRates } from '@/lib/dhl/rates'
 import { resolveShippingDetails } from '@/lib/dhl/shipping-details'
 import { createDhlShipment } from '@/lib/dhl/shipments'
@@ -224,6 +225,134 @@ export async function fulfillOrderWithDhl(order: OrderForDhl) {
     dhl: record,
     pickupError,
   }
+}
+
+/**
+ * Book a DHL courier pickup for an order that already has a shipment.
+ * `fulfillOrderWithDhl` books this automatically; this is the retry path for
+ * when the shipment succeeded but `POST /pickups` did not.
+ */
+export async function requestOrderDhlPickup(order: OrderForDhl) {
+  if (!isDhlShippingConfigured()) {
+    throw new Error(
+      'DHL shipping is not fully configured. Add shipper contact env vars.',
+    )
+  }
+
+  const existing = asDhlShipmentRecord(order.dhl)
+  if (!existing?.trackingNumber) {
+    throw new Error('Create the DHL shipment before requesting pickup')
+  }
+  if (existing.pickupConfirmationNumber) {
+    throw new Error(
+      `Pickup is already booked (${existing.pickupConfirmationNumber}). Cancel it before booking again.`,
+    )
+  }
+
+  const marketId = canonicalizeLocationId(order.locationId ?? undefined)
+  const destination = resolveShippingDetails({
+    shippingDetails: order.shippingDetails,
+    shippingAddress: order.shippingAddress,
+    fallbackCountry: marketId ? countryCodeFromLocation(marketId) : undefined,
+  })
+  if (!destination) {
+    throw new Error(
+      'This order needs a city and country on the shipping address before DHL can book a pickup.',
+    )
+  }
+
+  const lineItems = parseCheckoutLineItems(order.items)
+  if (lineItems.length === 0) {
+    throw new Error('This order has no line items to collect')
+  }
+
+  const config = getDhlConfig()
+  const shipper = shipperDetailsFromConfig()
+  const invoiceCurrency = (
+    order.currency.trim() || config.accountCurrency
+  ).toUpperCase()
+  const itemCount = lineItems.reduce((sum, item) => sum + item.quantity, 0)
+  const declaredValue =
+    Math.round(
+      lineItems.reduce((sum, item) => sum + item.price * item.quantity, 0) * 100,
+    ) / 100
+
+  const profile = resolveDhlShipmentProfile(
+    config.shipperCountryCode,
+    destination.countryCode,
+    {
+      exportAccount: config.exportAccount,
+      importAccount: config.importAccount,
+      accountCountryCode: config.shipperCountryCode,
+    },
+    existing.productCode,
+  )
+
+  const pickup = await createDhlPickup({
+    shipper,
+    receiver: {
+      fullName: order.customerName,
+      email: order.customerEmail,
+      phone: order.customerPhone ?? undefined,
+      address: destination,
+    },
+    profile,
+    itemCount,
+    declaredValue,
+    declaredValueCurrency: invoiceCurrency,
+  })
+
+  if (!pickup.confirmationNumber) {
+    throw new Error('DHL accepted the request but returned no pickup confirmation')
+  }
+
+  const record: DhlShipmentRecord = {
+    ...existing,
+    pickupConfirmationNumber: pickup.confirmationNumber,
+    dispatchConfirmationNumber: pickup.dispatchConfirmationNumber,
+    pickupRequestedAt: new Date().toISOString(),
+    pickupCancelledAt: undefined,
+    error: undefined,
+  }
+
+  await prisma.order.update({
+    where: { id: order.id },
+    data: { dhl: record as Prisma.InputJsonValue },
+  })
+
+  return record
+}
+
+/** Cancel a booked DHL pickup (CBJ). The shipment and label stay valid. */
+export async function cancelOrderDhlPickup(
+  order: OrderForDhl,
+  options?: { requestorName?: string; reason?: string },
+) {
+  const existing = asDhlShipmentRecord(order.dhl)
+  if (!existing?.pickupConfirmationNumber) {
+    throw new Error('This order has no booked DHL pickup to cancel')
+  }
+
+  const config = getDhlConfig()
+  await cancelDhlPickup({
+    confirmationNumber: existing.pickupConfirmationNumber,
+    requestorName: options?.requestorName?.trim() || config.shipperName,
+    reason: options?.reason,
+  })
+
+  const record: DhlShipmentRecord = {
+    ...existing,
+    pickupConfirmationNumber: undefined,
+    dispatchConfirmationNumber: undefined,
+    pickupCancelledAt: new Date().toISOString(),
+  }
+
+  await prisma.order.update({
+    where: { id: order.id },
+    data: { dhl: record as Prisma.InputJsonValue },
+  })
+
+  return record
 }
 
 export async function refreshOrderDhlTracking(order: OrderForDhl) {

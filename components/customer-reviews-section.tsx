@@ -1,5 +1,8 @@
+'use client'
+
 import { Star } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useLocation } from '@/components/location-provider'
 import { customerReviews } from '@/lib/customer-reviews'
 import { cn } from '@/lib/utils'
 
@@ -82,6 +85,12 @@ function CustomerReviewsTrack() {
 }
 
 export function CustomerReviewsSection() {
+  const { locationId } = useLocation()
+  const lovedByHeading =
+    locationId === 'usa'
+      ? 'Loved by smiles worldwide'
+      : 'Loved by smiles across Ghana'
+
   return (
     <section
       aria-label="Customer reviews"
@@ -89,7 +98,7 @@ export function CustomerReviewsSection() {
     >
       <div className="px-4 text-center sm:px-6 lg:px-8">
         <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-[2.75rem] md:leading-[1.1]">
-          Loved by smiles across Ghana
+          {lovedByHeading}
         </h2>
         <p className="mt-3 flex flex-wrap items-center justify-center gap-2 text-sm text-neutral-600 sm:mt-4 sm:text-base">
           <span className="flex items-center gap-0.5" aria-hidden>

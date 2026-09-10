@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
+import { useLocation } from '@/components/location-provider'
 import {
   footerLinkGroups,
   footerSocialLinks,
@@ -115,6 +116,8 @@ function FooterStoreLocatorBanner({ className }: { className?: string }) {
 }
 
 export function SiteFooter() {
+  const { locationId } = useLocation()
+  const showStoreLocator = locationId !== 'usa'
   const [newsletterEmail, setNewsletterEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -169,7 +172,12 @@ export function SiteFooter() {
           />
 
           <div className="relative p-6 sm:p-8 lg:p-10">
-            <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_28rem] xl:items-start xl:gap-8">
+            <div
+              className={cn(
+                'grid gap-8 xl:items-start xl:gap-8',
+                showStoreLocator && 'xl:grid-cols-[minmax(0,1fr)_28rem]',
+              )}
+            >
               <div className="flex min-w-0 flex-col gap-8 lg:flex-row lg:items-start lg:gap-6">
                 <div className="shrink-0">
                   <Link href="/" className="inline-block">
@@ -232,13 +240,21 @@ export function SiteFooter() {
                       <FooterLinkColumn
                         key={group.title}
                         title={group.title}
-                        links={group.links}
+                        links={
+                          showStoreLocator
+                            ? group.links
+                            : group.links.filter(
+                                (link) => link.href !== '/find-a-store',
+                              )
+                        }
                       />
                     ))}
                 </div>
               </div>
 
-              <FooterStoreLocatorBanner className="w-full max-w-full justify-self-stretch xl:justify-self-end" />
+              {showStoreLocator ? (
+                <FooterStoreLocatorBanner className="w-full max-w-full justify-self-stretch xl:justify-self-end" />
+              ) : null}
             </div>
 
             <div className="mt-6 flex flex-col gap-4 border-t border-white/10 pt-5 lg:flex-row lg:items-center lg:justify-between lg:gap-6">

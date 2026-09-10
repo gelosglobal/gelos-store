@@ -18,6 +18,8 @@ export default function AdminOrderDetailPage() {
   const [repairingItems, setRepairingItems] = useState(false)
   const [creatingDhlShipment, setCreatingDhlShipment] = useState(false)
   const [refreshingDhlTracking, setRefreshingDhlTracking] = useState(false)
+  const [requestingDhlPickup, setRequestingDhlPickup] = useState(false)
+  const [cancellingDhlPickup, setCancellingDhlPickup] = useState(false)
   const [dhlLive, setDhlLive] = useState(false)
 
   const loadOrder = useCallback(async () => {
@@ -201,6 +203,59 @@ export default function AdminOrderDetailPage() {
     }
   }
 
+  const requestDhlPickup = async () => {
+    if (!orderId) return
+
+    setRequestingDhlPickup(true)
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/dhl/pickup`, {
+        method: 'POST',
+      })
+      const data = (await res.json()) as {
+        error?: string
+        order?: AdminOrderDetail
+        pickupConfirmationNumber?: string
+      }
+      if (!res.ok) throw new Error(data.error ?? 'Failed to request pickup')
+      if (data.order) setOrder(data.order)
+      toast.success(
+        data.pickupConfirmationNumber
+          ? `Pickup booked: ${data.pickupConfirmationNumber}`
+          : 'Pickup booked',
+      )
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to request pickup',
+      )
+    } finally {
+      setRequestingDhlPickup(false)
+    }
+  }
+
+  const cancelDhlPickup = async () => {
+    if (!orderId) return
+
+    setCancellingDhlPickup(true)
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/dhl/pickup`, {
+        method: 'DELETE',
+      })
+      const data = (await res.json()) as {
+        error?: string
+        order?: AdminOrderDetail
+      }
+      if (!res.ok) throw new Error(data.error ?? 'Failed to cancel pickup')
+      if (data.order) setOrder(data.order)
+      toast.success('Pickup cancelled')
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to cancel pickup',
+      )
+    } finally {
+      setCancellingDhlPickup(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -225,6 +280,8 @@ export default function AdminOrderDetailPage() {
       repairingItems={repairingItems}
       creatingDhlShipment={creatingDhlShipment}
       refreshingDhlTracking={refreshingDhlTracking}
+      requestingDhlPickup={requestingDhlPickup}
+      cancellingDhlPickup={cancellingDhlPickup}
       onSendInvoice={sendInvoice}
       onRepairItems={() => void repairItems()}
       onPaymentStatusChange={(paymentStatus) => patchOrder({ paymentStatus })}
@@ -239,6 +296,14 @@ export default function AdminOrderDetailPage() {
       onRefreshDhlTracking={
         usesLiveDhlRates(order.locationId) || Boolean(order.dhl)
           ? () => void refreshDhlTracking()
+          : undefined
+      }
+      onRequestDhlPickup={
+        order.dhl?.trackingNumber ? () => void requestDhlPickup() : undefined
+      }
+      onCancelDhlPickup={
+        order.dhl?.pickupConfirmationNumber
+          ? () => void cancelDhlPickup()
           : undefined
       }
       dhlLive={dhlLive}

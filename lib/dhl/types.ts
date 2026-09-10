@@ -64,6 +64,8 @@ export type DhlShipmentRecord = {
   trackingUrl?: string
   pickupConfirmationNumber?: string
   dispatchConfirmationNumber?: string
+  pickupRequestedAt?: string
+  pickupCancelledAt?: string
   accountType?: DhlAccountType
   isCustomsDeclarable?: boolean
   addressValid?: boolean

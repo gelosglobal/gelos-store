@@ -5,6 +5,7 @@ import { AtomIcon, type AtomIconHandle } from '@/components/ui/atom'
 import { RabbitIcon, type RabbitIconHandle } from '@/components/ui/rabbit'
 import { ShieldCheckIcon, type ShieldCheckIconHandle } from '@/components/ui/shield-check'
 import { TruckIcon, type TruckIconHandle } from '@/components/ui/truck'
+import { useLocation } from '@/components/location-provider'
 import { trustStats, type TrustStat, type TrustStatIcon } from '@/lib/trust-stats'
 import { cn } from '@/lib/utils'
 
@@ -69,6 +70,12 @@ function TrustStatItem({ stat, index }: { stat: TrustStat; index: number }) {
 }
 
 export function TrustStatsBar({ className }: TrustStatsBarProps) {
+  const { locationId } = useLocation()
+  const stats =
+    locationId === 'usa'
+      ? trustStats.filter((stat) => stat.id !== 'free-delivery')
+      : trustStats
+
   return (
     <div
       className={cn(
@@ -77,7 +84,7 @@ export function TrustStatsBar({ className }: TrustStatsBarProps) {
         className,
       )}
     >
-      {trustStats.map((stat, index) => (
+      {stats.map((stat, index) => (
         <TrustStatItem key={stat.id} stat={stat} index={index} />
       ))}
     </div>
