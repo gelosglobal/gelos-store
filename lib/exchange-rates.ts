@@ -67,19 +67,30 @@ export const USD_TO_LOCAL: Record<string, number> = {
 }
 
 /**
+ * Fallback GHS→USD when live FX is unavailable (~GHS 11.8 / USD as of Sep 2026).
+ * Live quotes from `fetchUsdToLocalRates` override this whenever GHS is present.
+ */
+export const DEFAULT_USD_PER_GHS = 0.085
+
+/** Previous hardcoded default — migrated away when loading market settings. */
+export const LEGACY_USD_PER_GHS = 0.064
+
+/**
  * Target currency units received per 1 GHS.
  * Override via EXCHANGE_RATES JSON in env, e.g.
- * EXCHANGE_RATES={"USD":0.064,"NGN":108,"GHS":1}
+ * EXCHANGE_RATES={"USD":0.085,"NGN":108,"GHS":1}
  * Admin market settings can also override rates at runtime (client + server cache).
+ * When live FX is available, USD is refreshed from the live USD→GHS quote.
  */
 const DEFAULT_RATES: Record<string, number> = {
   GHS: 1,
-  USD: 0.064,
+  USD: DEFAULT_USD_PER_GHS,
   NGN: 108,
 }
 
 let runtimeRates: Record<string, number> | null = null
 let liveUsdToLocal: Record<string, number> | null = null
+let lockedCurrencies: Set<string> = new Set(['GHS'])
 
 /** Apply rates from market settings (client provider or server cache). */
 export function setRuntimeExchangeRates(
@@ -95,18 +106,54 @@ export function setLiveUsdToLocalRates(
   liveUsdToLocal = rates
 }
 
+/** Currencies that must keep the admin/custom rate (skip live FX overwrite). */
+export function setLockedExchangeCurrencies(
+  currencies: Iterable<string> | null,
+): void {
+  lockedCurrencies = new Set(
+    [...(currencies ?? ['GHS'])].map((code) => code.toUpperCase()),
+  )
+  if (!lockedCurrencies.has('GHS')) lockedCurrencies.add('GHS')
+}
+
+/** Derive GHS→USD from a live USD→GHS quote. */
+export function ghsToUsdFromLive(
+  usdToLocal?: Record<string, number> | null,
+): number | undefined {
+  const usdToGhs = usdToLocal?.GHS
+  if (!Number.isFinite(usdToGhs) || !usdToGhs || usdToGhs <= 0) return undefined
+  return Math.round((1 / usdToGhs) * 1e8) / 1e8
+}
+
+/**
+ * Build GHS→shopper rates from fallbacks + live FX.
+ * Currencies in `lockedCurrencies` keep their base rate (admin custom).
+ * Unlocked currencies are refreshed from live quotes when available.
+ */
 export function applyUsdPivotRates(
   baseRates: Record<string, number>,
   usdToLocal?: Record<string, number> | null,
+  locked: Iterable<string> = lockedCurrencies,
 ): Record<string, number> {
-  const usd = baseRates.USD
+  const lockedSet = new Set(
+    [...locked].map((code) => code.toUpperCase()),
+  )
+  if (!lockedSet.has('GHS')) lockedSet.add('GHS')
+
   const merged: Record<string, number> = { ...baseRates }
+  const liveUsd = ghsToUsdFromLive(usdToLocal)
+  if (liveUsd && !lockedSet.has('USD')) {
+    merged.USD = liveUsd
+  }
+
+  const usd = merged.USD
   if (!usd || usd <= 0) return merged
 
   const crosses = { ...USD_TO_LOCAL, ...(usdToLocal ?? {}) }
   for (const [code, usdToTarget] of Object.entries(crosses)) {
     if (!Number.isFinite(usdToTarget) || usdToTarget <= 0) continue
-    if (merged[code] != null) continue
+    if (code === 'USD' || code === 'GHS') continue
+    if (lockedSet.has(code)) continue
     merged[code] = Math.round(usd * usdToTarget * 1e8) / 1e8
   }
   return merged
@@ -129,6 +176,7 @@ function getRates(): Record<string, number> {
   return applyUsdPivotRates(
     { ...getEnvRates(), ...(runtimeRates ?? {}) },
     liveUsdToLocal,
+    lockedCurrencies,
   )
 }
 

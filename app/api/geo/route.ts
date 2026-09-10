@@ -5,9 +5,13 @@ import { fetchUsdToLocalRates } from '@/lib/fx-live'
 import {
   applyUsdPivotRates,
   setLiveUsdToLocalRates,
+  setLockedExchangeCurrencies,
   setRuntimeExchangeRates,
 } from '@/lib/exchange-rates'
-import { marketRatesToCurrencyMap } from '@/lib/market-settings'
+import {
+  lockedMarketCurrencies,
+  marketRatesToCurrencyMap,
+} from '@/lib/market-settings'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,12 +23,15 @@ export async function GET(request: Request) {
       fetchUsdToLocalRates(),
     ])
 
+    const locked = lockedMarketCurrencies(markets)
     const marketRates = marketRatesToCurrencyMap(markets)
+    setLockedExchangeCurrencies(locked)
     setLiveUsdToLocalRates(usdToLocal)
-    const rates = applyUsdPivotRates(marketRates, usdToLocal)
+    const rates = applyUsdPivotRates(marketRates, usdToLocal, locked)
+    setRuntimeExchangeRates(rates)
 
     return NextResponse.json(
-      { ...geo, rates },
+      { ...geo, rates, usdToLocal, lockedCurrencies: locked },
       {
         headers: {
           'Cache-Control': 'private, no-store',

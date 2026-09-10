@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "MYDHL API",
-    "description": "MyDHL API samples for Gelos. Import `Gelos MyDHL.postman_environment.json`, fill username/password/export_acct from .env.local (DHL_API_KEY / DHL_API_SECRET / DHL_EXPORT_ACCOUNT), then run RE02 \u2192 GR05 Package (Accra\u2192US) and RE05 Tracking. Stay on test baseUrl until go-live.",
+    "description": "MyDHL API samples for Gelos Global (production-enabled). Import `Gelos MyDHL.postman_environment.json` (prod baseUrl), fill username/password/export_acct from .env.local (DHL_API_KEY / DHL_API_SECRET / DHL_EXPORT_ACCOUNT), then run RE02 \u2192 GR05 Package (Accra\u2192US) and RE05 Tracking. Use /mydhlapi for live; /mydhlapi/test for sandpit.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [

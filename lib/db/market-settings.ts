@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { isDatabaseConfigured } from '@/lib/env'
+import { LEGACY_USD_PER_GHS } from '@/lib/exchange-rates'
 import {
   DEFAULT_ALL_MARKET_SETTINGS,
   sanitizeAllMarketSettings,
@@ -29,6 +30,10 @@ function withStripeEnabled(markets: AllMarketSettings): AllMarketSettings {
   }
 }
 
+function isLegacyUsdRate(value: unknown): boolean {
+  return typeof value === 'number' && Math.abs(value - LEGACY_USD_PER_GHS) < 1e-9
+}
+
 export async function getAllMarketSettings(): Promise<AllMarketSettings> {
   if (!isDatabaseConfigured()) return withStripeEnabled(DEFAULT_ALL_MARKET_SETTINGS)
 
@@ -38,7 +43,33 @@ export async function getAllMarketSettings(): Promise<AllMarketSettings> {
   })
 
   if (!doc) return withStripeEnabled(DEFAULT_ALL_MARKET_SETTINGS)
-  return withStripeEnabled(parseMarkets(doc.markets))
+
+  const parsed = withStripeEnabled(parseMarkets(doc.markets))
+  const raw = doc.markets as
+    | {
+        usa?: { exchangeRate?: number }
+        international?: { exchangeRate?: number }
+      }
+    | null
+
+  if (
+    isLegacyUsdRate(raw?.usa?.exchangeRate) ||
+    isLegacyUsdRate(raw?.international?.exchangeRate)
+  ) {
+    void prisma.storeSettings
+      .update({
+        where: { key: SETTINGS_KEY },
+        data: { markets: parsed as unknown as Prisma.InputJsonValue },
+      })
+      .catch((error) => {
+        console.warn(
+          '[market-settings] Failed to persist USD rate migration',
+          error,
+        )
+      })
+  }
+
+  return parsed
 }
 
 export async function getMarketSettings(

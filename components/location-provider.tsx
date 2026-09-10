@@ -15,6 +15,7 @@ import {
 } from '@/lib/country-currency'
 import {
   setLiveUsdToLocalRates,
+  setLockedExchangeCurrencies,
   setRuntimeExchangeRates,
 } from '@/lib/exchange-rates'
 import { formatPrice as formatPriceBase } from '@/lib/format-price'
@@ -37,6 +38,7 @@ type LocationSource = 'auto' | 'manual'
 type GeoResponse = GeoMarket & {
   rates?: Record<string, number>
   usdToLocal?: Record<string, number>
+  lockedCurrencies?: string[]
 }
 
 type LocationContextValue = {
@@ -98,6 +100,9 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       })
       .then((data) => {
         if (cancelled || !data?.countryCode) return
+        if (data.lockedCurrencies) {
+          setLockedExchangeCurrencies(data.lockedCurrencies)
+        }
         if (data.rates) setRuntimeExchangeRates(data.rates)
         if (data.usdToLocal) setLiveUsdToLocalRates(data.usdToLocal)
         const nextGeo: GeoMarket = {

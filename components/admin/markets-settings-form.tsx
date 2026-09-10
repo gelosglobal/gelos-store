@@ -187,12 +187,12 @@ export function MarketsSettingsForm() {
           <SettingsSectionCard
             title="Currency & exchange rate"
             description={
-              activeMarket === 'international'
-                ? 'International prices follow the shopper’s country currency. The USD rate below is used as the conversion pivot.'
-                : 'Catalog prices are stored in GHS. Set how many local units equal 1 GHS.'
+              activeMarket === 'ghana'
+                ? 'Catalog prices are stored in GHS for this market.'
+                : 'Catalog prices are stored in GHS, then converted for this market.'
             }
           >
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="currencyCode">Currency code</Label>
                 <Input
@@ -201,29 +201,74 @@ export function MarketsSettingsForm() {
                   onChange={(e) =>
                     updateMarket('currencyCode', e.target.value.toUpperCase())
                   }
+                  disabled={activeMarket === 'ghana'}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="exchangeRate">
-                  Rate (local per 1 GHS)
-                </Label>
-                <Input
-                  id="exchangeRate"
-                  type="number"
-                  step="any"
-                  min="0"
-                  value={market.exchangeRate}
-                  onChange={(e) =>
-                    updateMarket('exchangeRate', Number(e.target.value) || 0)
-                  }
-                />
-              </div>
+
+              {activeMarket === 'ghana' ? (
+                <p className="text-xs text-neutral-500">
+                  Ghana uses the catalog base currency (GHS). No conversion rate
+                  is needed.
+                </p>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between gap-4 rounded-lg border border-neutral-200 px-3 py-3">
+                    <div>
+                      <p className="text-sm font-medium text-neutral-950">
+                        Custom exchange rate
+                      </p>
+                      <p className="text-xs text-neutral-500">
+                        {market.customExchangeRate
+                          ? 'Using the rate you set below.'
+                          : 'Off — prices convert with live FX automatically.'}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={market.customExchangeRate}
+                      onCheckedChange={(checked) =>
+                        updateMarket('customExchangeRate', checked)
+                      }
+                    />
+                  </div>
+
+                  {market.customExchangeRate ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="exchangeRate">
+                        Rate (local per 1 GHS)
+                      </Label>
+                      <Input
+                        id="exchangeRate"
+                        type="number"
+                        step="any"
+                        min="0"
+                        value={market.exchangeRate}
+                        onChange={(e) =>
+                          updateMarket(
+                            'exchangeRate',
+                            Number(e.target.value) || 0,
+                          )
+                        }
+                      />
+                      <p className="text-xs text-neutral-500">
+                        Example: 0.085 means GH₵100 shows as $8.50.
+                        {activeMarket === 'international'
+                          ? ' This USD rate is also the pivot for other country currencies.'
+                          : ''}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-neutral-500">
+                      Live market rates update USD
+                      {activeMarket === 'international'
+                        ? ' and other currencies'
+                        : ''}{' '}
+                      automatically. Turn on custom rate only if you want to
+                      lock a fixed conversion.
+                    </p>
+                  )}
+                </>
+              )}
             </div>
-            <p className="mt-3 text-xs text-neutral-500">
-              Catalog prices are stored in GHS. Set how many local units equal 1
-              GHS. International shoppers see their local currency from geo
-              location; this USD rate is the conversion pivot.
-            </p>
           </SettingsSectionCard>
 
           <SettingsSectionCard

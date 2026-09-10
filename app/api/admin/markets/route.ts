@@ -6,9 +6,7 @@ import {
   updateMarketSettings,
 } from '@/lib/db/market-settings'
 import { loadMarketExchangeRates } from '@/lib/db/market-exchange-rates'
-import { setRuntimeExchangeRates } from '@/lib/exchange-rates'
 import {
-  marketRatesToCurrencyMap,
   sanitizeAllMarketSettings,
   sanitizeMarketSettings,
   type MarketSettings,
@@ -21,8 +19,6 @@ const LOCATION_IDS = new Set(locations.map((loc) => loc.id))
 export async function GET() {
   try {
     const markets = await getAllMarketSettings()
-    const rates = marketRatesToCurrencyMap(markets)
-    setRuntimeExchangeRates(rates)
     await loadMarketExchangeRates(markets)
 
     return NextResponse.json({
@@ -51,11 +47,11 @@ export async function PATCH(request: Request) {
         sanitizeMarketSettings(locationId, patch),
       )
     } else {
-      markets = await updateAllMarketSettings(sanitizeAllMarketSettings(body?.markets ?? body))
+      markets = await updateAllMarketSettings(
+        sanitizeAllMarketSettings(body?.markets ?? body),
+      )
     }
 
-    const rates = marketRatesToCurrencyMap(markets)
-    setRuntimeExchangeRates(rates)
     await loadMarketExchangeRates(markets)
 
     return NextResponse.json({

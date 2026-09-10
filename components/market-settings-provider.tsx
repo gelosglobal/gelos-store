@@ -10,11 +10,12 @@ import {
   type ReactNode,
 } from 'react'
 import { useLocation } from '@/components/location-provider'
-import { setRuntimeExchangeRates } from '@/lib/exchange-rates'
+import { setLockedExchangeCurrencies, setRuntimeExchangeRates } from '@/lib/exchange-rates'
 import {
   applyMarketShipping,
   DEFAULT_ALL_MARKET_SETTINGS,
   isProductAvailableInMarket,
+  lockedMarketCurrencies,
   marketRatesToCurrencyMap,
   type AllMarketSettings,
   type MarketSettings,
@@ -50,6 +51,9 @@ export function MarketSettingsProvider({ children }: { children: ReactNode }) {
       const data = (await res.json()) as { markets?: AllMarketSettings }
       if (!data.markets) return
       setMarkets(data.markets)
+      setLockedExchangeCurrencies(lockedMarketCurrencies(data.markets))
+      // Keep market base rates in sync; live USD pivot (from /api/geo) still
+      // overlays unlocked currencies via setLiveUsdToLocalRates.
       setRuntimeExchangeRates(marketRatesToCurrencyMap(data.markets))
     } catch {
       setMarkets(DEFAULT_ALL_MARKET_SETTINGS)

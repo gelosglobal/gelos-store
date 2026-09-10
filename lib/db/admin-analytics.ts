@@ -12,6 +12,7 @@ import type {
   ProductRow,
   SalesChannelRow,
 } from '@/lib/admin/analytics-types'
+import { DEFAULT_USD_PER_GHS } from '@/lib/exchange-rates'
 import { isDatabaseConfigured } from '@/lib/env'
 import { prisma } from '@/lib/prisma'
 import { getAllProducts } from '@/lib/db/products'
@@ -19,7 +20,7 @@ import { countSessionsInRange, getSessionTrafficBreakdown } from '@/lib/db/visit
 
 const DEFAULT_RATES: Record<string, number> = {
   GHS: 1,
-  USD: 0.064,
+  USD: DEFAULT_USD_PER_GHS,
   NGN: 108,
 }
 

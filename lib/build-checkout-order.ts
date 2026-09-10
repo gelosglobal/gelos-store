@@ -6,6 +6,7 @@ import {
   getPaystackCurrencyForLocation,
   hasExchangeRate,
   setLiveUsdToLocalRates,
+  setLockedExchangeCurrencies,
   setRuntimeExchangeRates,
 } from '@/lib/exchange-rates'
 import { currencyForCountry } from '@/lib/country-currency'
@@ -19,6 +20,7 @@ import {
 import {
   applyMarketShipping,
   assertMarketCartItems,
+  lockedMarketCurrencies,
   marketRatesToCurrencyMap,
   usesLiveDhlRates,
 } from '@/lib/market-settings'
@@ -122,6 +124,7 @@ export async function buildLocalizedCheckoutOrder(body: CheckoutRequestBody) {
   const markets = await getAllMarketSettings()
   const market = markets[locationId] ?? (await getMarketSettings(locationId))
   const usdToLocal = await fetchUsdToLocalRates()
+  setLockedExchangeCurrencies(lockedMarketCurrencies(markets))
   setLiveUsdToLocalRates(usdToLocal)
   setRuntimeExchangeRates(marketRatesToCurrencyMap(markets))
 

@@ -1,6 +1,14 @@
 import { convertFromBase as convertFromBaseSync } from '@/lib/exchange-rates'
 import { getAllMarketSettings } from '@/lib/db/market-settings'
+import { fetchUsdToLocalRates } from '@/lib/fx-live'
 import {
+  applyUsdPivotRates,
+  setLiveUsdToLocalRates,
+  setLockedExchangeCurrencies,
+  setRuntimeExchangeRates,
+} from '@/lib/exchange-rates'
+import {
+  lockedMarketCurrencies,
   marketRatesToCurrencyMap,
   type AllMarketSettings,
 } from '@/lib/market-settings'
@@ -13,11 +21,21 @@ const CACHE_TTL_MS = 30_000
 
 export async function loadMarketExchangeRates(
   markets?: AllMarketSettings,
+  usdToLocal?: Record<string, number> | null,
 ): Promise<Record<string, number>> {
   const all = markets ?? (await getAllMarketSettings())
-  const rates = marketRatesToCurrencyMap(all)
+  const live = usdToLocal ?? (await fetchUsdToLocalRates())
+  const locked = lockedMarketCurrencies(all)
+  const rates = applyUsdPivotRates(
+    marketRatesToCurrencyMap(all),
+    live,
+    locked,
+  )
   cachedMarketRates = rates
   cacheLoadedAt = Date.now()
+  setLockedExchangeCurrencies(locked)
+  setLiveUsdToLocalRates(live)
+  setRuntimeExchangeRates(rates)
   return rates
 }
 
