@@ -55,10 +55,10 @@ const DEFAULT_RATES: Record<LocationId, number> = {
 }
 
 function defaultPayments(locationId: LocationId): MarketPayments {
-  if (locationId === 'usa') {
-    return { paystack: false, stripe: true, cod: false }
+  if (locationId === 'usa' || locationId === 'international') {
+    return { paystack: locationId !== 'usa', stripe: true, cod: false }
   }
-  // Stripe available in every market; Paystack + COD remain for GH/NG/intl.
+  // Stripe available in every market; cash on delivery stays on for Ghana.
   return { paystack: true, stripe: true, cod: true }
 }
 
@@ -134,7 +134,10 @@ function sanitizePayments(
     paystack: asBool(raw.paystack, fallback.paystack),
     // Prefer Stripe on for all markets when unset (older saves often omitted it).
     stripe: typeof raw.stripe === 'boolean' ? raw.stripe : true,
-    cod: asBool(raw.cod, fallback.cod),
+    // International and USA never offer cash on delivery, even if an older
+    // saved settings document still has it enabled.
+    cod:
+      fallback.cod === false ? false : asBool(raw.cod, fallback.cod),
   }
 }
 

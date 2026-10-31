@@ -107,7 +107,15 @@ export function MarketsSettingsForm() {
   }[] = [
     { id: 'paystack', label: 'Paystack', hint: 'Card / mobile money' },
     { id: 'stripe', label: 'Stripe', hint: 'Card (typically US)' },
-    { id: 'cod', label: 'Cash on delivery', hint: 'Pay when delivered' },
+    ...(market.locationId === 'international' || market.locationId === 'usa'
+      ? []
+      : [
+          {
+            id: 'cod' as const,
+            label: 'Cash on delivery',
+            hint: 'Pay when delivered',
+          },
+        ]),
   ]
 
   return (
