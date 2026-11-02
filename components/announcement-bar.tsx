@@ -2,15 +2,9 @@ import Link from 'next/link'
 
 const announcements = [
   {
-    highlight: 'New Oral Care Bundles are here',
-    rest: 'Designed to give you everything you need.',
-    href: '/shop?bundles=true',
-    cta: 'Shop now',
-  },
-  {
-    highlight: 'New arrival: Gelos Hydrelle Pro Water Flosser',
-    rest: 'Deep clean between teeth — portable power for your routine.',
-    href: '/product/water-flosser-hydrelle-pro',
+    highlight: 'Black Friday is here',
+    rest: 'up to 50% off',
+    href: '/shop',
     cta: 'Shop now',
   },
 ] as const
