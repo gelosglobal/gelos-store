@@ -175,7 +175,8 @@
 .announcement-marquee {
   display: flex;
   width: max-content;
-  animation: announcement-marquee 28s linear infinite;
+  min-width: 200%;
+  animation: announcement-marquee 40s linear infinite;
 }
 
 .announcement-marquee:hover {
